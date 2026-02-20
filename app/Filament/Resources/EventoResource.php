@@ -47,6 +47,25 @@ class EventoResource extends Resource
                     ->counts('fechas')
                     ->label('Cantidad de Fechas'),
 
+                Tables\Columns\TextColumn::make('asistentes')
+                    ->label('Asistentes')
+                    ->state(function (Evento $record): string {
+                        $fechas = $record->fechas;
+                        $cantidadFechas = $fechas->count();
+
+                        if ($cantidadFechas === 0) {
+                            return '0';
+                        }
+
+                        $totalPresentes = (int) $fechas->sum('presentes_count');
+
+                        if ($cantidadFechas === 1) {
+                            return (string) $totalPresentes;
+                        }
+
+                        return number_format($totalPresentes / $cantidadFechas, 2);
+                    }),
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable(),
@@ -56,6 +75,16 @@ class EventoResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),
+            ]);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->with([
+                'fechas' => fn ($query) => $query->withCount([
+                    'asistencias as presentes_count' => fn (Builder $query) => $query->where('presente', true),
+                ]),
             ]);
     }
 

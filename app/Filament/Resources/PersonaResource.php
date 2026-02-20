@@ -65,8 +65,20 @@ class PersonaResource extends Resource
                     ->sortable(),
 
                 TextColumn::make('telefono'),
+
+                TextColumn::make('presentes_count')
+                    ->label('Presentes')
+                    ->sortable(),
             ])
             ->defaultSort('apellido');
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->withCount([
+                'asistencias as presentes_count' => fn (Builder $query) => $query->where('presente', true),
+            ]);
     }
 
     public static function getRelations(): array

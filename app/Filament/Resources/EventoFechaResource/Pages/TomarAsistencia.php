@@ -37,6 +37,7 @@ class TomarAsistencia extends Page implements Forms\Contracts\HasForms
 
             $this->asistencias[$persona->id] = [
                 'persona_id' => $persona->id,
+                'nombre_completo' => trim("{$persona->apellido} {$persona->nombre}"),
                 'presente' => $asistenciaExistente?->presente ?? false,
             ];
         }
@@ -48,11 +49,10 @@ class TomarAsistencia extends Page implements Forms\Contracts\HasForms
             Forms\Components\Repeater::make('asistencias')
                 ->schema([
                     Forms\Components\Hidden::make('persona_id'),
+                    Forms\Components\Hidden::make('nombre_completo'),
 
                     Forms\Components\Toggle::make('presente')
-                        ->label(fn ($state, $get) =>
-                            Persona::find($get('persona_id'))?->nombre
-                        ),
+                        ->label(fn ($state, $get) => $get('nombre_completo')),
                 ])
                 ->columns(1)
                 ->disableItemCreation()
