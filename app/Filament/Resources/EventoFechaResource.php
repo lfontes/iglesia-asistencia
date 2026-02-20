@@ -56,11 +56,21 @@ class EventoFechaResource extends Resource
                     ->label('Asistentes'),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+            Tables\Actions\EditAction::make(),
+            Tables\Actions\Action::make('asistencia')
+                ->label('Tomar Asistencia')
+                //->url(fn($record) => route('filament.admin.resources.evento-fechas.tomar-asistencia', $record))
+                ->url(fn($record) => EventoFechaResource::getUrl('asistencia', [
+                    'record' => $record,
+                ]))
+                ->icon('heroicon-o-check'),
+
+
             ])
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),
             ]);
+            
     }
 
 
@@ -79,6 +89,7 @@ class EventoFechaResource extends Resource
             'index' => Pages\ListEventoFechas::route('/'),
             'create' => Pages\CreateEventoFecha::route('/create'),
             'edit' => Pages\EditEventoFecha::route('/{record}/edit'),
+            'asistencia' => Pages\TomarAsistencia::route('/{record}/asistencia'),
         ];
     }
 }
