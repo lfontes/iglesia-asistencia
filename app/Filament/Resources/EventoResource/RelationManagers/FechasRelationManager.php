@@ -6,6 +6,7 @@ use Filament\Forms;
 use Filament\Tables;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Filament\Resources\RelationManagers\RelationManager;
 
 class FechasRelationManager extends RelationManager
@@ -31,6 +32,13 @@ class FechasRelationManager extends RelationManager
             ->columns([
                 Tables\Columns\TextColumn::make('fecha')
                     ->date()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('asistencias_count')
+                    ->label('Asistentes')
+                    ->counts([
+                        'asistencias' => fn (Builder $query) => $query->where('presente', true),
+                    ])
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('created_at')
