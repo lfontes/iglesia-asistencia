@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\PersonaResource\Pages;
 use App\Filament\Resources\PersonaResource\RelationManagers;
+use App\Filament\Resources\PersonaResource\RelationManagers\AsistenciasRelationManager;
 use App\Models\Persona;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -70,7 +71,11 @@ class PersonaResource extends Resource
                     ->label('Presentes')
                     ->sortable(),
             ])
-            ->defaultSort('apellido');
+            ->defaultSort('apellido')
+            ->actions([
+                Tables\Actions\ViewAction::make(),
+                Tables\Actions\EditAction::make(),
+            ]);
     }
 
     public static function getEloquentQuery(): Builder
@@ -84,7 +89,7 @@ class PersonaResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            AsistenciasRelationManager::class,
         ];
     }
 
@@ -93,6 +98,7 @@ class PersonaResource extends Resource
         return [
             'index' => Pages\ListPersonas::route('/'),
             'create' => Pages\CreatePersona::route('/create'),
+            'view' => Pages\ViewPersona::route('/{record}'),
             'edit' => Pages\EditPersona::route('/{record}/edit'),
         ];
     }
