@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\EventoResource\RelationManagers;
 
+use App\Filament\Resources\EventoFechaResource;
 use Filament\Forms;
 use Filament\Tables;
 use Filament\Forms\Form;
@@ -29,6 +30,7 @@ class FechasRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->recordUrl(fn ($record): string => EventoFechaResource::getUrl('edit', ['record' => $record]))
             ->columns([
                 Tables\Columns\TextColumn::make('fecha')
                     ->date()
@@ -48,7 +50,10 @@ class FechasRelationManager extends RelationManager
                 Tables\Actions\CreateAction::make(),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('editar')
+                    ->label('Editar')
+                    ->icon('heroicon-o-pencil-square')
+                    ->url(fn ($record): string => EventoFechaResource::getUrl('edit', ['record' => $record])),
                 Tables\Actions\DeleteAction::make(),
             ]);
     }

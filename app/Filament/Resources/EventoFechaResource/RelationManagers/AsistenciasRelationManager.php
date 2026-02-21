@@ -20,7 +20,16 @@ class AsistenciasRelationManager extends RelationManager
         return $form->schema([
             Forms\Components\Select::make('persona_id')
                 ->label('Persona')
-                ->options(Persona::query()->pluck('nombre', 'id'))
+                ->options(
+                    Persona::query()
+                        ->orderBy('apellido')
+                        ->orderBy('nombre')
+                        ->get()
+                        ->mapWithKeys(fn (Persona $persona) => [
+                            $persona->id => trim("{$persona->apellido} {$persona->nombre}"),
+                        ])
+                        ->all()
+                )
                 ->searchable()
                 ->required(),
 
@@ -37,9 +46,15 @@ class AsistenciasRelationManager extends RelationManager
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('persona.apellido')
+                    ->label('Apellido')
+                    ->searchable()
+                    ->sortable(),
+
                 Tables\Columns\TextColumn::make('persona.nombre')
-                    ->label('Persona')
-                    ->searchable(),
+                    ->label('Nombre')
+                    ->searchable()
+                    ->sortable(),
 
                 Tables\Columns\IconColumn::make('presente')
                     ->boolean(),
