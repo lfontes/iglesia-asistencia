@@ -8,6 +8,7 @@ use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Resources\RelationManagers\RelationManager;
 use App\Models\Persona;
+use Illuminate\Database\Eloquent\Builder;
 
 class AsistenciasRelationManager extends RelationManager
 {
@@ -48,16 +49,23 @@ class AsistenciasRelationManager extends RelationManager
             ->columns([
                 Tables\Columns\TextColumn::make('persona.apellido')
                     ->label('Apellido')
-                    ->searchable()
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query->whereHas(
+                        'persona',
+                        fn (Builder $personaQuery) => $personaQuery->buscarPorNombreApellido($search)
+                    ))
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('persona.nombre')
                     ->label('Nombre')
-                    ->searchable()
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query->whereHas(
+                        'persona',
+                        fn (Builder $personaQuery) => $personaQuery->buscarPorNombreApellido($search)
+                    ))
                     ->sortable(),
 
                 Tables\Columns\IconColumn::make('presente')
-                    ->boolean(),
+                    ->boolean()
+                    ->size('sm'),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime(),

@@ -7,12 +7,37 @@ use App\Models\EventoFecha;
 use Carbon\Carbon;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use OpenSpout\Reader\XLSX\Reader as XlsxReader;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
+
+Artisan::command('personas:telefonos-duplicados', function () {
+    $duplicados = DB::table('personas')
+        ->selectRaw("NULLIF(regexp_replace(COALESCE(telefono, ''), '[^0-9]', '', 'g'), '') AS telefono_norm")
+        ->selectRaw('COUNT(*) AS total')
+        ->whereNotNull('telefono')
+        ->groupBy('telefono_norm')
+        ->havingRaw('COUNT(*) > 1')
+        ->orderByDesc('total')
+        ->get();
+
+    if ($duplicados->isEmpty()) {
+        $this->info('No se encontraron telefonos duplicados.');
+
+        return self::SUCCESS;
+    }
+
+    $this->warn('Telefonos duplicados detectados:');
+    foreach ($duplicados as $row) {
+        $this->line("- {$row->telefono_norm}: {$row->total} registros");
+    }
+
+    return self::FAILURE;
+})->purpose('Detecta telefonos duplicados normalizados en personas');
 
 Artisan::command('personas:import {file : Ruta al archivo .xlsx} {--sheet=1 : Hoja a importar (base 1)} {--evento_id= : ID del evento para marcar asistencia} {--fecha= : Fecha del evento (YYYY-MM-DD) para marcar asistencia} {--dry-run : Solo valida y cuenta, no guarda}', function () {
     $file = $this->argument('file');

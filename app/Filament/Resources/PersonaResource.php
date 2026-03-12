@@ -3,8 +3,8 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\PersonaResource\Pages;
-use App\Filament\Resources\PersonaResource\RelationManagers;
 use App\Filament\Resources\PersonaResource\RelationManagers\AsistenciasRelationManager;
+use App\Filament\Resources\PersonaResource\RelationManagers\ParticipacionesGrupoRelationManager;
 use App\Models\Persona;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -15,17 +15,14 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-
-
-
-
 
 class PersonaResource extends Resource
 {
     protected static ?string $model = Persona::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+
+    protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form
     {
@@ -53,12 +50,12 @@ class PersonaResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('nombre')
-                    ->searchable()
+                TextColumn::make('apellido')
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query->buscarPorNombreApellido($search))
                     ->sortable(),
 
-                TextColumn::make('apellido')
-                    ->searchable()
+                TextColumn::make('nombre')
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query->buscarPorNombreApellido($search))
                     ->sortable(),
 
                 TextColumn::make('fecha_nacimiento')
@@ -71,6 +68,7 @@ class PersonaResource extends Resource
                     ->label('Presentes')
                     ->sortable(),
             ])
+            ->recordClasses('persona-list-row-compact')
             ->defaultSort('apellido')
             ->actions([
                 Tables\Actions\ViewAction::make(),
@@ -89,6 +87,7 @@ class PersonaResource extends Resource
     public static function getRelations(): array
     {
         return [
+            ParticipacionesGrupoRelationManager::class,
             AsistenciasRelationManager::class,
         ];
     }

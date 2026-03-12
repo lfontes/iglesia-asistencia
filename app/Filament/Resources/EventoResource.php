@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\EventoResource\Pages;
-use App\Filament\Resources\EventoResource\RelationManagers;
 use App\Filament\Resources\EventoResource\RelationManagers\FechasRelationManager;
 use App\Filament\Resources\EventoFechaResource\Pages\TomarAsistencia;
 use App\Models\Evento;
@@ -13,13 +12,14 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class EventoResource extends Resource
 {
     protected static ?string $model = Evento::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+
+    protected static ?int $navigationSort = 3;
 
     public static function form(Form $form): Form
     {
@@ -28,6 +28,23 @@ class EventoResource extends Resource
                 Forms\Components\TextInput::make('nombre')
                     ->required()
                     ->maxLength(255),
+
+                Forms\Components\Select::make('tipo_evento_id')
+                    ->label('Tipo de evento')
+                    ->relationship('tipoEvento', 'nombre')
+                    ->searchable()
+                    ->preload()
+                    ->createOptionForm([
+                        Forms\Components\TextInput::make('nombre')
+                            ->required()
+                            ->maxLength(255),
+                        Forms\Components\Toggle::make('activo')
+                            ->default(true)
+                            ->required(),
+                        Forms\Components\Textarea::make('descripcion')
+                            ->rows(3)
+                            ->columnSpanFull(),
+                    ]),
 
                 Forms\Components\Textarea::make('descripcion')
                     ->rows(3)
@@ -42,6 +59,12 @@ class EventoResource extends Resource
                 Tables\Columns\TextColumn::make('nombre')
                     ->searchable()
                     ->sortable(),
+
+                Tables\Columns\TextColumn::make('tipoEvento.nombre')
+                    ->label('Tipo')
+                    ->searchable()
+                    ->sortable()
+                    ->placeholder('-'),
 
                 Tables\Columns\TextColumn::make('fechas_count')
                     ->counts('fechas')
@@ -69,6 +92,11 @@ class EventoResource extends Resource
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable(),
+            ])
+            ->filters([
+                Tables\Filters\SelectFilter::make('tipo_evento_id')
+                    ->label('Tipo')
+                    ->relationship('tipoEvento', 'nombre'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

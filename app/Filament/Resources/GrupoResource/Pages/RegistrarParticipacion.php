@@ -1,38 +1,73 @@
 <?php
 
-namespace App\Filament\Resources\EventoFechaResource\Pages;
+namespace App\Filament\Resources\GrupoResource\Pages;
 
-use App\Filament\Resources\EventoFechaResource;
-use App\Models\Asistencia;
+use App\Filament\Resources\GrupoResource;
+use App\Models\ParticipacionGrupo;
 use App\Models\Persona;
+use App\Models\RolGrupo;
 use Carbon\Carbon;
 use Filament\Actions;
+use Filament\Forms;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Form;
 use Filament\Notifications\Notification;
-use Filament\Resources\Pages\EditRecord;
+use Filament\Resources\Pages\Concerns\InteractsWithRecord;
+use Filament\Resources\Pages\Page;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Builder;
 use OpenSpout\Reader\XLSX\Reader as XlsxReader;
 use Throwable;
 
-class EditEventoFecha extends EditRecord
+class RegistrarParticipacion extends Page implements Forms\Contracts\HasForms
 {
-    protected static string $resource = EventoFechaResource::class;
+    use Forms\Concerns\InteractsWithForms;
+    use InteractsWithRecord;
+
+    protected static string $resource = GrupoResource::class;
+
+    protected static string $view = 'filament.resources.grupo-resource.pages.registrar-participacion';
+
+    /** @var array<int, int|string> */
+    public array $personas = [];
+
+    public ?int $rol_grupo_id = null;
+
+    public function mount(int | string $record): void
+    {
+        $this->record = $this->resolveRecord($record);
+        $this->cargarParticipantes();
+    }
 
     protected function getHeaderActions(): array
     {
         return [
-            Actions\Action::make('importar_presentes')
-                ->label('Importar presentes (Excel)')
+            Actions\Action::make('importar_participantes')
+                ->label('Importar participantes (Excel)')
                 ->icon('heroicon-o-arrow-up-tray')
                 ->form([
+                    Forms\Components\Select::make('rol_grupo_id')
+                        ->label('Rol')
+                        ->placeholder('Sin rol')
+                        ->searchable()
+                        ->options(fn (): array => RolGrupo::query()
+                            ->where('activo', true)
+                            ->orderBy('nombre')
+                            ->pluck('nombre', 'id')
+                            ->all())
+                        ->default($this->rol_grupo_id),
+                    Forms\Components\Toggle::make('reemplazar_actuales')
+                        ->label('Reemplazar participantes actuales del rol')
+                        ->helperText('Si está activo, se eliminarán participantes actuales de este grupo/rol que no estén en el archivo.')
+                        ->default(false),
                     FileUpload::make('archivo_excel')
                         ->label('Archivo Excel')
                         ->acceptedFileTypes([
                             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                         ])
-                        ->directory('imports/asistencia')
+                        ->directory('imports/participacion-grupos')
                         ->disk('local')
                         ->required(),
                 ])
@@ -60,7 +95,11 @@ class EditEventoFecha extends EditRecord
                     }
 
                     try {
-                        $summary = $this->importarPresentesDesdeExcel($absolutePath);
+                        $summary = $this->importarParticipantesDesdeExcel(
+                            $absolutePath,
+                            $this->normalizarRolGrupoId($data['rol_grupo_id'] ?? null),
+                            (bool) ($data['reemplazar_actuales'] ?? false)
+                        );
                     } catch (Throwable $exception) {
                         report($exception);
 
@@ -73,6 +112,13 @@ class EditEventoFecha extends EditRecord
                         return;
                     }
 
+                    $this->rol_grupo_id = $this->normalizarRolGrupoId($data['rol_grupo_id'] ?? null);
+                    $this->cargarParticipantes();
+                    $this->form->fill([
+                        'rol_grupo_id' => $this->rol_grupo_id,
+                        'personas' => $this->personas,
+                    ]);
+
                     Notification::make()
                         ->title('Importación completada')
                         ->body(implode("\n", [
@@ -81,8 +127,9 @@ class EditEventoFecha extends EditRecord
                             "Personas existentes: {$summary['personas_existentes']}",
                             "Coincidencias por teléfono: {$summary['coincidencias_telefono']}",
                             "Coincidencias por nombre/apellido: {$summary['coincidencias_nombre']}",
-                            "Asistencias marcadas: {$summary['asistencias_marcadas']}",
-                            "Ya estaban presentes: {$summary['ya_presentes']}",
+                            "Participaciones creadas: {$summary['participaciones_creadas']}",
+                            "Ya estaban en el grupo: {$summary['ya_registradas']}",
+                            "Participaciones eliminadas por reemplazo: {$summary['participaciones_eliminadas']}",
                             "Filas inválidas: {$summary['invalidas']}",
                             "Coincidencias ambiguas: {$summary['ambiguas']}",
                             "Conflictos por teléfono: {$summary['conflictos_telefono']}",
@@ -90,8 +137,120 @@ class EditEventoFecha extends EditRecord
                         ->success()
                         ->send();
                 }),
-            Actions\DeleteAction::make(),
         ];
+    }
+
+    public function form(Form $form): Form
+    {
+        return $form->schema([
+            Forms\Components\Select::make('rol_grupo_id')
+                ->label('Rol')
+                ->placeholder('Sin rol')
+                ->searchable()
+                ->options(fn (): array => RolGrupo::query()
+                    ->where('activo', true)
+                    ->orderBy('nombre')
+                    ->pluck('nombre', 'id')
+                    ->all())
+                ->live()
+                ->afterStateUpdated(fn () => $this->cargarParticipantes()),
+
+            Forms\Components\Select::make('personas')
+                ->label('Personas')
+                ->multiple()
+                ->searchable()
+                ->preload(false)
+                ->getSearchResultsUsing(fn (string $search): array => Persona::query()
+                    ->buscarPorNombreApellido($search)
+                    ->orderBy('apellido')
+                    ->orderBy('nombre')
+                    ->limit(50)
+                    ->get()
+                    ->mapWithKeys(fn (Persona $persona): array => [
+                        $persona->id => $this->personaLabel($persona),
+                    ])
+                    ->all())
+                ->getOptionLabelsUsing(fn (array $values): array => Persona::query()
+                    ->whereIn('id', $values)
+                    ->orderBy('apellido')
+                    ->orderBy('nombre')
+                    ->get()
+                    ->mapWithKeys(fn (Persona $persona): array => [
+                        $persona->id => $this->personaLabel($persona),
+                    ])
+                    ->all()),
+        ]);
+    }
+
+    public function cargarParticipantes(): void
+    {
+        $rolGrupoId = $this->normalizarRolGrupoId($this->rol_grupo_id);
+
+        $this->personas = ParticipacionGrupo::query()
+            ->where('grupo_id', $this->getRecord()->id)
+            ->when(
+                $rolGrupoId !== null,
+                fn ($query) => $query->where('rol_grupo_id', $rolGrupoId),
+                fn ($query) => $query->whereNull('rol_grupo_id')
+            )
+            ->pluck('persona_id')
+            ->map(fn ($id): int => (int) $id)
+            ->values()
+            ->all();
+    }
+
+    public function guardar(): void
+    {
+        $grupo = $this->getRecord();
+        $rolGrupoId = $this->normalizarRolGrupoId($this->rol_grupo_id);
+
+        $personaIds = collect($this->personas)
+            ->filter(fn ($id): bool => filled($id))
+            ->map(fn ($id): int => (int) $id)
+            ->unique()
+            ->values();
+
+        ParticipacionGrupo::query()
+            ->where('grupo_id', $grupo->id)
+            ->when(
+                $rolGrupoId !== null,
+                fn ($query) => $query->where('rol_grupo_id', $rolGrupoId),
+                fn ($query) => $query->whereNull('rol_grupo_id')
+            )
+            ->when(
+                $personaIds->isNotEmpty(),
+                fn ($query) => $query->whereNotIn('persona_id', $personaIds->all())
+            )
+            ->delete();
+
+        /** @var int $personaId */
+        foreach ($personaIds as $personaId) {
+            ParticipacionGrupo::updateOrCreate(
+                [
+                    'persona_id' => $personaId,
+                    'grupo_id' => $grupo->id,
+                    'rol_grupo_id' => $rolGrupoId,
+                ],
+                [
+                    'anio' => null,
+                ]
+            );
+        }
+
+        Notification::make()
+            ->title('Participacion guardada correctamente')
+            ->success()
+            ->send();
+    }
+
+    protected function personaLabel(Persona $persona): string
+    {
+        return trim("{$persona->apellido} {$persona->nombre}");
+    }
+
+    protected function normalizarRolGrupoId(int | string | null $valor): ?int
+    {
+        return filled($valor) ? (int) $valor : null;
     }
 
     /**
@@ -101,14 +260,15 @@ class EditEventoFecha extends EditRecord
      *     personas_existentes:int,
      *     coincidencias_telefono:int,
      *     coincidencias_nombre:int,
-     *     asistencias_marcadas:int,
-     *     ya_presentes:int,
+     *     participaciones_creadas:int,
+     *     ya_registradas:int,
+     *     participaciones_eliminadas:int,
      *     invalidas:int,
      *     ambiguas:int,
      *     conflictos_telefono:int
      * }
      */
-    protected function importarPresentesDesdeExcel(string $absolutePath): array
+    protected function importarParticipantesDesdeExcel(string $absolutePath, ?int $rolGrupoId, bool $reemplazarActuales = false): array
     {
         $personas = Persona::query()
             ->select(['id', 'nombre', 'apellido', 'telefono', 'fecha_nacimiento'])
@@ -116,6 +276,7 @@ class EditEventoFecha extends EditRecord
 
         $personasPorClave = $this->indexarPersonasPorNombreApellido($personas);
         $personasPorTelefono = $this->indexarPersonasPorTelefono($personas);
+
         $headerMap = [];
         $sheetFound = false;
         $summary = [
@@ -124,12 +285,14 @@ class EditEventoFecha extends EditRecord
             'personas_existentes' => 0,
             'coincidencias_telefono' => 0,
             'coincidencias_nombre' => 0,
-            'asistencias_marcadas' => 0,
-            'ya_presentes' => 0,
+            'participaciones_creadas' => 0,
+            'ya_registradas' => 0,
+            'participaciones_eliminadas' => 0,
             'invalidas' => 0,
             'ambiguas' => 0,
             'conflictos_telefono' => 0,
         ];
+        $personaIdsImportados = [];
 
         $reader = new XlsxReader();
         $reader->open($absolutePath);
@@ -161,7 +324,6 @@ class EditEventoFecha extends EditRecord
 
                     if ($parsed === null) {
                         $summary['invalidas']++;
-
                         continue;
                     }
 
@@ -173,13 +335,11 @@ class EditEventoFecha extends EditRecord
 
                     if ($estado === 'conflicto_telefono') {
                         $summary['conflictos_telefono']++;
-
                         continue;
                     }
 
                     if ($estado === 'ambigua') {
                         $summary['ambiguas']++;
-
                         continue;
                     }
 
@@ -196,6 +356,7 @@ class EditEventoFecha extends EditRecord
                         $this->agregarPersonaAlIndiceTelefono($personasPorTelefono, $persona);
                     } else {
                         $summary['personas_existentes']++;
+
                         if ($estado === 'existente_telefono') {
                             $summary['coincidencias_telefono']++;
                         }
@@ -212,31 +373,53 @@ class EditEventoFecha extends EditRecord
 
                     if (! $persona instanceof Persona) {
                         $summary['invalidas']++;
-
                         continue;
                     }
 
-                    $asistencia = Asistencia::query()
+                    $personaIdsImportados[] = $persona->id;
+
+                    $participacion = ParticipacionGrupo::query()
                         ->firstOrNew([
                             'persona_id' => $persona->id,
-                            'evento_fecha_id' => $this->getRecord()->id,
+                            'grupo_id' => $this->getRecord()->id,
+                            'rol_grupo_id' => $rolGrupoId,
                         ]);
 
-                    if ($asistencia->exists && $asistencia->presente) {
-                        $summary['ya_presentes']++;
-
+                    if ($participacion->exists) {
+                        $summary['ya_registradas']++;
                         continue;
                     }
 
-                    $asistencia->presente = true;
-                    $asistencia->save();
-                    $summary['asistencias_marcadas']++;
+                    $participacion->anio = null;
+                    $participacion->save();
+                    $summary['participaciones_creadas']++;
                 }
 
                 break;
             }
         } finally {
             $reader->close();
+        }
+
+        if ($reemplazarActuales) {
+            $personaIdsImportados = collect($personaIdsImportados)
+                ->map(fn ($id): int => (int) $id)
+                ->unique()
+                ->values();
+
+            $deleteQuery = ParticipacionGrupo::query()
+                ->where('grupo_id', $this->getRecord()->id)
+                ->when(
+                    $rolGrupoId !== null,
+                    fn ($query) => $query->where('rol_grupo_id', $rolGrupoId),
+                    fn ($query) => $query->whereNull('rol_grupo_id')
+                );
+
+            if ($personaIdsImportados->isNotEmpty()) {
+                $deleteQuery->whereNotIn('persona_id', $personaIdsImportados->all());
+            }
+
+            $summary['participaciones_eliminadas'] = $deleteQuery->delete();
         }
 
         if (! $sheetFound) {
@@ -443,6 +626,9 @@ class EditEventoFecha extends EditRecord
         return $digits !== '' ? $digits : null;
     }
 
+    /**
+     * @param  array{nombre:string,apellido:string,telefono:?string,fecha_nacimiento:?string}  $parsed
+     */
     protected function completarDatosPersona(Persona $persona, array $parsed): bool
     {
         $dirty = false;

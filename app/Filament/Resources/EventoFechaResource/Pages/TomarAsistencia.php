@@ -2,14 +2,14 @@
 
 namespace App\Filament\Resources\EventoFechaResource\Pages;
 
-use App\Models\Persona;
 use App\Models\Asistencia;
+use App\Models\Persona;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\Pages\Page;
-use Filament\Resources\Pages\Concerns\InteractsWithRecord;
-use Filament\Notifications\Notification;
 use App\Filament\Resources\EventoFechaResource;
+use Filament\Notifications\Notification;
+use Filament\Resources\Pages\Concerns\InteractsWithRecord;
+use Filament\Resources\Pages\Page;
 
 class TomarAsistencia extends Page implements Forms\Contracts\HasForms
 {
@@ -20,58 +20,79 @@ class TomarAsistencia extends Page implements Forms\Contracts\HasForms
 
     protected static string $view = 'filament.resources.evento-fecha-resource.pages.tomar-asistencia';
 
-    public array $asistencias = [];
+    /** @var array<int, int|string> */
+    public array $presentes = [];
 
     public function mount(int | string $record): void
     {
         $this->record = $this->resolveRecord($record);
 
-        $eventoFecha = $this->getRecord();
-
-        $personas = Persona::all();
-
-        foreach ($personas as $persona) {
-            $asistenciaExistente = Asistencia::where('persona_id', $persona->id)
-                ->where('evento_fecha_id', $eventoFecha->id)
-                ->first();
-
-            $this->asistencias[$persona->id] = [
-                'persona_id' => $persona->id,
-                'nombre_completo' => trim("{$persona->apellido} {$persona->nombre}"),
-                'presente' => $asistenciaExistente?->presente ?? false,
-            ];
-        }
+        $this->presentes = Asistencia::query()
+            ->where('evento_fecha_id', $this->getRecord()->id)
+            ->where('presente', true)
+            ->pluck('persona_id')
+            ->map(fn ($id): int => (int) $id)
+            ->values()
+            ->all();
     }
 
     public function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\Repeater::make('asistencias')
-                ->schema([
-                    Forms\Components\Hidden::make('persona_id'),
-                    Forms\Components\Hidden::make('nombre_completo'),
-
-                    Forms\Components\Toggle::make('presente')
-                        ->label(fn ($state, $get) => $get('nombre_completo')),
-                ])
-                ->columns(1)
-                ->disableItemCreation()
-                ->disableItemDeletion(),
+            Forms\Components\Select::make('presentes')
+                ->label('Personas presentes')
+                ->multiple()
+                ->searchable()
+                ->preload(false)
+                ->getSearchResultsUsing(fn (string $search): array => Persona::query()
+                    ->buscarPorNombreApellido($search)
+                    ->orderBy('apellido')
+                    ->orderBy('nombre')
+                    ->limit(50)
+                    ->get()
+                    ->mapWithKeys(fn (Persona $persona): array => [
+                        $persona->id => $this->personaLabel($persona),
+                    ])
+                    ->all())
+                ->getOptionLabelsUsing(fn (array $values): array => Persona::query()
+                    ->whereIn('id', $values)
+                    ->orderBy('apellido')
+                    ->orderBy('nombre')
+                    ->get()
+                    ->mapWithKeys(fn (Persona $persona): array => [
+                        $persona->id => $this->personaLabel($persona),
+                    ])
+                    ->all()),
         ]);
     }
 
-    public function guardar()
+    public function guardar(): void
     {
         $eventoFecha = $this->getRecord();
+        $presentesIds = collect($this->presentes)
+            ->filter(fn ($id): bool => filled($id))
+            ->map(fn ($id): int => (int) $id)
+            ->unique()
+            ->values();
 
-        foreach ($this->asistencias as $data) {
+        $ausentesQuery = Asistencia::query()
+            ->where('evento_fecha_id', $eventoFecha->id);
+
+        if ($presentesIds->isNotEmpty()) {
+            $ausentesQuery->whereNotIn('persona_id', $presentesIds->all());
+        }
+
+        $ausentesQuery->delete();
+
+        /** @var int $personaId */
+        foreach ($presentesIds as $personaId) {
             Asistencia::updateOrCreate(
                 [
-                    'persona_id' => $data['persona_id'],
+                    'persona_id' => $personaId,
                     'evento_fecha_id' => $eventoFecha->id,
                 ],
                 [
-                    'presente' => $data['presente'],
+                    'presente' => true,
                 ]
             );
         }
@@ -80,5 +101,10 @@ class TomarAsistencia extends Page implements Forms\Contracts\HasForms
             ->title('Asistencia guardada correctamente')
             ->success()
             ->send();
+    }
+
+    protected function personaLabel(Persona $persona): string
+    {
+        return trim("{$persona->apellido} {$persona->nombre}");
     }
 }
