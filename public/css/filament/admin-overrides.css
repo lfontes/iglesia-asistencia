@@ -1,0 +1,32 @@
+/* Tabla compacta en todo Filament para mostrar mas filas por pantalla. */
+.fi-ta-text {
+    font-size: 0.75rem !important;
+    line-height: 1.95rem !important;
+    padding-bottom: 2px !important;
+    padding-top: 2px !important;
+}
+.fi-ta .fi-ta-header-cell {
+    padding-top: 0.35rem !important;
+    padding-bottom: 0.35rem !important;
+}
+
+.fi-ta .fi-ta-header-cell-label {
+    font-size: 0.75rem !important;
+    line-height: 0.95rem !important;
+}
+
+.fi-ta tbody .fi-ta-cell > * {
+    padding-top: 0.1rem !important;
+    padding-bottom: 0.1rem !important;
+}
+
+.fi-ta .fi-ta-text-item-label {
+    font-size: 0.75rem !important;
+    line-height: 0.75rem !important;
+}
+
+/* Ajusta columnas de iconos (ej: booleanos) para mantener altura compacta. */
+.fi-ta .fi-ta-icon-item {
+    width: 0.875rem !important;
+    height: 0.875rem !important;
+}
