@@ -2,8 +2,10 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\AsistenciaGruposCrecimiento;
 use App\Filament\Pages\Dashboard;
 use App\Filament\Widgets\ResumenGeneralWidget;
+use App\Http\Middleware\RestrictFacilitadorPanelAccess;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -29,6 +31,15 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->homeUrl(function (): string {
+                $user = auth()->user();
+
+                if ($user && $user->hasRole('facilitador') && ! $user->hasRole('admin')) {
+                    return AsistenciaGruposCrecimiento::getUrl();
+                }
+
+                return Dashboard::getUrl();
+            })
             ->brandName('Iglesia de los Libres')
             ->colors([
                 'primary' => Color::Amber,
@@ -66,6 +77,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                RestrictFacilitadorPanelAccess::class,
             ]);
     }
 }

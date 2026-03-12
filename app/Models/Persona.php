@@ -35,6 +35,11 @@ class Persona extends Model
         return $this->hasMany(ParticipacionGrupo::class);
     }
 
+    public function asistenciasGrupo()
+    {
+        return $this->hasMany(AsistenciaGrupo::class);
+    }
+
     protected function normalizePhone(?string $value): ?string
     {
         if ($value === null || $value === '') {

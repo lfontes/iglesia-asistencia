@@ -23,4 +23,9 @@ class Grupo extends Model
     {
         return $this->hasMany(ParticipacionGrupo::class);
     }
+
+    public function asistenciasGrupo()
+    {
+        return $this->hasMany(AsistenciaGrupo::class);
+    }
 }
