@@ -46,6 +46,13 @@ class GrupoResource extends Resource
                     ->searchable()
                     ->preload(),
 
+                Forms\Components\Select::make('frecuencia_asistencia')
+                    ->label('Frecuencia de asistencia')
+                    ->options(Grupo::frecuenciasAsistencia())
+                    ->live()
+                    ->default(Grupo::FRECUENCIA_SEMANAL)
+                    ->required(),
+
                 Forms\Components\Toggle::make('activo')
                     ->default(true)
                     ->required(),
@@ -74,6 +81,12 @@ class GrupoResource extends Resource
                     ->label('Anio')
                     ->sortable(),
 
+                Tables\Columns\TextColumn::make('frecuencia_asistencia')
+                    ->label('Frecuencia')
+                    ->badge()
+                    ->formatStateUsing(fn (string $state): string => Grupo::frecuenciasAsistencia()[$state] ?? ucfirst($state))
+                    ->sortable(),
+
                 Tables\Columns\TextColumn::make('participantes_count')
                     ->label('Participantes')
                     ->sortable()
@@ -88,6 +101,9 @@ class GrupoResource extends Resource
                 Tables\Filters\SelectFilter::make('tipo_grupo_id')
                     ->label('Tipo')
                     ->relationship('tipoGrupo', 'nombre'),
+                Tables\Filters\SelectFilter::make('frecuencia_asistencia')
+                    ->label('Frecuencia')
+                    ->options(Grupo::frecuenciasAsistencia()),
             ])
             ->actions([
                 Action::make('participacion')

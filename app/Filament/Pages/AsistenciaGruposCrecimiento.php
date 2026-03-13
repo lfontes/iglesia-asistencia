@@ -71,7 +71,10 @@ class AsistenciaGruposCrecimiento extends Page implements Forms\Contracts\HasFor
                         ->options(fn (): array => $this->gruposDeCrecimientoQuery()
                             ->where('activo', true)
                             ->orderBy('nombre')
-                            ->pluck('nombre', 'id')
+                            ->get()
+                            ->mapWithKeys(fn (Grupo $grupo): array => [
+                                $grupo->id => $this->grupoOptionLabel($grupo),
+                            ])
                             ->all())
                         ->live()
                         ->afterStateUpdated(function (): void {
@@ -358,6 +361,13 @@ class AsistenciaGruposCrecimiento extends Page implements Forms\Contracts\HasFor
     protected function personaLabel(Persona $persona): string
     {
         return trim("{$persona->apellido} {$persona->nombre}");
+    }
+
+    protected function grupoOptionLabel(Grupo $grupo): string
+    {
+        $frecuencia = Grupo::frecuenciasAsistencia()[$grupo->frecuencia_asistencia ?? ''] ?? 'Semanal';
+
+        return "{$grupo->nombre} ({$frecuencia})";
     }
 
     protected function gruposDeCrecimientoQuery(): Builder

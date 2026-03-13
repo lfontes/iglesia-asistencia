@@ -6,13 +6,29 @@ use Illuminate\Database\Eloquent\Model;
 
 class Grupo extends Model
 {
+    public const FRECUENCIA_SEMANAL = 'semanal';
+
+    public const FRECUENCIA_QUINCENAL = 'quincenal';
+
+    public const FRECUENCIA_MENSUAL = 'mensual';
+
     protected $fillable = [
         'nombre',
         'anio',
         'tipo_grupo_id',
+        'frecuencia_asistencia',
         'descripcion',
         'activo',
     ];
+
+    public static function frecuenciasAsistencia(): array
+    {
+        return [
+            self::FRECUENCIA_SEMANAL => 'Semanal',
+            self::FRECUENCIA_QUINCENAL => 'Quincenal',
+            self::FRECUENCIA_MENSUAL => 'Mensual',
+        ];
+    }
 
     public function tipoGrupo()
     {
