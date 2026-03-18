@@ -101,4 +101,21 @@ class PersonaResource extends Resource
             'edit' => Pages\EditPersona::route('/{record}/edit'),
         ];
     }
+
+    public static function canViewAny(): bool
+    {
+        return ! static::isSoloFacilitador() && parent::canViewAny();
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return ! static::isSoloFacilitador() && parent::shouldRegisterNavigation();
+    }
+
+    protected static function isSoloFacilitador(): bool
+    {
+        $user = auth()->user();
+
+        return $user?->hasRole('facilitador') && ! $user->hasRole('admin');
+    }
 }

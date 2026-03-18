@@ -134,4 +134,21 @@ class EventoResource extends Resource
             'asistencia' => TomarAsistencia::route('/{record}/asistencia'),
         ];
     }
+
+    public static function canViewAny(): bool
+    {
+        return ! static::isSoloFacilitador() && parent::canViewAny();
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return ! static::isSoloFacilitador() && parent::shouldRegisterNavigation();
+    }
+
+    protected static function isSoloFacilitador(): bool
+    {
+        $user = auth()->user();
+
+        return $user?->hasRole('facilitador') && ! $user->hasRole('admin');
+    }
 }
