@@ -7,16 +7,36 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    protected function isMysql(): bool
+    {
+        return DB::getDriverName() === 'mysql';
+    }
+
+    protected function mysqlIndexExists(string $table, string $index): bool
+    {
+        return DB::table('information_schema.statistics')
+            ->where('table_schema', DB::getDatabaseName())
+            ->where('table_name', $table)
+            ->where('index_name', $index)
+            ->exists();
+    }
+
     /**
      * Run the migrations.
      */
     public function up(): void
     {
-        Schema::table('personas', function (Blueprint $table) {
-            $table->string('telefono_normalizado')->nullable()->after('telefono');
-        });
+        if (! Schema::hasColumn('personas', 'telefono_normalizado')) {
+            Schema::table('personas', function (Blueprint $table) {
+                $table->string('telefono_normalizado')->nullable()->after('telefono');
+            });
+        }
 
-        DB::statement("UPDATE personas SET telefono_normalizado = NULLIF(regexp_replace(COALESCE(telefono, ''), '[^0-9]', '', 'g'), '')");
+        if ($this->isMysql()) {
+            DB::statement("UPDATE personas SET telefono_normalizado = NULLIF(REGEXP_REPLACE(COALESCE(telefono, ''), '[^0-9]', ''), '')");
+        } else {
+            DB::statement("UPDATE personas SET telefono_normalizado = NULLIF(regexp_replace(COALESCE(telefono, ''), '[^0-9]', '', 'g'), '')");
+        }
 
         // Conserva el primer registro por telefono y limpia el resto para permitir unicidad parcial.
         DB::statement("
@@ -32,7 +52,11 @@ return new class extends Migration
             )
         ");
 
-        DB::statement('CREATE UNIQUE INDEX personas_telefono_normalizado_unique ON personas (telefono_normalizado) WHERE telefono_normalizado IS NOT NULL');
+        if ($this->isMysql() && ! $this->mysqlIndexExists('personas', 'personas_telefono_normalizado_unique')) {
+            DB::statement('CREATE UNIQUE INDEX personas_telefono_normalizado_unique ON personas (telefono_normalizado)');
+        } elseif (! $this->isMysql()) {
+            DB::statement('CREATE UNIQUE INDEX personas_telefono_normalizado_unique ON personas (telefono_normalizado) WHERE telefono_normalizado IS NOT NULL');
+        }
     }
 
     /**
@@ -40,11 +64,18 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement('DROP INDEX IF EXISTS personas_telefono_normalizado_unique');
+        if ($this->isMysql()) {
+            if ($this->mysqlIndexExists('personas', 'personas_telefono_normalizado_unique')) {
+                DB::statement('DROP INDEX personas_telefono_normalizado_unique ON personas');
+            }
+        } else {
+            DB::statement('DROP INDEX IF EXISTS personas_telefono_normalizado_unique');
+        }
 
-        Schema::table('personas', function (Blueprint $table) {
-            $table->dropColumn('telefono_normalizado');
-        });
+        if (Schema::hasColumn('personas', 'telefono_normalizado')) {
+            Schema::table('personas', function (Blueprint $table) {
+                $table->dropColumn('telefono_normalizado');
+            });
+        }
     }
 };
-

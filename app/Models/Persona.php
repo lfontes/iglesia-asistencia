@@ -8,6 +8,33 @@ use Illuminate\Support\Str;
 
 class Persona extends Model
 {
+    protected const SEARCH_ACCENT_MAP = [
+        'á' => 'a',
+        'é' => 'e',
+        'í' => 'i',
+        'ó' => 'o',
+        'ú' => 'u',
+        'ä' => 'a',
+        'ë' => 'e',
+        'ï' => 'i',
+        'ö' => 'o',
+        'ü' => 'u',
+        'à' => 'a',
+        'è' => 'e',
+        'ì' => 'i',
+        'ò' => 'o',
+        'ù' => 'u',
+        'â' => 'a',
+        'ê' => 'e',
+        'î' => 'i',
+        'ô' => 'o',
+        'û' => 'u',
+        'ã' => 'a',
+        'õ' => 'o',
+        'ñ' => 'n',
+        'ç' => 'c',
+    ];
+
     protected $fillable = [
         'nombre',
         'apellido',
@@ -58,11 +85,38 @@ class Persona extends Model
             ->ascii()
             ->squish();
 
-        $normalizeSql = static fn (string $column): string => "translate(lower({$column}), 'áéíóúäëïöüàèìòùâêîôûãõñç', 'aeiouaeiouaeiouaeiouaonc')";
+        if ($normalized === '') {
+            return $query;
+        }
+
+        $driver = $query->getConnection()->getDriverName();
+        $normalizeSql = fn (string $expression): string => $this->normalizedSearchExpression($expression, $driver);
 
         return $query->where(function (Builder $q) use ($normalized, $normalizeSql): void {
             $q->whereRaw($normalizeSql('nombre').' LIKE ?', ["%{$normalized}%"])
-                ->orWhereRaw($normalizeSql('apellido').' LIKE ?', ["%{$normalized}%"]);
+                ->orWhereRaw($normalizeSql('apellido').' LIKE ?', ["%{$normalized}%"])
+                ->orWhereRaw($normalizeSql("concat_ws(' ', nombre, apellido)").' LIKE ?', ["%{$normalized}%"])
+                ->orWhereRaw($normalizeSql("concat_ws(' ', apellido, nombre)").' LIKE ?', ["%{$normalized}%"]);
         });
+    }
+
+    protected function normalizedSearchExpression(string $expression, string $driver): string
+    {
+        $lowered = "lower({$expression})";
+
+        if ($driver === 'pgsql') {
+            $from = implode('', array_keys(self::SEARCH_ACCENT_MAP));
+            $to = implode('', array_values(self::SEARCH_ACCENT_MAP));
+
+            return "translate({$lowered}, '{$from}', '{$to}')";
+        }
+
+        $normalized = $lowered;
+
+        foreach (self::SEARCH_ACCENT_MAP as $from => $to) {
+            $normalized = "replace({$normalized}, '{$from}', '{$to}')";
+        }
+
+        return $normalized;
     }
 }
