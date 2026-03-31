@@ -20,7 +20,13 @@ class GrupoResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
 
-    protected static ?string $navigationGroup = 'Catalogos';
+    protected static ?string $navigationLabel = 'Grupos';
+
+    protected static ?string $modelLabel = 'grupo';
+
+    protected static ?string $pluralModelLabel = 'grupos';
+
+    protected static ?string $navigationGroup = 'Catálogos';
 
     protected static ?int $navigationSort = 10;
 

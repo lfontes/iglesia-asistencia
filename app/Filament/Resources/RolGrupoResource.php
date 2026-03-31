@@ -16,7 +16,13 @@ class RolGrupoResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-identification';
 
-    protected static ?string $navigationGroup = 'Catalogos';
+    protected static ?string $navigationLabel = 'Roles de grupo';
+
+    protected static ?string $modelLabel = 'rol de grupo';
+
+    protected static ?string $pluralModelLabel = 'roles de grupo';
+
+    protected static ?string $navigationGroup = 'Catálogos';
 
     protected static ?int $navigationSort = 11;
 

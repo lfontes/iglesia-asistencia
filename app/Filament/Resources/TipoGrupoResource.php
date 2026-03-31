@@ -16,7 +16,13 @@ class TipoGrupoResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-squares-2x2';
 
-    protected static ?string $navigationGroup = 'Catalogos';
+    protected static ?string $navigationLabel = 'Tipos de grupo';
+
+    protected static ?string $modelLabel = 'tipo de grupo';
+
+    protected static ?string $pluralModelLabel = 'tipos de grupo';
+
+    protected static ?string $navigationGroup = 'Catálogos';
 
     protected static ?int $navigationSort = 9;
 
