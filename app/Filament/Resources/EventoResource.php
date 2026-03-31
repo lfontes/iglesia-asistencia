@@ -19,6 +19,12 @@ class EventoResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
+    protected static ?string $navigationLabel = 'Eventos';
+
+    protected static ?string $modelLabel = 'evento';
+
+    protected static ?string $pluralModelLabel = 'eventos';
+
     protected static ?int $navigationSort = 3;
 
     public static function form(Form $form): Form

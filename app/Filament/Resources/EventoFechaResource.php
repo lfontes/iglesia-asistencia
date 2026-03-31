@@ -20,6 +20,12 @@ class EventoFechaResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
+    protected static ?string $navigationLabel = 'Fechas de evento';
+
+    protected static ?string $modelLabel = 'fecha de evento';
+
+    protected static ?string $pluralModelLabel = 'fechas de evento';
+
     protected static ?int $navigationSort = 4;
 
     public static function form(Form $form): Form

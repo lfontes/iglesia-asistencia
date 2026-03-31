@@ -22,6 +22,12 @@ class PersonaResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
+    protected static ?string $navigationLabel = 'Personas';
+
+    protected static ?string $modelLabel = 'persona';
+
+    protected static ?string $pluralModelLabel = 'personas';
+
     protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form

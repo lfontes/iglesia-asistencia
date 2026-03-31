@@ -16,7 +16,13 @@ class TipoEventoResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-tag';
 
-    protected static ?string $navigationGroup = 'Catalogos';
+    protected static ?string $navigationLabel = 'Tipos de evento';
+
+    protected static ?string $modelLabel = 'tipo de evento';
+
+    protected static ?string $pluralModelLabel = 'tipos de evento';
+
+    protected static ?string $navigationGroup = 'Catálogos';
 
     protected static ?int $navigationSort = 8;
 
