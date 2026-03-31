@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Filament\Pages\AsistenciaGruposCrecimiento;
+use App\Filament\Pages\ResumenAsistenciaGrupos;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,11 +25,12 @@ class RestrictFacilitadorPanelAccess
         $routeName = (string) ($request->route()?->getName() ?? '');
 
         if ($routeName === 'filament.admin.pages.dashboard') {
-            return redirect(AsistenciaGruposCrecimiento::getUrl());
+            return redirect(ResumenAsistenciaGrupos::getUrl());
         }
 
         if (in_array($routeName, [
             'filament.admin.pages.asistencia-grupos-crecimiento',
+            'filament.admin.pages.resumen-asistencia-grupos',
             'filament.admin.auth.logout',
         ], true)) {
             return $next($request);
