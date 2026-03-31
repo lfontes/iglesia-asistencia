@@ -7,6 +7,7 @@ use App\Models\Evento;
 use App\Models\EventoFecha;
 use App\Models\Grupo;
 use App\Models\ParticipacionGrupo;
+use App\Services\AsistenciasPendientesService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -56,113 +57,7 @@ Artisan::command('grupos:asistencia-pendiente {--fecha= : Fecha de referencia YY
         return self::FAILURE;
     }
 
-    $grupos = Grupo::query()
-        ->where('activo', true)
-        ->whereHas('tipoGrupo', fn ($query) => $query->whereRaw('LOWER(nombre) LIKE ?', ['%crecimiento%']))
-        ->orderBy('nombre')
-        ->get();
-
-    $inicioSemanaAnterior = $fechaRef->copy()->subWeek()->startOfWeek(Carbon::MONDAY);
-    $finSemanaAnterior = $fechaRef->copy()->subWeek()->endOfWeek(Carbon::SUNDAY);
-    $obtenerFacilitadores = function (Grupo $grupo) use ($fechaRef): array {
-        return ParticipacionGrupo::query()
-            ->where('grupo_id', $grupo->id)
-            ->where(function ($query) use ($fechaRef): void {
-                $query->whereNull('fecha_inicio')
-                    ->orWhereDate('fecha_inicio', '<=', $fechaRef->toDateString());
-            })
-            ->where(function ($query) use ($fechaRef): void {
-                $query->whereNull('fecha_fin')
-                    ->orWhereDate('fecha_fin', '>=', $fechaRef->toDateString());
-            })
-            ->whereHas('rolGrupo', fn ($query) => $query->whereRaw('LOWER(nombre) LIKE ?', ['%facilit%']))
-            ->with('persona:id,nombre,apellido,telefono,telefono_normalizado')
-            ->get()
-            ->map(function (ParticipacionGrupo $participacion): array {
-                $persona = $participacion->persona;
-                $nombreCompleto = $persona ? trim(($persona->apellido ?? '').' '.($persona->nombre ?? '')) : 'Sin persona';
-
-                return [
-                    'persona_id' => $persona?->id,
-                    'nombre' => $nombreCompleto,
-                    'telefono' => $persona?->telefono,
-                    'telefono_normalizado' => $persona?->telefono_normalizado,
-                ];
-            })
-            ->values()
-            ->all();
-    };
-
-    $pendientes = $grupos
-        ->map(function (Grupo $grupo) use ($inicioSemanaAnterior, $finSemanaAnterior, $fechaRef, $obtenerFacilitadores): ?array {
-            $frecuencia = $grupo->frecuencia_asistencia ?: Grupo::FRECUENCIA_SEMANAL;
-
-            if ($frecuencia === Grupo::FRECUENCIA_MENSUAL) {
-                $inicioMesAnterior = $fechaRef->copy()->subMonthNoOverflow()->startOfMonth();
-                $finMesAnterior = $fechaRef->copy()->subMonthNoOverflow()->endOfMonth();
-
-                $asistenciaMesAnterior = AsistenciaGrupo::query()
-                    ->where('grupo_id', $grupo->id)
-                    ->whereBetween('fecha', [$inicioMesAnterior->toDateString(), $finMesAnterior->toDateString()])
-                    ->exists();
-
-                if ($asistenciaMesAnterior) {
-                    return null;
-                }
-
-                $ultimaAsistencia = AsistenciaGrupo::query()
-                    ->where('grupo_id', $grupo->id)
-                    ->max('fecha');
-
-                return [
-                    'grupo_id' => $grupo->id,
-                    'grupo' => $grupo->nombre,
-                    'frecuencia' => $frecuencia,
-                    'periodo_inicio' => $inicioMesAnterior->toDateString(),
-                    'periodo_fin' => $finMesAnterior->toDateString(),
-                    'ultima_asistencia' => $ultimaAsistencia,
-                    'facilitadores' => $obtenerFacilitadores($grupo),
-                ];
-            }
-
-            $asistenciaSemanaAnterior = AsistenciaGrupo::query()
-                ->where('grupo_id', $grupo->id)
-                ->whereBetween('fecha', [$inicioSemanaAnterior->toDateString(), $finSemanaAnterior->toDateString()])
-                ->exists();
-
-            if ($asistenciaSemanaAnterior) {
-                return null;
-            }
-
-            $ultimaAsistencia = AsistenciaGrupo::query()
-                ->where('grupo_id', $grupo->id)
-                ->max('fecha');
-
-            if ($frecuencia === Grupo::FRECUENCIA_QUINCENAL) {
-                if (! $ultimaAsistencia) {
-                    return null;
-                }
-
-                $inicioSemanaUltimaAsistencia = Carbon::parse($ultimaAsistencia)->startOfWeek(Carbon::MONDAY);
-                $semanasDeDiferencia = $inicioSemanaUltimaAsistencia->diffInWeeks($inicioSemanaAnterior);
-
-                if ($semanasDeDiferencia % 2 !== 0) {
-                    return null;
-                }
-            }
-
-            return [
-                'grupo_id' => $grupo->id,
-                'grupo' => $grupo->nombre,
-                'frecuencia' => $frecuencia,
-                'periodo_inicio' => $inicioSemanaAnterior->toDateString(),
-                'periodo_fin' => $finSemanaAnterior->toDateString(),
-                'ultima_asistencia' => $ultimaAsistencia,
-                'facilitadores' => $obtenerFacilitadores($grupo),
-            ];
-        })
-        ->filter()
-        ->values();
+    $pendientes = app(AsistenciasPendientesService::class)->obtener($fechaRef);
 
     if ($asJson) {
         $this->line($pendientes->toJson(JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));

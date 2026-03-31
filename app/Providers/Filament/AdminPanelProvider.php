@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 
 use App\Filament\Pages\AsistenciaGruposCrecimiento;
 use App\Filament\Pages\Dashboard;
+use App\Filament\Widgets\AsistenciasSemanalesGruposWidget;
 use App\Filament\Widgets\ResumenGeneralWidget;
 use App\Http\Middleware\RestrictFacilitadorPanelAccess;
 use Filament\Http\Middleware\Authenticate;
@@ -52,6 +53,7 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
                 ResumenGeneralWidget::class,
+                AsistenciasSemanalesGruposWidget::class,
             ])
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
