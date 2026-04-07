@@ -35,10 +35,17 @@ class RegistrarParticipacion extends Page implements Forms\Contracts\HasForms
 
     public ?int $rol_grupo_id = null;
 
+    public ?int $persona_recordatorio_id = null;
+
     public function mount(int | string $record): void
     {
         $this->record = $this->resolveRecord($record);
         $this->cargarParticipantes();
+        $this->form->fill([
+            'rol_grupo_id' => $this->rol_grupo_id,
+            'personas' => $this->personas,
+            'persona_recordatorio_id' => $this->persona_recordatorio_id,
+        ]);
     }
 
     protected function getHeaderActions(): array
@@ -117,6 +124,7 @@ class RegistrarParticipacion extends Page implements Forms\Contracts\HasForms
                     $this->form->fill([
                         'rol_grupo_id' => $this->rol_grupo_id,
                         'personas' => $this->personas,
+                        'persona_recordatorio_id' => $this->persona_recordatorio_id,
                     ]);
 
                     Notification::make()
@@ -159,6 +167,22 @@ class RegistrarParticipacion extends Page implements Forms\Contracts\HasForms
                 ->label('Personas')
                 ->multiple()
                 ->searchable()
+                ->live()
+                ->afterStateUpdated(function ($state): void {
+                    $personaIds = collect($state ?? [])
+                        ->filter(fn ($id): bool => filled($id))
+                        ->map(fn ($id): int => (int) $id)
+                        ->all();
+
+                    if ($this->persona_recordatorio_id !== null && ! in_array($this->persona_recordatorio_id, $personaIds, true)) {
+                        $this->persona_recordatorio_id = null;
+                        $this->form->fill([
+                            'rol_grupo_id' => $this->rol_grupo_id,
+                            'personas' => $personaIds,
+                            'persona_recordatorio_id' => $this->persona_recordatorio_id,
+                        ]);
+                    }
+                })
                 ->preload(false)
                 ->getSearchResultsUsing(fn (string $search): array => Persona::query()
                     ->buscarPorNombreApellido($search)
@@ -179,6 +203,22 @@ class RegistrarParticipacion extends Page implements Forms\Contracts\HasForms
                         $persona->id => $this->personaLabel($persona),
                     ])
                     ->all()),
+
+            Forms\Components\Select::make('persona_recordatorio_id')
+                ->label('Recibe recordatorios')
+                ->placeholder('Nadie seleccionado')
+                ->helperText('Cuando el rol es facilitador, este participante será el destinatario principal del recordatorio del grupo.')
+                ->options(fn (): array => Persona::query()
+                    ->whereIn('id', collect($this->personas)->filter()->map(fn ($id): int => (int) $id)->all())
+                    ->orderBy('apellido')
+                    ->orderBy('nombre')
+                    ->get()
+                    ->mapWithKeys(fn (Persona $persona): array => [
+                        $persona->id => $this->personaLabel($persona),
+                    ])
+                    ->all())
+                ->visible(fn (): bool => $this->esRolFacilitadorSeleccionado())
+                ->live(),
         ]);
     }
 
@@ -197,6 +237,16 @@ class RegistrarParticipacion extends Page implements Forms\Contracts\HasForms
             ->map(fn ($id): int => (int) $id)
             ->values()
             ->all();
+
+        $this->persona_recordatorio_id = ParticipacionGrupo::query()
+            ->where('grupo_id', $this->getRecord()->id)
+            ->where('recibe_recordatorios', true)
+            ->when(
+                $rolGrupoId !== null,
+                fn ($query) => $query->where('rol_grupo_id', $rolGrupoId),
+                fn ($query) => $query->whereNull('rol_grupo_id')
+            )
+            ->value('persona_id');
     }
 
     public function guardar(): void
@@ -209,6 +259,13 @@ class RegistrarParticipacion extends Page implements Forms\Contracts\HasForms
             ->map(fn ($id): int => (int) $id)
             ->unique()
             ->values();
+
+        $personaRecordatorioId = filled($this->persona_recordatorio_id) ? (int) $this->persona_recordatorio_id : null;
+
+        if ($personaRecordatorioId !== null && ! $personaIds->contains($personaRecordatorioId)) {
+            $personaRecordatorioId = null;
+            $this->persona_recordatorio_id = null;
+        }
 
         ParticipacionGrupo::query()
             ->where('grupo_id', $grupo->id)
@@ -233,9 +290,32 @@ class RegistrarParticipacion extends Page implements Forms\Contracts\HasForms
                 ],
                 [
                     'anio' => null,
+                    'recibe_recordatorios' => $this->esRolFacilitadorSeleccionado() && $personaRecordatorioId === $personaId,
                 ]
             );
         }
+
+        if ($this->esRolFacilitadorSeleccionado()) {
+            ParticipacionGrupo::query()
+                ->where('grupo_id', $grupo->id)
+                ->when(
+                    $rolGrupoId !== null,
+                    fn ($query) => $query->where('rol_grupo_id', $rolGrupoId),
+                    fn ($query) => $query->whereNull('rol_grupo_id')
+                )
+                ->when(
+                    $personaRecordatorioId !== null,
+                    fn ($query) => $query->where('persona_id', '!=', $personaRecordatorioId)
+                )
+                ->update(['recibe_recordatorios' => false]);
+        }
+
+        $this->cargarParticipantes();
+        $this->form->fill([
+            'rol_grupo_id' => $this->rol_grupo_id,
+            'personas' => $this->personas,
+            'persona_recordatorio_id' => $this->persona_recordatorio_id,
+        ]);
 
         Notification::make()
             ->title('Participacion guardada correctamente')
@@ -251,6 +331,19 @@ class RegistrarParticipacion extends Page implements Forms\Contracts\HasForms
     protected function normalizarRolGrupoId(int | string | null $valor): ?int
     {
         return filled($valor) ? (int) $valor : null;
+    }
+
+    protected function esRolFacilitadorSeleccionado(): bool
+    {
+        if (! filled($this->rol_grupo_id)) {
+            return false;
+        }
+
+        $nombre = (string) RolGrupo::query()
+            ->whereKey($this->normalizarRolGrupoId($this->rol_grupo_id))
+            ->value('nombre');
+
+        return Str::contains(Str::lower($nombre), 'facilit');
     }
 
     /**

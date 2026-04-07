@@ -24,6 +24,9 @@ class ParticipacionesGrupoRelationManager extends RelationManager
                 ->placeholder('Sin rol')
                 ->searchable()
                 ->preload(),
+            Forms\Components\Toggle::make('recibe_recordatorios')
+                ->label('Recibe recordatorios')
+                ->helperText('Usa esta marca para indicar qué facilitador debe recibir el recordatorio principal del grupo.'),
         ]);
     }
 
@@ -53,6 +56,10 @@ class ParticipacionesGrupoRelationManager extends RelationManager
                     ->placeholder('-')
                     ->searchable()
                     ->sortable(),
+
+                Tables\Columns\IconColumn::make('recibe_recordatorios')
+                    ->label('Recordatorios')
+                    ->boolean(),
 
                 Tables\Columns\TextColumn::make('fecha_inicio')
                     ->label('Inicio')

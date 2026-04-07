@@ -86,6 +86,7 @@
                                         <div class="space-y-2">
                                             @foreach ($item['facilitadores'] as $facilitador)
                                                 @php
+                                                    $telefonoValido = $this->facilitadorTieneTelefonoWhatsappValido($facilitador);
                                                     $status = $facilitador['persona_id']
                                                         ? $this->getReminderStatus(
                                                             $item['grupo_id'],
@@ -96,7 +97,14 @@
                                                         : null;
                                                 @endphp
                                                 <div class="rounded-xl bg-gray-50 px-3 py-2">
-                                                    <div class="font-medium text-gray-900">{{ $facilitador['nombre'] }}</div>
+                                                    <div class="flex flex-wrap items-center gap-2">
+                                                        <div class="font-medium text-gray-900">{{ $facilitador['nombre'] }}</div>
+                                                        @if (!empty($facilitador['recibe_recordatorios']))
+                                                            <span class="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800">
+                                                                Recibe recordatorios
+                                                            </span>
+                                                        @endif
+                                                    </div>
                                                     <div class="text-gray-600">
                                                         {{ $facilitador['telefono'] ?: 'Sin teléfono cargado' }}
                                                     </div>
@@ -120,10 +128,16 @@
                                                             <x-filament::button
                                                                 size="xs"
                                                                 color="success"
+                                                                :disabled="! $telefonoValido"
                                                                 wire:click="enviarRecordatorioPlantilla({{ $item['grupo_id'] }}, {{ $facilitador['persona_id'] }})"
                                                             >
                                                                 Enviar recordatorio
                                                             </x-filament::button>
+                                                            @unless ($telefonoValido)
+                                                                <div class="mt-1 text-xs text-amber-700">
+                                                                    Falta un teléfono válido para WhatsApp.
+                                                                </div>
+                                                            @endunless
                                                         </div>
                                                     @endif
                                                 </div>

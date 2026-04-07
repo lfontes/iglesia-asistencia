@@ -86,56 +86,14 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
                     $this->fecha = now()->endOfWeek(Carbon::SUNDAY)->toDateString();
                     $this->form->fill(['fecha' => $this->fecha]);
                 }),
-            Action::make('enviarPruebaWhatsapp')
-                ->label('Enviar prueba WhatsApp')
+            Action::make('enviarRecordatoriosTodos')
+                ->label('Enviar recordatorios por WhatsApp')
                 ->icon('heroicon-o-paper-airplane')
                 ->color('success')
-                ->form([
-                    Forms\Components\TextInput::make('telefono')
-                        ->label('Teléfono destino')
-                        ->default(fn (): ?string => app(WhatsAppService::class)->getTestRecipient())
-                        ->required(),
-                    Forms\Components\Textarea::make('mensaje')
-                        ->label('Mensaje')
-                        ->rows(5)
-                        ->default(function (): string {
-                            $fecha = $this->getFechaReferencia()->format('d/m/Y');
-
-                            return "Prueba de WhatsApp desde Iglesia de los Libres.\n\nFecha de referencia: {$fecha}.\nSi recibes este mensaje, la integración básica con Meta está funcionando.";
-                        })
-                        ->required(),
-                ])
-                ->action(function (array $data): void {
-                    try {
-                        $response = app(WhatsAppService::class)->sendText(
-                            (string) $data['telefono'],
-                            (string) $data['mensaje'],
-                        );
-
-                        $messageId = $response['messages'][0]['id'] ?? null;
-
-                        Notification::make()
-                            ->title('Mensaje de prueba enviado')
-                            ->body($messageId ? "ID de Meta: {$messageId}" : 'Meta aceptó el envío de prueba.')
-                            ->success()
-                            ->send();
-                    } catch (RequestException $exception) {
-                        $response = $exception->response;
-                        $metaMessage = $response?->json('error.message') ?? $exception->getMessage();
-
-                        Notification::make()
-                            ->title('No se pudo enviar el mensaje de prueba')
-                            ->body((string) $metaMessage)
-                            ->danger()
-                            ->send();
-                    } catch (\Throwable $exception) {
-                        Notification::make()
-                            ->title('Error al preparar el envío')
-                            ->body($exception->getMessage())
-                            ->danger()
-                            ->send();
-                    }
-                }),
+                ->requiresConfirmation()
+                ->modalHeading('Enviar recordatorios a todos')
+                ->modalDescription('Se enviará un único recordatorio por grupo al facilitador marcado para recordatorios o, si no aplica, al primer facilitador con teléfono válido.')
+                ->action(fn (): Notification => $this->enviarRecordatoriosATodos()),
         ];
     }
 
@@ -172,49 +130,14 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
             return;
         }
 
-        $telefono = $this->normalizarTelefonoWhatsapp(
-            (string) ($facilitador['telefono_normalizado'] ?: $facilitador['telefono'] ?: '')
-        );
-
-        if ($telefono === null) {
-            Notification::make()
-                ->title('El facilitador no tiene un teléfono válido')
-                ->danger()
-                ->send();
-
-            return;
-        }
-
-        $nombreFacilitador = $this->normalizarNombreFacilitador((string) $facilitador['nombre']);
-        $periodo = Carbon::parse($item['periodo_inicio'])->format('d/m/Y') . ' al ' . Carbon::parse($item['periodo_fin'])->format('d/m/Y');
-        $url = AsistenciaGruposCrecimiento::getUrl();
-        $renderedBody = "Hola {$nombreFacilitador}, te recordamos cargar la asistencia del grupo {$item['grupo']} correspondiente al período {$periodo}.\n\nPuedes hacerlo aquí:\n{$url}";
-
         try {
-            app(WhatsAppService::class)->sendTemplateWithContext(
-                $telefono,
-                'recordatorio_asistencia_grupo',
-                [
-                    $nombreFacilitador,
-                    (string) $item['grupo'],
-                    $periodo,
-                    $url,
-                ],
-                [
-                    'persona_id' => $personaId,
-                    'grupo_id' => $grupoId,
-                    'use_case' => 'recordatorio_asistencia_grupo',
-                    'periodo_inicio' => (string) $item['periodo_inicio'],
-                    'periodo_fin' => (string) $item['periodo_fin'],
-                ],
-                $renderedBody,
-            );
+            $result = $this->enviarRecordatorioItem($item, $facilitador);
 
             $this->lastReminderStatuses = [];
 
             Notification::make()
                 ->title('Recordatorio enviado a Meta')
-                ->body("Facilitador: {$nombreFacilitador}")
+                ->body("Facilitador: {$result['nombre']}")
                 ->success()
                 ->send();
         } catch (RequestException $exception) {
@@ -232,6 +155,59 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
                 ->danger()
                 ->send();
         }
+    }
+
+    protected function enviarRecordatoriosATodos(): Notification
+    {
+        $enviados = 0;
+        $omitidos = 0;
+        $fallidos = 0;
+        $detalles = [];
+
+        foreach ($this->getPendientes() as $item) {
+            $facilitador = $this->resolverDestinatarioRecordatorio($item);
+
+            if ($facilitador === null) {
+                $omitidos++;
+                $detalles[] = $this->buildErrorDetalle((string) $item['grupo'], 'Sin facilitador elegible para el envío.');
+                continue;
+            }
+
+            try {
+                $this->enviarRecordatorioItem($item, $facilitador);
+                $enviados++;
+            } catch (RequestException $exception) {
+                $fallidos++;
+                $detalles[] = $this->buildErrorDetalle(
+                    (string) $facilitador['nombre'],
+                    (string) ($exception->response?->json('error.message') ?? $exception->getMessage()),
+                );
+            } catch (\RuntimeException $exception) {
+                $omitidos++;
+                $detalles[] = $this->buildErrorDetalle((string) $facilitador['nombre'], $exception->getMessage());
+            } catch (\Throwable $exception) {
+                $fallidos++;
+                $detalles[] = $this->buildErrorDetalle((string) $facilitador['nombre'], $exception->getMessage());
+            }
+        }
+
+        $this->lastReminderStatuses = [];
+
+        $body = "Enviados: {$enviados}. Omitidos: {$omitidos}. Fallidos: {$fallidos}.";
+
+        if ($detalles !== []) {
+            $body .= "\n" . implode("\n", array_slice($detalles, 0, 5));
+
+            if (count($detalles) > 5) {
+                $body .= "\n...y " . (count($detalles) - 5) . ' más.';
+            }
+        }
+
+        return Notification::make()
+            ->title($fallidos > 0 ? 'Envío masivo finalizado con observaciones' : 'Envío masivo finalizado')
+            ->body($body)
+            ->color($fallidos > 0 ? 'warning' : 'success')
+            ->send();
     }
 
     /**
@@ -297,6 +273,16 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
         return $status;
     }
 
+    /**
+     * @param  array<string, mixed>  $facilitador
+     */
+    public function facilitadorTieneTelefonoWhatsappValido(array $facilitador): bool
+    {
+        return $this->normalizarTelefonoWhatsapp(
+            (string) ($facilitador['telefono_normalizado'] ?: $facilitador['telefono'] ?: '')
+        ) !== null;
+    }
+
     protected function normalizarTelefonoWhatsapp(string $telefono): ?string
     {
         $digits = preg_replace('/\D+/', '', $telefono) ?? '';
@@ -327,5 +313,75 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
         $parts = preg_split('/\s+/', $nombre) ?: [];
 
         return Str::title((string) end($parts));
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     * @param  array<string, mixed>  $facilitador
+     * @return array{nombre:string}
+     */
+    protected function enviarRecordatorioItem(array $item, array $facilitador): array
+    {
+        $telefono = $this->normalizarTelefonoWhatsapp(
+            (string) ($facilitador['telefono_normalizado'] ?: $facilitador['telefono'] ?: '')
+        );
+
+        if ($telefono === null) {
+            throw new \RuntimeException('Sin teléfono válido.');
+        }
+
+        $nombreFacilitador = $this->normalizarNombreFacilitador((string) $facilitador['nombre']);
+        $periodo = Carbon::parse($item['periodo_inicio'])->format('d/m/Y') . ' al ' . Carbon::parse($item['periodo_fin'])->format('d/m/Y');
+        $url = AsistenciaGruposCrecimiento::getUrl();
+        $renderedBody = "Hola {$nombreFacilitador}, te recordamos cargar la asistencia del grupo {$item['grupo']} correspondiente al período {$periodo}.\n\nPuedes hacerlo aquí:\n{$url}";
+
+        app(WhatsAppService::class)->sendTemplateWithContext(
+            $telefono,
+            'recordatorio_asistencia_grupo',
+            [
+                $nombreFacilitador,
+                (string) $item['grupo'],
+                $periodo,
+                $url,
+            ],
+            [
+                'persona_id' => $facilitador['persona_id'],
+                'grupo_id' => $item['grupo_id'],
+                'use_case' => 'recordatorio_asistencia_grupo',
+                'periodo_inicio' => (string) $item['periodo_inicio'],
+                'periodo_fin' => (string) $item['periodo_fin'],
+            ],
+            $renderedBody,
+        );
+
+        return ['nombre' => $nombreFacilitador];
+    }
+
+    protected function buildErrorDetalle(string $nombre, string $detalle): string
+    {
+        $nombre = trim($nombre) !== '' ? $nombre : 'Facilitador';
+        $detalle = trim($detalle) !== '' ? $detalle : 'Sin detalle';
+
+        return $nombre . ': ' . $detalle;
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     * @return array<string, mixed>|null
+     */
+    protected function resolverDestinatarioRecordatorio(array $item): ?array
+    {
+        $facilitadores = collect($item['facilitadores'] ?? [])
+            ->filter(fn (array $facilitador): bool => filled($facilitador['persona_id']));
+
+        $principal = $facilitadores
+            ->first(fn (array $facilitador): bool => (bool) ($facilitador['recibe_recordatorios'] ?? false) && $this->facilitadorTieneTelefonoWhatsappValido($facilitador));
+
+        if ($principal) {
+            return $principal;
+        }
+
+        return $facilitadores
+            ->first(fn (array $facilitador): bool => $this->facilitadorTieneTelefonoWhatsappValido($facilitador));
     }
 }

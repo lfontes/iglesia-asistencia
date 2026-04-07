@@ -22,7 +22,8 @@ class AsistenciasPendientesService
      *         persona_id:?int,
      *         nombre:string,
      *         telefono:?string,
-     *         telefono_normalizado:?string
+     *         telefono_normalizado:?string,
+     *         recibe_recordatorios:bool
      *     }>
      * }>
      */
@@ -108,7 +109,8 @@ class AsistenciasPendientesService
      *     persona_id:?int,
      *     nombre:string,
      *     telefono:?string,
-     *     telefono_normalizado:?string
+     *     telefono_normalizado:?string,
+     *     recibe_recordatorios:bool
      * }>
      */
     protected function obtenerFacilitadores(Grupo $grupo, Carbon $fechaRef): array
@@ -125,6 +127,7 @@ class AsistenciasPendientesService
             })
             ->whereHas('rolGrupo', fn ($query) => $query->whereRaw('LOWER(nombre) LIKE ?', ['%facilit%']))
             ->with('persona:id,nombre,apellido,telefono,telefono_normalizado')
+            ->orderByDesc('recibe_recordatorios')
             ->get()
             ->map(function (ParticipacionGrupo $participacion): array {
                 $persona = $participacion->persona;
@@ -135,6 +138,7 @@ class AsistenciasPendientesService
                     'nombre' => $nombreCompleto,
                     'telefono' => $persona?->telefono,
                     'telefono_normalizado' => $persona?->telefono_normalizado,
+                    'recibe_recordatorios' => (bool) $participacion->recibe_recordatorios,
                 ];
             })
             ->values()

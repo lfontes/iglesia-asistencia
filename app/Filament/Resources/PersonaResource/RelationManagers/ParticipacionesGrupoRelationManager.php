@@ -37,6 +37,10 @@ class ParticipacionesGrupoRelationManager extends RelationManager
                     ->searchable()
                     ->preload(),
 
+                Forms\Components\Toggle::make('recibe_recordatorios')
+                    ->label('Recibe recordatorios')
+                    ->helperText('Si esta persona facilita este grupo, esta marca la prioriza para recibir recordatorios.'),
+
                 Forms\Components\DatePicker::make('fecha_inicio')
                     ->label('Fecha inicio')
                     ->native(false),
@@ -76,6 +80,10 @@ class ParticipacionesGrupoRelationManager extends RelationManager
                     ->placeholder('-')
                     ->searchable()
                     ->sortable(),
+
+                Tables\Columns\IconColumn::make('recibe_recordatorios')
+                    ->label('Recordatorios')
+                    ->boolean(),
 
                 Tables\Columns\TextColumn::make('fecha_inicio')
                     ->label('Inicio')
