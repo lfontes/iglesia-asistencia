@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+    'whatsapp' => [
+        'graph_version' => env('WHATSAPP_GRAPH_VERSION', 'v23.0'),
+        'access_token' => env('WHATSAPP_ACCESS_TOKEN'),
+        'business_account_id' => env('WHATSAPP_BUSINESS_ACCOUNT_ID'),
+        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
+        'test_recipient' => env('WHATSAPP_TEST_RECIPIENT'),
+        'webhook_verify_token' => env('WHATSAPP_WEBHOOK_VERIFY_TOKEN'),
+    ],
+
 ];

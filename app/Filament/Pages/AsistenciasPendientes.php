@@ -4,11 +4,14 @@ namespace App\Filament\Pages;
 
 use App\Models\Grupo;
 use App\Services\AsistenciasPendientesService;
+use App\Services\WhatsAppService;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
 
 class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
@@ -69,6 +72,56 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
                 ->action(function (): void {
                     $this->fecha = now()->toDateString();
                     $this->form->fill(['fecha' => $this->fecha]);
+                }),
+            Action::make('enviarPruebaWhatsapp')
+                ->label('Enviar prueba WhatsApp')
+                ->icon('heroicon-o-paper-airplane')
+                ->color('success')
+                ->form([
+                    Forms\Components\TextInput::make('telefono')
+                        ->label('Teléfono destino')
+                        ->default(fn (): ?string => app(WhatsAppService::class)->getTestRecipient())
+                        ->required(),
+                    Forms\Components\Textarea::make('mensaje')
+                        ->label('Mensaje')
+                        ->rows(5)
+                        ->default(function (): string {
+                            $fecha = $this->getFechaReferencia()->format('d/m/Y');
+
+                            return "Prueba de WhatsApp desde Iglesia de los Libres.\n\nFecha de referencia: {$fecha}.\nSi recibes este mensaje, la integración básica con Meta está funcionando.";
+                        })
+                        ->required(),
+                ])
+                ->action(function (array $data): void {
+                    try {
+                        $response = app(WhatsAppService::class)->sendText(
+                            (string) $data['telefono'],
+                            (string) $data['mensaje'],
+                        );
+
+                        $messageId = $response['messages'][0]['id'] ?? null;
+
+                        Notification::make()
+                            ->title('Mensaje de prueba enviado')
+                            ->body($messageId ? "ID de Meta: {$messageId}" : 'Meta aceptó el envío de prueba.')
+                            ->success()
+                            ->send();
+                    } catch (RequestException $exception) {
+                        $response = $exception->response;
+                        $metaMessage = $response?->json('error.message') ?? $exception->getMessage();
+
+                        Notification::make()
+                            ->title('No se pudo enviar el mensaje de prueba')
+                            ->body((string) $metaMessage)
+                            ->danger()
+                            ->send();
+                    } catch (\Throwable $exception) {
+                        Notification::make()
+                            ->title('Error al preparar el envío')
+                            ->body($exception->getMessage())
+                            ->danger()
+                            ->send();
+                    }
                 }),
         ];
     }
