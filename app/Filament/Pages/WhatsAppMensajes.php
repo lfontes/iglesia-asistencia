@@ -36,6 +36,7 @@ class WhatsAppMensajes extends Page
     public function getMessages(): Collection
     {
         return WhatsAppMessage::query()
+            ->with(['persona:id,nombre,apellido', 'grupo:id,nombre'])
             ->latest('id')
             ->limit(100)
             ->get();

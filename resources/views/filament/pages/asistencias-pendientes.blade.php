@@ -9,6 +9,14 @@
             \App\Models\Grupo::FRECUENCIA_QUINCENAL => 'Quincenal',
             \App\Models\Grupo::FRECUENCIA_MENSUAL => 'Mensual',
         ];
+        $statusColors = [
+            'accepted' => 'bg-blue-100 text-blue-800',
+            'sent' => 'bg-sky-100 text-sky-800',
+            'delivered' => 'bg-emerald-100 text-emerald-800',
+            'read' => 'bg-green-100 text-green-800',
+            'failed' => 'bg-rose-100 text-rose-800',
+            'failed_request' => 'bg-rose-100 text-rose-800',
+        ];
     @endphp
 
     <div class="mt-6 grid gap-4 md:grid-cols-4">
@@ -77,11 +85,47 @@
                                     @else
                                         <div class="space-y-2">
                                             @foreach ($item['facilitadores'] as $facilitador)
+                                                @php
+                                                    $status = $facilitador['persona_id']
+                                                        ? $this->getReminderStatus(
+                                                            $item['grupo_id'],
+                                                            $facilitador['persona_id'],
+                                                            $item['periodo_inicio'],
+                                                            $item['periodo_fin'],
+                                                        )
+                                                        : null;
+                                                @endphp
                                                 <div class="rounded-xl bg-gray-50 px-3 py-2">
                                                     <div class="font-medium text-gray-900">{{ $facilitador['nombre'] }}</div>
                                                     <div class="text-gray-600">
                                                         {{ $facilitador['telefono'] ?: 'Sin teléfono cargado' }}
                                                     </div>
+                                                    @if ($status)
+                                                        <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                                                            <span class="inline-flex rounded-full px-2 py-1 font-medium {{ $statusColors[$status['status']] ?? 'bg-gray-100 text-gray-800' }}">
+                                                                {{ $status['status'] }}
+                                                            </span>
+                                                            @if ($status['updated_at'])
+                                                                <span class="text-gray-500">{{ $status['updated_at'] }}</span>
+                                                            @endif
+                                                        </div>
+                                                        @if ($status['error_message'])
+                                                            <div class="mt-1 text-xs text-rose-700">
+                                                                {{ $status['error_message'] }}
+                                                            </div>
+                                                        @endif
+                                                    @endif
+                                                    @if ($facilitador['persona_id'])
+                                                        <div class="mt-2">
+                                                            <x-filament::button
+                                                                size="xs"
+                                                                color="success"
+                                                                wire:click="enviarRecordatorioPlantilla({{ $item['grupo_id'] }}, {{ $facilitador['persona_id'] }})"
+                                                            >
+                                                                Enviar recordatorio
+                                                            </x-filament::button>
+                                                        </div>
+                                                    @endif
                                                 </div>
                                             @endforeach
                                         </div>

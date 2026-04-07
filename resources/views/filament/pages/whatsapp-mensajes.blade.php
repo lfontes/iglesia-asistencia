@@ -30,6 +30,8 @@
                     <thead>
                         <tr class="text-left text-gray-500">
                             <th class="px-4 py-3 font-medium">Fecha</th>
+                            <th class="px-4 py-3 font-medium">Uso</th>
+                            <th class="px-4 py-3 font-medium">Contexto</th>
                             <th class="px-4 py-3 font-medium">Destino</th>
                             <th class="px-4 py-3 font-medium">Estado</th>
                             <th class="px-4 py-3 font-medium">Mensaje</th>
@@ -42,6 +44,24 @@
                             <tr class="align-top">
                                 <td class="px-4 py-4 text-gray-700">
                                     {{ $message->created_at?->format('d/m/Y H:i') }}
+                                </td>
+                                <td class="px-4 py-4 text-gray-700">
+                                    {{ $message->use_case ?: 'Sin uso' }}
+                                </td>
+                                <td class="px-4 py-4 text-gray-700">
+                                    @if ($message->grupo)
+                                        <div>{{ $message->grupo->nombre }}</div>
+                                    @endif
+                                    @if ($message->persona)
+                                        <div class="text-xs text-gray-500">
+                                            {{ trim(($message->persona->apellido ?? '') . ' ' . ($message->persona->nombre ?? '')) }}
+                                        </div>
+                                    @endif
+                                    @if ($message->periodo_inicio && $message->periodo_fin)
+                                        <div class="text-xs text-gray-500">
+                                            {{ $message->periodo_inicio->format('d/m/Y') }} - {{ $message->periodo_fin->format('d/m/Y') }}
+                                        </div>
+                                    @endif
                                 </td>
                                 <td class="px-4 py-4 text-gray-700">
                                     <div>{{ $message->to_phone ?: 'Sin número' }}</div>

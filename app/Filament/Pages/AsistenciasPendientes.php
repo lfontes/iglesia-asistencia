@@ -3,6 +3,8 @@
 namespace App\Filament\Pages;
 
 use App\Models\Grupo;
+use App\Filament\Pages\AsistenciaGruposCrecimiento;
+use App\Models\WhatsAppMessage;
 use App\Services\AsistenciasPendientesService;
 use App\Services\WhatsAppService;
 use Carbon\Carbon;
@@ -13,6 +15,7 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
 {
@@ -31,6 +34,9 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
     protected static string $view = 'filament.pages.asistencias-pendientes';
 
     public ?string $fecha = null;
+
+    /** @var array<string, array<string, mixed>|null> */
+    protected array $lastReminderStatuses = [];
 
     public function mount(): void
     {
@@ -71,6 +77,13 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
                 ->color('gray')
                 ->action(function (): void {
                     $this->fecha = now()->toDateString();
+                    $this->form->fill(['fecha' => $this->fecha]);
+                }),
+            Action::make('semanaAnterior')
+                ->label('Semana anterior')
+                ->color('gray')
+                ->action(function (): void {
+                    $this->fecha = now()->endOfWeek(Carbon::SUNDAY)->toDateString();
                     $this->form->fill(['fecha' => $this->fecha]);
                 }),
             Action::make('enviarPruebaWhatsapp')
@@ -135,6 +148,92 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
             ->obtener($this->getFechaReferencia());
     }
 
+    public function enviarRecordatorioPlantilla(int $grupoId, int $personaId): void
+    {
+        $item = $this->getPendientes()->firstWhere('grupo_id', $grupoId);
+
+        if (! $item) {
+            Notification::make()
+                ->title('No se encontró el grupo pendiente')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $facilitador = collect($item['facilitadores'])->firstWhere('persona_id', $personaId);
+
+        if (! $facilitador) {
+            Notification::make()
+                ->title('No se encontró el facilitador')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $telefono = $this->normalizarTelefonoWhatsapp(
+            (string) ($facilitador['telefono_normalizado'] ?: $facilitador['telefono'] ?: '')
+        );
+
+        if ($telefono === null) {
+            Notification::make()
+                ->title('El facilitador no tiene un teléfono válido')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $nombreFacilitador = $this->normalizarNombreFacilitador((string) $facilitador['nombre']);
+        $periodo = Carbon::parse($item['periodo_inicio'])->format('d/m/Y') . ' al ' . Carbon::parse($item['periodo_fin'])->format('d/m/Y');
+        $url = AsistenciaGruposCrecimiento::getUrl();
+        $renderedBody = "Hola {$nombreFacilitador}, te recordamos cargar la asistencia del grupo {$item['grupo']} correspondiente al período {$periodo}.\n\nPuedes hacerlo aquí:\n{$url}";
+
+        try {
+            app(WhatsAppService::class)->sendTemplateWithContext(
+                $telefono,
+                'recordatorio_asistencia_grupo',
+                [
+                    $nombreFacilitador,
+                    (string) $item['grupo'],
+                    $periodo,
+                    $url,
+                ],
+                [
+                    'persona_id' => $personaId,
+                    'grupo_id' => $grupoId,
+                    'use_case' => 'recordatorio_asistencia_grupo',
+                    'periodo_inicio' => (string) $item['periodo_inicio'],
+                    'periodo_fin' => (string) $item['periodo_fin'],
+                ],
+                $renderedBody,
+            );
+
+            $this->lastReminderStatuses = [];
+
+            Notification::make()
+                ->title('Recordatorio enviado a Meta')
+                ->body("Facilitador: {$nombreFacilitador}")
+                ->success()
+                ->send();
+        } catch (RequestException $exception) {
+            $metaMessage = $exception->response?->json('error.message') ?? $exception->getMessage();
+
+            Notification::make()
+                ->title('No se pudo enviar el recordatorio')
+                ->body((string) $metaMessage)
+                ->danger()
+                ->send();
+        } catch (\Throwable $exception) {
+            Notification::make()
+                ->title('Error al preparar el recordatorio')
+                ->body($exception->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
     /**
      * @return array{total_grupos:int,total_facilitadores:int,sin_telefono:int,semanales:int,quincenales:int,mensuales:int}
      */
@@ -163,5 +262,70 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
         } catch (\Throwable) {
             return now()->startOfDay();
         }
+    }
+
+    /**
+     * @return array{status:string,updated_at:?string,error_message:?string}|null
+     */
+    public function getReminderStatus(int $grupoId, int $personaId, string $periodoInicio, string $periodoFin): ?array
+    {
+        $cacheKey = implode('|', [$grupoId, $personaId, $periodoInicio, $periodoFin]);
+
+        if (array_key_exists($cacheKey, $this->lastReminderStatuses)) {
+            return $this->lastReminderStatuses[$cacheKey];
+        }
+
+        $message = WhatsAppMessage::query()
+            ->where('use_case', 'recordatorio_asistencia_grupo')
+            ->where('grupo_id', $grupoId)
+            ->where('persona_id', $personaId)
+            ->whereDate('periodo_inicio', $periodoInicio)
+            ->whereDate('periodo_fin', $periodoFin)
+            ->latest('id')
+            ->first();
+
+        $status = $message
+            ? [
+                'status' => (string) $message->status,
+                'updated_at' => $message->updated_at?->format('d/m/Y H:i'),
+                'error_message' => $message->error_message,
+            ]
+            : null;
+
+        $this->lastReminderStatuses[$cacheKey] = $status;
+
+        return $status;
+    }
+
+    protected function normalizarTelefonoWhatsapp(string $telefono): ?string
+    {
+        $digits = preg_replace('/\D+/', '', $telefono) ?? '';
+
+        if ($digits === '') {
+            return null;
+        }
+
+        if (Str::startsWith($digits, '54') && ! Str::startsWith($digits, '549')) {
+            return $digits;
+        }
+
+        if (Str::startsWith($digits, '549')) {
+            return '54' . substr($digits, 3);
+        }
+
+        return $digits;
+    }
+
+    protected function normalizarNombreFacilitador(string $nombre): string
+    {
+        $nombre = trim($nombre);
+
+        if ($nombre === '') {
+            return 'facilitador';
+        }
+
+        $parts = preg_split('/\s+/', $nombre) ?: [];
+
+        return Str::title((string) end($parts));
     }
 }

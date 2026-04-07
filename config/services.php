@@ -42,6 +42,12 @@ return [
         'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
         'test_recipient' => env('WHATSAPP_TEST_RECIPIENT'),
         'webhook_verify_token' => env('WHATSAPP_WEBHOOK_VERIFY_TOKEN'),
+        'templates' => [
+            'recordatorio_asistencia_grupo' => [
+                'name' => env('WHATSAPP_TEMPLATE_RECORDATORIO_ASISTENCIA_GRUPO_NAME', 'recordatorio_asistencia_grupo'),
+                'language' => env('WHATSAPP_TEMPLATE_RECORDATORIO_ASISTENCIA_GRUPO_LANGUAGE', 'es'),
+            ],
+        ],
     ],
 
 ];
