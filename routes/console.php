@@ -7,6 +7,7 @@ use App\Models\Evento;
 use App\Models\EventoFecha;
 use App\Models\Grupo;
 use App\Models\ParticipacionGrupo;
+use App\Models\WhatsAppMessage;
 use App\Services\AsistenciasPendientesService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Inspiring;
@@ -42,6 +43,249 @@ Artisan::command('personas:telefonos-duplicados', function () {
 
     return self::FAILURE;
 })->purpose('Detecta telefonos duplicados normalizados en personas');
+
+Artisan::command('personas:merge {keep_id : ID de la persona a conservar} {duplicate_ids* : IDs de las personas duplicadas a fusionar} {--dry-run : Solo muestra lo que haria, sin guardar}', function () {
+    $keepId = (int) $this->argument('keep_id');
+    $duplicateIds = collect((array) $this->argument('duplicate_ids'))
+        ->map(fn ($id): int => (int) $id)
+        ->filter(fn (int $id): bool => $id > 0 && $id !== $keepId)
+        ->unique()
+        ->values();
+    $dryRun = (bool) $this->option('dry-run');
+
+    if ($keepId <= 0 || $duplicateIds->isEmpty()) {
+        $this->error('Debes indicar un ID a conservar y al menos un ID duplicado distinto.');
+
+        return self::FAILURE;
+    }
+
+    $people = Persona::query()
+        ->whereIn('id', collect([$keepId])->merge($duplicateIds)->all())
+        ->orderBy('id')
+        ->get()
+        ->keyBy('id');
+
+    if (! $people->has($keepId)) {
+        $this->error("No existe la persona a conservar con ID {$keepId}.");
+
+        return self::FAILURE;
+    }
+
+    $missing = $duplicateIds->filter(fn (int $id): bool => ! $people->has($id));
+
+    if ($missing->isNotEmpty()) {
+        $this->error('No existen estos IDs duplicados: '.$missing->implode(', '));
+
+        return self::FAILURE;
+    }
+
+    $ids = collect([$keepId])->merge($duplicateIds)->all();
+
+    $participaciones = ParticipacionGrupo::query()
+        ->whereIn('persona_id', $ids)
+        ->orderBy('grupo_id')
+        ->orderBy('rol_grupo_id')
+        ->orderBy('fecha_inicio')
+        ->orderBy('id')
+        ->get();
+
+    $asistenciasGrupo = AsistenciaGrupo::query()
+        ->whereIn('persona_id', $ids)
+        ->orderBy('grupo_id')
+        ->orderBy('fecha')
+        ->orderBy('id')
+        ->get();
+
+    $asistenciasEvento = Asistencia::query()
+        ->whereIn('persona_id', $ids)
+        ->orderBy('evento_fecha_id')
+        ->orderBy('id')
+        ->get();
+
+    $whatsAppMessages = WhatsAppMessage::query()
+        ->whereIn('persona_id', $duplicateIds->all())
+        ->get();
+
+    $participacionesPlan = $participaciones
+        ->groupBy(function (ParticipacionGrupo $participacion): string {
+            return implode('|', [
+                (string) $participacion->grupo_id,
+                $participacion->rol_grupo_id === null ? 'null' : (string) $participacion->rol_grupo_id,
+            ]);
+        })
+        ->map(function ($rows) use ($keepId) {
+            $rows = $rows->values();
+            $target = $rows->firstWhere('persona_id', $keepId) ?? $rows->sortBy([
+                ['fecha_inicio', 'asc'],
+                ['id', 'asc'],
+            ])->first();
+
+            $fechaInicio = $rows
+                ->pluck('fecha_inicio')
+                ->filter()
+                ->map(fn ($value) => (string) $value)
+                ->sort()
+                ->first();
+
+            $fechaFinRows = $rows->pluck('fecha_fin');
+            $fechaFin = $fechaFinRows->contains(null)
+                ? null
+                : $fechaFinRows->filter()->map(fn ($value) => (string) $value)->sortDesc()->first();
+
+            $observaciones = $rows
+                ->pluck('observaciones')
+                ->filter(fn ($value) => filled($value))
+                ->map(fn ($value) => trim((string) $value))
+                ->unique()
+                ->implode(' | ');
+
+            $anio = $rows
+                ->pluck('anio')
+                ->filter(fn ($value) => filled($value))
+                ->map(fn ($value): int => (int) $value)
+                ->sort()
+                ->first();
+
+            return [
+                'target_id' => $target->id,
+                'target_persona_id' => $target->persona_id,
+                'group_id' => $target->grupo_id,
+                'rol_grupo_id' => $target->rol_grupo_id,
+                'target_will_change_persona' => (int) $target->persona_id !== $keepId,
+                'ids_to_delete' => $rows->pluck('id')->reject(fn ($id): bool => (int) $id === (int) $target->id)->values()->all(),
+                'merged' => [
+                    'persona_id' => $keepId,
+                    'fecha_inicio' => $fechaInicio,
+                    'fecha_fin' => $fechaFin,
+                    'observaciones' => $observaciones !== '' ? $observaciones : null,
+                    'anio' => $anio,
+                    'recibe_recordatorios' => $rows->contains(fn (ParticipacionGrupo $row): bool => (bool) $row->recibe_recordatorios),
+                ],
+            ];
+        })
+        ->values();
+
+    $asistenciasGrupoPlan = $asistenciasGrupo
+        ->groupBy(fn (AsistenciaGrupo $row): string => $row->grupo_id.'|'.$row->fecha)
+        ->map(function ($rows) use ($keepId) {
+            $rows = $rows->values();
+            $target = $rows->firstWhere('persona_id', $keepId) ?? $rows->sortBy('id')->first();
+
+            return [
+                'target_id' => $target->id,
+                'target_persona_id' => $target->persona_id,
+                'target_will_change_persona' => (int) $target->persona_id !== $keepId,
+                'ids_to_delete' => $rows->pluck('id')->reject(fn ($id): bool => (int) $id === (int) $target->id)->values()->all(),
+                'merged' => [
+                    'persona_id' => $keepId,
+                    'presente' => $rows->contains(fn (AsistenciaGrupo $row): bool => (bool) $row->presente),
+                    'observaciones' => $rows->pluck('observaciones')->filter(fn ($value) => filled($value))->map(fn ($value) => trim((string) $value))->unique()->implode(' | ') ?: null,
+                    'created_by' => $rows->pluck('created_by')->filter(fn ($value) => filled($value))->first(),
+                ],
+            ];
+        })
+        ->values();
+
+    $asistenciasEventoPlan = $asistenciasEvento
+        ->groupBy(fn (Asistencia $row): string => (string) $row->evento_fecha_id)
+        ->map(function ($rows) use ($keepId) {
+            $rows = $rows->values();
+            $target = $rows->firstWhere('persona_id', $keepId) ?? $rows->sortBy('id')->first();
+
+            return [
+                'target_id' => $target->id,
+                'target_persona_id' => $target->persona_id,
+                'target_will_change_persona' => (int) $target->persona_id !== $keepId,
+                'ids_to_delete' => $rows->pluck('id')->reject(fn ($id): bool => (int) $id === (int) $target->id)->values()->all(),
+                'merged' => [
+                    'persona_id' => $keepId,
+                    'presente' => $rows->contains(fn (Asistencia $row): bool => (bool) $row->presente),
+                    'observaciones' => $rows->pluck('observaciones')->filter(fn ($value) => filled($value))->map(fn ($value) => trim((string) $value))->unique()->implode(' | ') ?: null,
+                ],
+            ];
+        })
+        ->values();
+
+    $this->info('Persona a conservar:');
+    $personaKeep = $people->get($keepId);
+    $this->line("- {$personaKeep->id}: {$personaKeep->apellido} {$personaKeep->nombre} | Tel: ".($personaKeep->telefono ?: 'sin telefono').' | Nac: '.($personaKeep->fecha_nacimiento ?: 'sin fecha'));
+
+    $this->warn('Duplicados a fusionar:');
+    foreach ($duplicateIds as $duplicateId) {
+        $persona = $people->get($duplicateId);
+        $this->line("- {$persona->id}: {$persona->apellido} {$persona->nombre} | Tel: ".($persona->telefono ?: 'sin telefono').' | Nac: '.($persona->fecha_nacimiento ?: 'sin fecha'));
+    }
+
+    $this->newLine();
+    $this->line('Resumen del plan:');
+    $this->line('- Participaciones de grupo a consolidar: '.$participacionesPlan->count());
+    $this->line('- Asistencias de grupo a consolidar: '.$asistenciasGrupoPlan->count());
+    $this->line('- Asistencias a eventos a consolidar: '.$asistenciasEventoPlan->count());
+    $this->line('- Mensajes WhatsApp a reasignar: '.$whatsAppMessages->count());
+    $this->line('- Personas a eliminar al final: '.$duplicateIds->count());
+
+    if ($dryRun) {
+        $this->warn('Dry run: no se realizaron cambios.');
+
+        return self::SUCCESS;
+    }
+
+    DB::transaction(function () use (
+        $keepId,
+        $duplicateIds,
+        $participacionesPlan,
+        $asistenciasGrupoPlan,
+        $asistenciasEventoPlan
+    ): void {
+        foreach ($participacionesPlan as $plan) {
+            ParticipacionGrupo::query()
+                ->whereKey($plan['target_id'])
+                ->update($plan['merged']);
+
+            if ($plan['ids_to_delete'] !== []) {
+                ParticipacionGrupo::query()
+                    ->whereIn('id', $plan['ids_to_delete'])
+                    ->delete();
+            }
+        }
+
+        foreach ($asistenciasGrupoPlan as $plan) {
+            AsistenciaGrupo::query()
+                ->whereKey($plan['target_id'])
+                ->update($plan['merged']);
+
+            if ($plan['ids_to_delete'] !== []) {
+                AsistenciaGrupo::query()
+                    ->whereIn('id', $plan['ids_to_delete'])
+                    ->delete();
+            }
+        }
+
+        foreach ($asistenciasEventoPlan as $plan) {
+            Asistencia::query()
+                ->whereKey($plan['target_id'])
+                ->update($plan['merged']);
+
+            if ($plan['ids_to_delete'] !== []) {
+                Asistencia::query()
+                    ->whereIn('id', $plan['ids_to_delete'])
+                    ->delete();
+            }
+        }
+
+        WhatsAppMessage::query()
+            ->whereIn('persona_id', $duplicateIds->all())
+            ->update(['persona_id' => $keepId]);
+
+        Persona::query()
+            ->whereIn('id', $duplicateIds->all())
+            ->delete();
+    });
+
+    $this->info('Fusion completada correctamente.');
+
+    return self::SUCCESS;
+})->purpose('Fusiona personas duplicadas conservando un ID principal');
 
 Artisan::command('grupos:asistencia-pendiente {--fecha= : Fecha de referencia YYYY-MM-DD} {--json : Salida en formato JSON}', function () {
     $fechaOption = $this->option('fecha');

@@ -168,6 +168,24 @@ class AsistenciaGruposCrecimiento extends Page implements Forms\Contracts\HasFor
                 ->action(function (array $data): void {
                     $this->agregarPersonaAlGrupo($data);
                 }),
+            Actions\Action::make('quitarPersona')
+                ->label('Quitar persona del grupo')
+                ->icon('heroicon-o-user-minus')
+                ->color('danger')
+                ->disabled(fn (): bool => blank($this->grupo_id))
+                ->form([
+                    Forms\Components\Select::make('persona_id')
+                        ->label('Persona')
+                        ->options(fn (): array => $this->integrantesOptions())
+                        ->searchable()
+                        ->required(),
+                ])
+                ->requiresConfirmation()
+                ->modalHeading('Quitar persona del grupo')
+                ->modalDescription('La persona dejará de figurar como integrante activa del grupo, pero se conservará su historial de asistencias.')
+                ->action(function (array $data): void {
+                    $this->quitarPersonaDelGrupo((int) $data['persona_id']);
+                }),
         ];
     }
 
@@ -286,6 +304,86 @@ class AsistenciaGruposCrecimiento extends Page implements Forms\Contracts\HasFor
             ->title('Persona agregada al grupo correctamente')
             ->success()
             ->send();
+    }
+
+    public function quitarPersonaDelGrupo(int $personaId): void
+    {
+        if (! $this->grupo_id) {
+            Notification::make()
+                ->title('Selecciona primero un grupo de crecimiento')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        $fechaFin = $this->fecha ?: now()->toDateString();
+
+        $participaciones = ParticipacionGrupo::query()
+            ->where('grupo_id', $this->grupo_id)
+            ->where('persona_id', $personaId)
+            ->where(function (Builder $query): void {
+                $query->whereNull('fecha_fin')
+                    ->orWhereDate('fecha_fin', '>=', $this->fecha ?: now()->toDateString());
+            })
+            ->get();
+
+        if ($participaciones->isEmpty()) {
+            Notification::make()
+                ->title('La persona ya no figura como integrante activa')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        foreach ($participaciones as $participacion) {
+            $participacion->fecha_fin = $fechaFin;
+
+            if ($participacion->fecha_inicio && $participacion->fecha_inicio->gt($participacion->fecha_fin)) {
+                $participacion->fecha_inicio = $participacion->fecha_fin;
+            }
+
+            $participacion->save();
+        }
+
+        $this->presentes = collect($this->presentes)
+            ->reject(fn ($id): bool => (int) $id === $personaId)
+            ->values()
+            ->all();
+
+        $this->refrescarAsistenciaCargada();
+
+        $persona = Persona::query()->find($personaId);
+
+        Notification::make()
+            ->title('Persona quitada del grupo')
+            ->body($persona ? $this->personaLabel($persona) : null)
+            ->success()
+            ->send();
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, array{id:int,label:string}>
+     */
+    public function integrantesActivos(): \Illuminate\Support\Collection
+    {
+        $integrantesIds = $this->integrantesIds();
+
+        if ($integrantesIds === []) {
+            return collect();
+        }
+
+        return Persona::query()
+            ->whereIn('id', $integrantesIds)
+            ->orderBy('apellido')
+            ->orderBy('nombre')
+            ->get()
+            ->map(fn (Persona $persona): array => [
+                'id' => (int) $persona->id,
+                'label' => $this->personaLabel($persona),
+            ])
+            ->values();
     }
 
     protected function refrescarAsistenciaCargada(): void
