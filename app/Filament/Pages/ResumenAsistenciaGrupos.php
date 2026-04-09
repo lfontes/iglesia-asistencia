@@ -17,7 +17,7 @@ class ResumenAsistenciaGrupos extends Page implements Forms\Contracts\HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar-square';
 
-    protected static ?string $navigationGroup = 'Grupos';
+    protected static ?string $navigationGroup = 'Asistencia';
 
     protected static ?string $navigationLabel = 'Resumen de asistencias';
 

@@ -20,7 +20,7 @@ class AsistenciaGruposCrecimiento extends Page implements Forms\Contracts\HasFor
 
     protected static ?string $navigationIcon = 'heroicon-o-check-badge';
 
-    protected static ?string $navigationGroup = 'Grupos';
+    protected static ?string $navigationGroup = 'Asistencia';
 
     protected static ?string $navigationLabel = 'Asistencia Gr. Crecimiento';
 

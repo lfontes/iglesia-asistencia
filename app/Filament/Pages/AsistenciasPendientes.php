@@ -24,7 +24,7 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-chat-bubble-left-right';
 
-    protected static ?string $navigationGroup = 'Grupos';
+    protected static ?string $navigationGroup = 'Asistencia';
 
     protected static ?string $navigationLabel = 'Asistencias pendientes';
 
