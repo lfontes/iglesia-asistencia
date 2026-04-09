@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Models\Grupo;
 use App\Filament\Pages\AsistenciaGruposCrecimiento;
+use App\Models\WhatsAppBulkDispatch;
 use App\Models\WhatsAppMessage;
 use App\Services\AsistenciasPendientesService;
 use App\Services\WhatsAppService;
@@ -37,6 +38,8 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
 
     /** @var array<string, array<string, mixed>|null> */
     protected array $lastReminderStatuses = [];
+
+    protected ?WhatsAppBulkDispatch $bulkDispatchStatus = null;
 
     public function mount(): void
     {
@@ -90,6 +93,7 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
                 ->label('Enviar recordatorios por WhatsApp')
                 ->icon('heroicon-o-paper-airplane')
                 ->color('success')
+                ->disabled(fn (): bool => $this->estaBloqueadoEnvioMasivo())
                 ->requiresConfirmation()
                 ->modalHeading('Enviar recordatorios a todos')
                 ->modalDescription('Se enviará un único recordatorio por grupo al facilitador marcado para recordatorios o, si no aplica, al primer facilitador con teléfono válido.')
@@ -159,6 +163,16 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
 
     protected function enviarRecordatoriosATodos(): Notification
     {
+        if ($this->estaBloqueadoEnvioMasivo()) {
+            $dispatch = $this->getBulkDispatchStatusActual();
+
+            return Notification::make()
+                ->title('El envío masivo ya fue realizado para este período')
+                ->body($dispatch?->created_at?->format('d/m/Y H:i') ?? 'No hace falta reenviarlo todavía.')
+                ->warning()
+                ->send();
+        }
+
         $enviados = 0;
         $omitidos = 0;
         $fallidos = 0;
@@ -193,6 +207,25 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
 
         $this->lastReminderStatuses = [];
 
+        if ($enviados > 0) {
+            WhatsAppBulkDispatch::query()->create([
+                'use_case' => 'recordatorio_asistencia_grupo',
+                'fecha_referencia' => $this->getFechaReferencia()->toDateString(),
+                'period_hash' => $this->getCurrentPeriodHash(),
+                'period_summary' => $this->getCurrentPeriodSummary(),
+                'user_id' => auth()->id(),
+                'sent_count' => $enviados,
+                'skipped_count' => $omitidos,
+                'failed_count' => $fallidos,
+                'meta' => [
+                    'total_grupos' => $this->getPendientes()->count(),
+                    'detalles' => $detalles,
+                ],
+            ]);
+        }
+
+        $this->bulkDispatchStatus = null;
+
         $body = "Enviados: {$enviados}. Omitidos: {$omitidos}. Fallidos: {$fallidos}.";
 
         if ($detalles !== []) {
@@ -208,6 +241,22 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
             ->body($body)
             ->color($fallidos > 0 ? 'warning' : 'success')
             ->send();
+    }
+
+    public function getBulkDispatchStatusLabel(): ?string
+    {
+        $dispatch = $this->getBulkDispatchStatusActual();
+
+        if (! $dispatch) {
+            return null;
+        }
+
+        $userName = trim((string) ($dispatch->user?->name ?? ''));
+        $when = $dispatch->created_at?->format('d/m/Y H:i');
+        $summary = $dispatch->period_summary ? "Período: {$dispatch->period_summary}. " : '';
+        $by = $userName !== '' ? "Por: {$userName}. " : '';
+
+        return trim("Ya se enviaron recordatorios masivos. {$summary}{$by}Fecha: {$when}.");
     }
 
     /**
@@ -238,6 +287,31 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
         } catch (\Throwable) {
             return now()->startOfDay();
         }
+    }
+
+    protected function estaBloqueadoEnvioMasivo(): bool
+    {
+        return $this->getBulkDispatchStatusActual() !== null;
+    }
+
+    protected function getBulkDispatchStatusActual(): ?WhatsAppBulkDispatch
+    {
+        if ($this->bulkDispatchStatus !== null) {
+            return $this->bulkDispatchStatus;
+        }
+
+        $periodHash = $this->getCurrentPeriodHash();
+
+        if ($periodHash === null) {
+            return null;
+        }
+
+        return $this->bulkDispatchStatus = WhatsAppBulkDispatch::query()
+            ->with('user:id,name')
+            ->where('use_case', 'recordatorio_asistencia_grupo')
+            ->where('period_hash', $periodHash)
+            ->latest('id')
+            ->first();
     }
 
     /**
@@ -363,6 +437,40 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
         $detalle = trim($detalle) !== '' ? $detalle : 'Sin detalle';
 
         return $nombre . ': ' . $detalle;
+    }
+
+    protected function getCurrentPeriodHash(): ?string
+    {
+        $periods = $this->getPendientes()
+            ->map(fn (array $item): string => implode('|', [
+                (string) $item['periodo_inicio'],
+                (string) $item['periodo_fin'],
+            ]))
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        if ($periods === []) {
+            return null;
+        }
+
+        return hash('sha256', implode('::', $periods));
+    }
+
+    protected function getCurrentPeriodSummary(): ?string
+    {
+        $periods = $this->getPendientes()
+            ->map(fn (array $item): string => Carbon::parse($item['periodo_inicio'])->format('d/m/Y') . ' al ' . Carbon::parse($item['periodo_fin'])->format('d/m/Y'))
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($periods === []) {
+            return null;
+        }
+
+        return implode(' | ', $periods);
     }
 
     /**

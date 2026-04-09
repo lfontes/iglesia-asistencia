@@ -32,6 +32,11 @@ class ResumenAsistenciaGrupos extends Page implements Forms\Contracts\HasForms
     public function mount(): void
     {
         $availableGroups = $this->getAvailableGroups();
+        $grupoIdDesdeUrl = request()->integer('grupo_id');
+
+        if ($grupoIdDesdeUrl && array_key_exists($grupoIdDesdeUrl, $availableGroups)) {
+            $this->grupo_id = $grupoIdDesdeUrl;
+        }
 
         $this->form->fill([
             'grupo_id' => $this->grupo_id ?? array_key_first($availableGroups),

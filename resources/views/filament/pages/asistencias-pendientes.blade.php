@@ -48,6 +48,12 @@
             </div>
         </div>
 
+        @if ($this->getBulkDispatchStatusLabel())
+            <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                {{ $this->getBulkDispatchStatusLabel() }}
+            </div>
+        @endif
+
         @if ($pendientes->isEmpty())
             <div class="mt-6 rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center text-sm text-gray-500">
                 No hay grupos con asistencia pendiente para la fecha de referencia seleccionada.
@@ -67,7 +73,14 @@
                     <tbody class="divide-y divide-gray-100">
                         @foreach ($pendientes as $item)
                             <tr class="align-top">
-                                <td class="px-4 py-4 font-medium text-gray-900">{{ $item['grupo'] }}</td>
+                                <td class="px-4 py-4 font-medium">
+                                    <a
+                                        href="{{ \App\Filament\Pages\ResumenAsistenciaGrupos::getUrl(['grupo_id' => $item['grupo_id']]) }}"
+                                        class="text-primary-600 hover:text-primary-500 hover:underline"
+                                    >
+                                        {{ $item['grupo'] }}
+                                    </a>
+                                </td>
                                 <td class="px-4 py-4 text-gray-700">{{ $frecuenciaLabels[$item['frecuencia']] ?? ucfirst($item['frecuencia']) }}</td>
                                 <td class="px-4 py-4 text-gray-700">
                                     {{ \Illuminate\Support\Carbon::parse($item['periodo_inicio'])->format('d/m/Y') }}
