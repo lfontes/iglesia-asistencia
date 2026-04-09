@@ -26,9 +26,9 @@ class GrupoResource extends Resource
 
     protected static ?string $pluralModelLabel = 'grupos';
 
-    protected static ?string $navigationGroup = 'Catálogos';
+    protected static ?string $navigationGroup = null;
 
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 3;
 
     public static function form(Form $form): Form
     {
@@ -104,6 +104,15 @@ class GrupoResource extends Resource
             ->defaultSort('nombre')
             ->filters([
                 Tables\Filters\TernaryFilter::make('activo'),
+                Tables\Filters\SelectFilter::make('anio')
+                    ->label('Anio')
+                    ->options(fn (): array => Grupo::query()
+                        ->whereNotNull('anio')
+                        ->distinct()
+                        ->orderByDesc('anio')
+                        ->pluck('anio', 'anio')
+                        ->mapWithKeys(fn ($anio): array => [(string) $anio => (string) $anio])
+                        ->all()),
                 Tables\Filters\SelectFilter::make('tipo_grupo_id')
                     ->label('Tipo')
                     ->relationship('tipoGrupo', 'nombre'),
@@ -113,7 +122,7 @@ class GrupoResource extends Resource
             ])
             ->actions([
                 Action::make('participacion')
-                    ->label('Registrar Participacion')
+                    ->label('Registrar participantes')
                     ->url(fn ($record) => GrupoResource::getUrl('participacion', [
                         'record' => $record,
                     ]))

@@ -12,7 +12,7 @@ class AsistenciasRelationManager extends RelationManager
 {
     protected static string $relationship = 'asistencias';
 
-    protected static ?string $title = 'Participaciones';
+    protected static ?string $title = 'Eventos';
 
     public function form(Form $form): Form
     {

@@ -12,7 +12,7 @@ class ParticipacionesGrupoRelationManager extends RelationManager
 {
     protected static string $relationship = 'participacionesGrupo';
 
-    protected static ?string $title = 'Participaciones por Grupo';
+    protected static ?string $title = 'Grupos';
 
     public function isReadOnly(): bool
     {

@@ -14,7 +14,7 @@ class EditGrupo extends EditRecord
     {
         return [
             Actions\Action::make('participacion')
-                ->label('Registrar Participacion')
+                ->label('Registrar participantes')
                 ->url(fn () => GrupoResource::getUrl('participacion', ['record' => $this->record]))
                 ->icon('heroicon-o-user-plus'),
             Actions\DeleteAction::make(),
