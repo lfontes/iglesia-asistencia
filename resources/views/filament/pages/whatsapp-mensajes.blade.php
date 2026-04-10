@@ -32,6 +32,7 @@
                             <th class="px-4 py-3 font-medium">Fecha</th>
                             <th class="px-4 py-3 font-medium">Uso</th>
                             <th class="px-4 py-3 font-medium">Contexto</th>
+                            <th class="px-4 py-3 font-medium">Conversación</th>
                             <th class="px-4 py-3 font-medium">Destino</th>
                             <th class="px-4 py-3 font-medium">Estado</th>
                             <th class="px-4 py-3 font-medium">Mensaje</th>
@@ -64,7 +65,19 @@
                                     @endif
                                 </td>
                                 <td class="px-4 py-4 text-gray-700">
-                                    <div>{{ $message->to_phone ?: 'Sin número' }}</div>
+                                    @if ($message->conversation_key)
+                                        <a
+                                            href="{{ \App\Filament\Pages\WhatsAppConversacion::getUrl(['key' => $message->conversation_key]) }}"
+                                            class="text-primary-600 hover:text-primary-500"
+                                        >
+                                            Abrir conversación
+                                        </a>
+                                    @else
+                                        <span class="text-xs text-gray-400">Sin clave</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-4 text-gray-700">
+                                    <div>{{ $message->to_phone ?: $message->from_phone ?: 'Sin número' }}</div>
                                     @if ($message->recipient_wa_id)
                                         <div class="text-xs text-gray-500">wa_id: {{ $message->recipient_wa_id }}</div>
                                     @endif
