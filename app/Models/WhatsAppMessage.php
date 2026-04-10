@@ -10,12 +10,16 @@ class WhatsAppMessage extends Model
 
     protected $fillable = [
         'provider_message_id',
+        'reply_to_provider_message_id',
         'to_phone',
+        'from_phone',
         'recipient_wa_id',
+        'conversation_key',
         'persona_id',
         'grupo_id',
         'body',
         'direction',
+        'message_type',
         'use_case',
         'periodo_inicio',
         'periodo_fin',
@@ -27,6 +31,7 @@ class WhatsAppMessage extends Model
         'sent_at',
         'delivered_at',
         'read_at',
+        'read_in_app_at',
         'failed_at',
     ];
 
@@ -41,6 +46,7 @@ class WhatsAppMessage extends Model
             'sent_at' => 'datetime',
             'delivered_at' => 'datetime',
             'read_at' => 'datetime',
+            'read_in_app_at' => 'datetime',
             'failed_at' => 'datetime',
         ];
     }
@@ -53,5 +59,20 @@ class WhatsAppMessage extends Model
     public function grupo()
     {
         return $this->belongsTo(Grupo::class);
+    }
+
+    public function isInbound(): bool
+    {
+        return $this->direction === 'inbound';
+    }
+
+    public function isOutbound(): bool
+    {
+        return $this->direction === 'outbound';
+    }
+
+    public function isUnreadInApp(): bool
+    {
+        return $this->isInbound() && $this->read_in_app_at === null;
     }
 }

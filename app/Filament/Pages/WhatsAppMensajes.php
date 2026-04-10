@@ -10,7 +10,7 @@ class WhatsAppMensajes extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-chat-bubble-oval-left-ellipsis';
 
-    protected static ?string $navigationGroup = 'Integraciones';
+    protected static ?string $navigationGroup = 'WhatsApp';
 
     protected static ?string $navigationLabel = 'Mensajes WhatsApp';
 
