@@ -30,3 +30,31 @@
     width: 0.875rem !important;
     height: 0.875rem !important;
 }
+
+/* Menu lateral mas compacto para evitar tanto scroll. */
+.fi-sidebar-nav {
+    gap: 0.25rem !important;
+}
+
+.fi-sidebar-group {
+    gap: 0.125rem !important;
+}
+
+.fi-sidebar-group-button,
+.fi-sidebar-item-button {
+    min-height: 2rem !important;
+    padding-top: 0.35rem !important;
+    padding-bottom: 0.35rem !important;
+}
+
+.fi-sidebar-group-label,
+.fi-sidebar-item-label {
+    font-size: 0.8125rem !important;
+    line-height: 1rem !important;
+}
+
+.fi-sidebar-item-icon,
+.fi-sidebar-group-icon {
+    width: 1rem !important;
+    height: 1rem !important;
+}
