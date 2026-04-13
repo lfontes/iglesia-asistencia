@@ -67,6 +67,11 @@ class Persona extends Model
         return $this->hasMany(AsistenciaGrupo::class);
     }
 
+    public function metagruposLiderados()
+    {
+        return $this->hasMany(Metagrupo::class, 'lider_persona_id');
+    }
+
     protected function normalizePhone(?string $value): ?string
     {
         if ($value === null || $value === '') {

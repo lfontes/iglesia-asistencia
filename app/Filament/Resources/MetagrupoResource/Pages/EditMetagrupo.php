@@ -1,0 +1,19 @@
+<?php
+
+namespace App\Filament\Resources\MetagrupoResource\Pages;
+
+use App\Filament\Resources\MetagrupoResource;
+use Filament\Actions;
+use Filament\Resources\Pages\EditRecord;
+
+class EditMetagrupo extends EditRecord
+{
+    protected static string $resource = MetagrupoResource::class;
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Actions\DeleteAction::make(),
+        ];
+    }
+}

@@ -4,6 +4,7 @@
     @php
         $summary = $this->getSummaryData();
         $rows = $this->getAttendanceRows();
+        $dates = $this->getAttendanceDates();
     @endphp
 
     <div class="mt-6 grid gap-4 md:grid-cols-4">
@@ -35,8 +36,13 @@
             <div>
                 <h2 class="text-lg font-semibold text-gray-900">Asistencia por persona</h2>
                 <p class="text-sm text-gray-500">
-                    Gráfico de barras horizontales según presencia acumulada en el grupo.
+                    Matriz de doble entrada por persona y fecha de encuentro.
                 </p>
+                @if ($this->getFocusedPersonaName())
+                    <p class="mt-2 text-sm font-medium text-primary-700">
+                        Mostrando asistencia de {{ $this->getFocusedPersonaName() }}.
+                    </p>
+                @endif
             </div>
 
             <div class="text-right text-sm text-gray-500">
@@ -49,36 +55,56 @@
                 Aun no hay participantes o asistencias registradas para este grupo.
             </div>
         @else
-            <div class="mt-6 space-y-4">
-                @foreach ($rows as $row)
-                    <div class="rounded-2xl bg-gray-50 p-4">
-                        <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                            <div>
-                                <p class="font-medium text-gray-900">{{ $row['nombre_completo'] }}</p>
-                                <p class="text-sm text-gray-500">
-                                    {{ $row['presentes'] }} asistencias de {{ $summary['total_fechas'] }}
-                                    @if ($summary['total_fechas'] > 0)
-                                        · {{ $row['ausencias'] }} ausencias
-                                    @endif
-                                    @if ($row['ultima_asistencia'])
-                                        · Última asistencia: {{ \Illuminate\Support\Carbon::parse($row['ultima_asistencia'])->format('d/m/Y') }}
-                                    @endif
-                                </p>
-                            </div>
-
-                            <div class="text-sm font-semibold text-emerald-700">
-                                {{ $row['porcentaje'] }}%
-                            </div>
-                        </div>
-
-                        <div class="mt-3 h-4 overflow-hidden rounded-full" style="background-color: #e5e7eb;">
-                            <div
-                                class="h-full rounded-full transition-all"
-                                style="width: {{ max(0, min(100, (int) $row['porcentaje'])) }}%; background: linear-gradient(90deg, #10b981 0%, #34d399 100%);"
-                            ></div>
-                        </div>
-                    </div>
-                @endforeach
+            <div class="mt-6 overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                    <thead>
+                        <tr class="text-left text-xs uppercase tracking-[0.18em] text-gray-500">
+                            <th class="sticky left-0 z-10 bg-white px-4 py-3 font-medium">Persona</th>
+                            <th class="bg-white px-3 py-3 text-center font-medium normal-case tracking-normal">%</th>
+                            @foreach ($dates as $date)
+                                <th class="bg-white px-3 py-3 text-center font-medium normal-case tracking-normal">
+                                    {{ \Illuminate\Support\Carbon::parse($date)->format('d/m') }}
+                                </th>
+                            @endforeach
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @foreach ($rows as $row)
+                            <tr class="align-middle">
+                                <td class="sticky left-0 z-10 bg-white px-4 py-4">
+                                    <div class="font-medium text-gray-900">{{ $row['nombre_completo'] }}</div>
+                                    <div class="mt-1 text-xs text-gray-500">
+                                        {{ $row['presentes'] }} asistencias
+                                        @if ($summary['total_fechas'] > 0)
+                                            · {{ $row['ausencias'] }} ausencias
+                                        @endif
+                                    </div>
+                                </td>
+                                <td class="px-3 py-4 text-center font-semibold text-emerald-700">
+                                    {{ $row['porcentaje'] }}%
+                                </td>
+                                @foreach ($dates as $date)
+                                    @php $state = $row['attendance_by_date'][$date] ?? null; @endphp
+                                    <td class="px-3 py-4 text-center">
+                                        @if ($state === true)
+                                            <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                                                <x-heroicon-o-check-circle class="h-4 w-4" />
+                                            </span>
+                                        @elseif ($state === false)
+                                            <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-rose-100 text-rose-600">
+                                                <x-heroicon-o-x-circle class="h-4 w-4" />
+                                            </span>
+                                        @else
+                                            <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-gray-300">
+                                                <span class="h-1.5 w-1.5 rounded-full bg-gray-300"></span>
+                                            </span>
+                                        @endif
+                                    </td>
+                                @endforeach
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
         @endif
     </div>

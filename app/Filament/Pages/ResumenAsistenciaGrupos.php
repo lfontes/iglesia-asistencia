@@ -29,13 +29,20 @@ class ResumenAsistenciaGrupos extends Page implements Forms\Contracts\HasForms
 
     public ?int $grupo_id = null;
 
+    public ?int $persona_id = null;
+
     public function mount(): void
     {
         $availableGroups = $this->getAvailableGroups();
         $grupoIdDesdeUrl = request()->integer('grupo_id');
+        $personaIdDesdeUrl = request()->integer('persona_id');
 
         if ($grupoIdDesdeUrl && array_key_exists($grupoIdDesdeUrl, $availableGroups)) {
             $this->grupo_id = $grupoIdDesdeUrl;
+        }
+
+        if ($personaIdDesdeUrl) {
+            $this->persona_id = $personaIdDesdeUrl;
         }
 
         $this->form->fill([
@@ -89,7 +96,7 @@ class ResumenAsistenciaGrupos extends Page implements Forms\Contracts\HasForms
     {
         $grupo = $this->getSelectedGroup();
         $rows = $this->getAttendanceRows();
-        $totalFechas = $this->getTotalFechas();
+        $totalFechas = $this->getAttendanceDates()->count();
         $totalPersonas = $rows->count();
         $totalPresentes = $rows->sum('presentes');
         $promedio = $totalPersonas > 0 && $totalFechas > 0
@@ -114,11 +121,13 @@ class ResumenAsistenciaGrupos extends Page implements Forms\Contracts\HasForms
             return collect();
         }
 
-        $totalFechas = $this->getTotalFechas();
+        $fechas = $this->getAttendanceDates();
+        $totalFechas = $fechas->count();
 
         $participantes = ParticipacionGrupo::query()
             ->with('persona:id,nombre,apellido')
             ->where('grupo_id', $this->grupo_id)
+            ->when($this->persona_id, fn ($query) => $query->where('persona_id', $this->persona_id))
             ->get()
             ->unique('persona_id')
             ->values();
@@ -133,14 +142,30 @@ class ResumenAsistenciaGrupos extends Page implements Forms\Contracts\HasForms
             ->get()
             ->keyBy('persona_id');
 
+        $asistenciasPorPersona = AsistenciaGrupo::query()
+            ->select(['persona_id', 'fecha', 'presente'])
+            ->where('grupo_id', $this->grupo_id)
+            ->get()
+            ->groupBy('persona_id');
+
         return $participantes
-            ->map(function (ParticipacionGrupo $participacion) use ($agregados, $totalFechas): array {
+            ->map(function (ParticipacionGrupo $participacion) use ($agregados, $asistenciasPorPersona, $fechas, $totalFechas): array {
                 $persona = $participacion->persona;
                 $agregado = $agregados->get($participacion->persona_id);
                 $presentes = (int) ($agregado->presentes ?? 0);
                 $porcentaje = $totalFechas > 0
                     ? (int) round(($presentes / $totalFechas) * 100)
                     : 0;
+                $asistencias = collect($asistenciasPorPersona->get($participacion->persona_id, collect()))
+                    ->keyBy(fn (AsistenciaGrupo $asistencia): string => (string) $asistencia->fecha);
+
+                $attendanceByDate = $fechas
+                    ->mapWithKeys(function (string $fecha) use ($asistencias): array {
+                        $asistencia = $asistencias->get($fecha);
+
+                        return [$fecha => $asistencia ? (bool) $asistencia->presente : null];
+                    })
+                    ->all();
 
                 return [
                     'persona_id' => (int) $participacion->persona_id,
@@ -149,22 +174,40 @@ class ResumenAsistenciaGrupos extends Page implements Forms\Contracts\HasForms
                     'ausencias' => max($totalFechas - $presentes, 0),
                     'porcentaje' => $porcentaje,
                     'ultima_asistencia' => $agregado->ultima_asistencia ?? null,
+                    'attendance_by_date' => $attendanceByDate,
                 ];
             })
             ->sortByDesc(fn (array $row) => [$row['porcentaje'], $row['presentes'], $row['nombre_completo']])
             ->values();
     }
 
-    public function getTotalFechas(): int
+    public function getFocusedPersonaName(): ?string
     {
-        if (! $this->grupo_id) {
-            return 0;
+        if (! $this->persona_id) {
+            return null;
         }
 
-        return (int) AsistenciaGrupo::query()
+        $row = $this->getAttendanceRows()->firstWhere('persona_id', $this->persona_id);
+
+        return $row['nombre_completo'] ?? null;
+    }
+
+    public function getAttendanceDates(): Collection
+    {
+        if (! $this->grupo_id) {
+            return collect();
+        }
+
+        return AsistenciaGrupo::query()
             ->where('grupo_id', $this->grupo_id)
-            ->distinct('fecha')
-            ->count('fecha');
+            ->distinct()
+            ->orderBy('fecha')
+            ->pluck('fecha');
+    }
+
+    public function getTotalFechas(): int
+    {
+        return $this->getAttendanceDates()->count();
     }
 
     public function getSelectedGroup(): ?Grupo
