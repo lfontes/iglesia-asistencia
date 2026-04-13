@@ -42,6 +42,7 @@ class AdminPanelProvider extends PanelProvider
                 return Dashboard::getUrl();
             })
             ->brandName('Iglesia de los Libres')
+            ->sidebarFullyCollapsibleOnDesktop()
             ->colors([
                 'primary' => Color::Amber,
             ])
