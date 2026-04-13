@@ -44,4 +44,11 @@ class Grupo extends Model
     {
         return $this->hasMany(AsistenciaGrupo::class);
     }
+
+    public function metagrupos()
+    {
+        return $this->belongsToMany(Metagrupo::class, 'grupo_metagrupo')
+            ->withTimestamps()
+            ->orderBy('nombre');
+    }
 }
