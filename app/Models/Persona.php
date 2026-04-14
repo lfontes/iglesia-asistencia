@@ -40,6 +40,7 @@ class Persona extends Model
         'apellido',
         'fecha_nacimiento',
         'telefono',
+        'email',
         'telefono_normalizado',
     ];
 
@@ -70,6 +71,11 @@ class Persona extends Model
     public function metagruposLiderados()
     {
         return $this->hasMany(Metagrupo::class, 'lider_persona_id');
+    }
+
+    public function user()
+    {
+        return $this->hasOne(User::class);
     }
 
     protected function normalizePhone(?string $value): ?string

@@ -25,12 +25,18 @@ class User extends Authenticatable implements FilamentUser
     protected $fillable = [
         'name',
         'email',
+        'persona_id',
         'password',
     ];
 
     public function canAccessPanel(Panel $panel): bool
     {
         return $this->hasRole(['admin', 'secretario', 'facilitador']);
+    }
+
+    public function persona()
+    {
+        return $this->belongsTo(Persona::class);
     }
 
     /**

@@ -49,6 +49,10 @@ class PersonaResource extends Resource
                 TextInput::make('telefono')
                     ->tel()
                     ->maxLength(255),
+
+                TextInput::make('email')
+                    ->email()
+                    ->maxLength(255),
             ]);
     }
 
@@ -69,6 +73,10 @@ class PersonaResource extends Resource
                     ->sortable(),
 
                 TextColumn::make('telefono'),
+
+                TextColumn::make('email')
+                    ->label('Email')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('presentes_count')
                     ->label('Presentes')
