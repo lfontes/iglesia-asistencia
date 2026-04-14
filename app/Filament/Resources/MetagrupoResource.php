@@ -118,11 +118,33 @@ class MetagrupoResource extends Resource
 
     public static function canViewAny(): bool
     {
+        return (bool) auth()->user()?->hasRole(['admin', 'lider']);
+    }
+
+    public static function canView($record): bool
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+
+        return $user->hasRole('lider')
+            && $user->persona
+            && (int) $record->lider_persona_id === (int) $user->persona->id;
+    }
+
+    public static function canEdit($record): bool
+    {
         return (bool) auth()->user()?->hasRole('admin');
     }
 
     public static function shouldRegisterNavigation(): bool
     {
-        return static::canViewAny();
+        return (bool) auth()->user()?->hasRole('admin');
     }
 }

@@ -8,6 +8,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
+use Illuminate\Database\Eloquent\Builder;
 use Spatie\Permission\Traits\HasRoles;
 
 
@@ -31,12 +32,47 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->hasRole(['admin', 'secretario', 'facilitador']);
+        return $this->hasRole(['admin', 'secretario', 'facilitador', 'lider']);
     }
 
     public function persona()
     {
         return $this->belongsTo(Persona::class);
+    }
+
+    public function isRestrictedPanelUser(): bool
+    {
+        return $this->hasRole(['facilitador', 'lider']) && ! $this->hasRole('admin');
+    }
+
+    public function isSoloLider(): bool
+    {
+        return $this->hasRole('lider') && ! $this->hasRole(['admin', 'facilitador']);
+    }
+
+    public function canManageLeadershipArea(): bool
+    {
+        return $this->hasRole(['admin', 'lider']);
+    }
+
+    public function metagruposLiderados(): Builder
+    {
+        if (! $this->persona_id) {
+            return Metagrupo::query()->whereRaw('1 = 0');
+        }
+
+        return Metagrupo::query()
+            ->where('lider_persona_id', $this->persona_id)
+            ->withSummaryColumns();
+    }
+
+    public function gruposMinisterialesLiderados(): Builder
+    {
+        if (! $this->persona) {
+            return Grupo::query()->whereRaw('1 = 0');
+        }
+
+        return $this->persona->gruposMinisterialesLiderados();
     }
 
     /**

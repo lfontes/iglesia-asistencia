@@ -1,53 +1,73 @@
 <?php
 
-namespace App\Filament\Resources\MetagrupoResource\Pages;
+namespace App\Filament\Pages;
 
-use App\Filament\Resources\MetagrupoResource;
-use App\Filament\Pages\ResumenAsistenciaGrupos;
+use App\Models\Grupo;
+use App\Models\ParticipacionGrupo;
 use App\Models\Persona;
 use App\Models\TipoGrupo;
-use Filament\Actions;
-use Filament\Resources\Pages\ViewRecord;
-use Illuminate\Auth\Access\AuthorizationException;
+use Filament\Actions\Action;
+use Filament\Pages\Page;
 use Illuminate\Support\Collection;
 
-class ViewMetagrupo extends ViewRecord
+class ResumenGrupoMinisterial extends Page
 {
-    protected static string $resource = MetagrupoResource::class;
+    protected static bool $shouldRegisterNavigation = false;
 
-    protected static string $view = 'filament.resources.metagrupo-resource.pages.view-metagrupo';
+    protected static ?string $title = 'Resumen del grupo ministerial';
 
-    /**
-     * @throws AuthorizationException
-     */
-    public function mount(int|string $record): void
+    protected static ?string $slug = 'resumen-grupo-ministerial';
+
+    protected static string $view = 'filament.pages.resumen-grupo-ministerial';
+
+    public ?int $grupo_id = null;
+
+    public function mount(): void
     {
-        parent::mount($record);
+        $this->grupo_id = request()->integer('grupo_id');
 
-        abort_unless(MetagrupoResource::canView($this->record), 403);
+        abort_unless($this->grupo_id, 404);
+        abort_unless($this->getGrupo(), 404);
+        abort_unless($this->canViewGroup(), 403);
+    }
+
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->canManageLeadershipArea() ?? false;
     }
 
     protected function getHeaderActions(): array
     {
-        if (! auth()->user()?->hasRole('admin')) {
-            return [];
+        return [
+            Action::make('volver')
+                ->label('Volver a mis grupos')
+                ->url(MisGruposMinisteriales::getUrl())
+                ->color('gray'),
+        ];
+    }
+
+    public function getGrupo(): ?Grupo
+    {
+        if (! $this->grupo_id) {
+            return null;
         }
 
-        return [Actions\EditAction::make()];
+        return Grupo::query()
+            ->with('tipoGrupo:id,nombre')
+            ->find($this->grupo_id);
     }
 
     /**
-     * @return array{total_grupos:int,total_personas:int,en_crecimiento:int,sin_crecimiento:int}
+     * @return array{total_personas:int,en_crecimiento:int,sin_crecimiento:int}
      */
     public function getSummary(): array
     {
-        $people = $this->getPeopleRows();
+        $rows = $this->getPeopleRows();
 
         return [
-            'total_grupos' => $this->record->grupos->count(),
-            'total_personas' => $people->count(),
-            'en_crecimiento' => $people->where('en_crecimiento', true)->count(),
-            'sin_crecimiento' => $people->where('en_crecimiento', false)->count(),
+            'total_personas' => $rows->count(),
+            'en_crecimiento' => $rows->where('en_crecimiento', true)->count(),
+            'sin_crecimiento' => $rows->where('en_crecimiento', false)->count(),
         ];
     }
 
@@ -56,7 +76,6 @@ class ViewMetagrupo extends ViewRecord
      *   persona_id:int,
      *   nombre:string,
      *   telefono:?string,
-     *   grupos_metagrupo:string,
      *   en_crecimiento:bool,
      *   grupos_crecimiento:string,
      *   primer_grupo_crecimiento_id:?int
@@ -64,29 +83,25 @@ class ViewMetagrupo extends ViewRecord
      */
     public function getPeopleRows(): Collection
     {
-        $metagrupoGroupIds = $this->record->grupos->pluck('id');
-
-        if ($metagrupoGroupIds->isEmpty()) {
+        if (! $this->grupo_id) {
             return collect();
         }
 
-        $tipoCrecimientoId = TipoGrupo::query()
-            ->whereRaw('LOWER(nombre) = ?', ['crecimiento'])
-            ->value('id');
+        $tipoCrecimientoId = $this->getGrowthTypeId();
 
         return Persona::query()
-            ->whereHas('participacionesGrupo', function ($query) use ($metagrupoGroupIds): void {
-                $query->whereIn('grupo_id', $metagrupoGroupIds)
+            ->whereHas('participacionesGrupo', function ($query): void {
+                $query->where('grupo_id', $this->grupo_id)
                     ->where(function ($subQuery): void {
                         $subQuery->whereNull('fecha_fin')
                             ->orWhere('fecha_fin', '>=', now()->toDateString());
                     });
             })
             ->with([
-                'participacionesGrupo' => function ($query) use ($metagrupoGroupIds, $tipoCrecimientoId): void {
+                'participacionesGrupo' => function ($query) use ($tipoCrecimientoId): void {
                     $query->with('grupo:id,nombre,tipo_grupo_id')
-                        ->where(function ($subQuery) use ($metagrupoGroupIds, $tipoCrecimientoId): void {
-                            $subQuery->whereIn('grupo_id', $metagrupoGroupIds);
+                        ->where(function ($subQuery) use ($tipoCrecimientoId): void {
+                            $subQuery->where('grupo_id', $this->grupo_id);
 
                             if ($tipoCrecimientoId) {
                                 $subQuery->orWhereHas('grupo', fn ($groupQuery) => $groupQuery->where('tipo_grupo_id', $tipoCrecimientoId));
@@ -101,13 +116,7 @@ class ViewMetagrupo extends ViewRecord
             ->orderBy('apellido')
             ->orderBy('nombre')
             ->get()
-            ->map(function (Persona $persona) use ($metagrupoGroupIds, $tipoCrecimientoId): array {
-                $metagrupoGroups = $persona->participacionesGrupo
-                    ->filter(fn ($participacion): bool => $metagrupoGroupIds->contains($participacion->grupo_id))
-                    ->pluck('grupo.nombre')
-                    ->unique()
-                    ->values();
-
+            ->map(function (Persona $persona) use ($tipoCrecimientoId): array {
                 $growthGroups = $persona->participacionesGrupo
                     ->filter(fn ($participacion): bool => $tipoCrecimientoId !== null && (int) optional($participacion->grupo)->tipo_grupo_id === (int) $tipoCrecimientoId)
                     ->map(fn ($participacion): array => [
@@ -121,7 +130,6 @@ class ViewMetagrupo extends ViewRecord
                     'persona_id' => $persona->id,
                     'nombre' => trim($persona->apellido.' '.$persona->nombre),
                     'telefono' => $persona->telefono,
-                    'grupos_metagrupo' => $metagrupoGroups->implode(', '),
                     'en_crecimiento' => $growthGroups->isNotEmpty(),
                     'grupos_crecimiento' => $growthGroups->pluck('nombre')->implode(', '),
                     'primer_grupo_crecimiento_id' => $growthGroups->first()['id'] ?? null,
@@ -140,5 +148,27 @@ class ViewMetagrupo extends ViewRecord
             'grupo_id' => $row['primer_grupo_crecimiento_id'],
             'persona_id' => $row['persona_id'],
         ]);
+    }
+
+    protected function canViewGroup(): bool
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+
+        return (bool) $user->persona?->lideraGrupoMinisterial((int) $this->grupo_id);
+    }
+
+    protected function getGrowthTypeId(): ?int
+    {
+        return TipoGrupo::query()
+            ->whereRaw('LOWER(nombre) = ?', ['crecimiento'])
+            ->value('id');
     }
 }

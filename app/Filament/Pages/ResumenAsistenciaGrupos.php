@@ -31,6 +31,18 @@ class ResumenAsistenciaGrupos extends Page implements Forms\Contracts\HasForms
 
     public ?int $persona_id = null;
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->hasRole(['admin', 'facilitador', 'lider']) ?? false;
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        $user = auth()->user();
+
+        return static::canAccess() && ! ($user?->isSoloLider());
+    }
+
     public function mount(): void
     {
         $availableGroups = $this->getAvailableGroups();

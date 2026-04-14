@@ -4,6 +4,8 @@ namespace App\Providers\Filament;
 
 use App\Filament\Pages\AsistenciaGruposCrecimiento;
 use App\Filament\Pages\Dashboard;
+use App\Filament\Pages\MisGruposMinisteriales;
+use App\Filament\Pages\MisMetagrupos;
 use App\Filament\Widgets\AsistenciasSemanalesGruposWidget;
 use App\Filament\Widgets\ResumenGeneralWidget;
 use App\Http\Middleware\RestrictFacilitadorPanelAccess;
@@ -37,6 +39,12 @@ class AdminPanelProvider extends PanelProvider
 
                 if ($user && $user->hasRole('facilitador') && ! $user->hasRole('admin')) {
                     return AsistenciaGruposCrecimiento::getUrl();
+                }
+
+                if ($user && $user->hasRole('lider') && ! $user->hasRole('admin')) {
+                    return $user->metagruposLiderados()->exists()
+                        ? MisMetagrupos::getUrl()
+                        : MisGruposMinisteriales::getUrl();
                 }
 
                 return Dashboard::getUrl();

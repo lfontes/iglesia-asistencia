@@ -3,7 +3,10 @@
 namespace App\Http\Middleware;
 
 use App\Filament\Pages\AsistenciaGruposCrecimiento;
+use App\Filament\Pages\MisGruposMinisteriales;
+use App\Filament\Pages\MisMetagrupos;
 use App\Filament\Pages\ResumenAsistenciaGrupos;
+use App\Filament\Pages\ResumenGrupoMinisterial;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -14,7 +17,7 @@ class RestrictFacilitadorPanelAccess
     {
         $user = $request->user();
 
-        if (! $user || ! $user->hasRole('facilitador') || $user->hasRole('admin')) {
+        if (! $user || $user->hasRole('admin')) {
             return $next($request);
         }
 
@@ -23,19 +26,52 @@ class RestrictFacilitadorPanelAccess
         }
 
         $routeName = (string) ($request->route()?->getName() ?? '');
+        $isFacilitador = $user->hasRole('facilitador');
+        $isLider = $user->hasRole('lider');
 
         if ($routeName === 'filament.admin.pages.dashboard') {
-            return redirect(ResumenAsistenciaGrupos::getUrl());
+            if ($isFacilitador) {
+                return redirect(ResumenAsistenciaGrupos::getUrl());
+            }
+
+            if ($isLider) {
+                return redirect(
+                    $user->metagruposLiderados()->exists()
+                        ? MisMetagrupos::getUrl()
+                        : MisGruposMinisteriales::getUrl()
+                );
+            }
         }
 
-        if (in_array($routeName, [
-            'filament.admin.pages.asistencia-grupos-crecimiento',
-            'filament.admin.pages.resumen-asistencia-grupos',
-            'filament.admin.auth.logout',
-        ], true)) {
-            return $next($request);
+        if ($isFacilitador || $isLider) {
+            $allowedRoutes = [
+                'filament.admin.auth.logout',
+            ];
+
+            if ($isFacilitador) {
+                $allowedRoutes = array_merge($allowedRoutes, [
+                    'filament.admin.pages.asistencia-grupos-crecimiento',
+                    'filament.admin.pages.resumen-asistencia-grupos',
+                ]);
+            }
+
+            if ($isLider) {
+                $allowedRoutes = array_merge($allowedRoutes, [
+                    'filament.admin.pages.mis-metagrupos',
+                    'filament.admin.pages.mis-grupos-ministeriales',
+                    'filament.admin.pages.resumen-grupo-ministerial',
+                    'filament.admin.pages.resumen-asistencia-grupos',
+                    'filament.admin.resources.metagrupos.view',
+                ]);
+            }
+
+            if (in_array($routeName, $allowedRoutes, true)) {
+                return $next($request);
+            }
+
+            abort(403);
         }
 
-        abort(403);
+        return $next($request);
     }
 }

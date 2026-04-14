@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 class Persona extends Model
@@ -71,6 +72,54 @@ class Persona extends Model
     public function metagruposLiderados()
     {
         return $this->hasMany(Metagrupo::class, 'lider_persona_id');
+    }
+
+    public function participacionesGrupoLideradas(): HasMany
+    {
+        return $this->hasMany(ParticipacionGrupo::class)
+            ->where(function (Builder $query): void {
+                $query->whereHas('rolGrupo', function (Builder $roleQuery): void {
+                    $roleQuery->whereRaw('LOWER(nombre) LIKE ?', ['%líder%'])
+                        ->orWhereRaw('LOWER(nombre) LIKE ?', ['%lider%']);
+                });
+            });
+    }
+
+    public function gruposMinisterialesLiderados(): Builder
+    {
+        return Grupo::query()
+            ->whereHas('participacionesGrupo', function (Builder $query): void {
+                $query->where('persona_id', $this->id)
+                    ->where(function (Builder $leaderQuery): void {
+                        $leaderQuery->whereHas('rolGrupo', function (Builder $roleQuery): void {
+                            $roleQuery->whereRaw('LOWER(nombre) LIKE ?', ['%líder%'])
+                                ->orWhereRaw('LOWER(nombre) LIKE ?', ['%lider%']);
+                        });
+                    })
+                    ->where(function (Builder $activeQuery): void {
+                        $activeQuery->whereNull('fecha_fin')
+                            ->orWhere('fecha_fin', '>=', now()->toDateString());
+                    });
+            })
+            ->where(function (Builder $query): void {
+                $query->whereDoesntHave('tipoGrupo', function (Builder $typeQuery): void {
+                    $typeQuery->whereRaw('LOWER(nombre) = ?', ['crecimiento']);
+                })->orWhereNull('tipo_grupo_id');
+            })
+            ->with('tipoGrupo:id,nombre')
+            ->orderBy('nombre');
+    }
+
+    public function lideraMetagrupo(Metagrupo $metagrupo): bool
+    {
+        return (int) $metagrupo->lider_persona_id === (int) $this->id;
+    }
+
+    public function lideraGrupoMinisterial(int $grupoId): bool
+    {
+        return $this->gruposMinisterialesLiderados()
+            ->whereKey($grupoId)
+            ->exists();
     }
 
     public function user()

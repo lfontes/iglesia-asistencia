@@ -155,6 +155,6 @@ class EventoResource extends Resource
     {
         $user = auth()->user();
 
-        return $user?->hasRole('facilitador') && ! $user->hasRole('admin');
+        return $user?->hasRole(['facilitador', 'lider']) && ! $user->hasRole('admin');
     }
 }
