@@ -10,6 +10,7 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -53,6 +54,12 @@ class PersonaResource extends Resource
                 TextInput::make('email')
                     ->email()
                     ->maxLength(255),
+
+                Select::make('departamento')
+                    ->label('Departamento')
+                    ->options(self::departamentosMendoza())
+                    ->searchable()
+                    ->placeholder('Selecciona un departamento'),
             ]);
     }
 
@@ -76,6 +83,10 @@ class PersonaResource extends Resource
 
                 TextColumn::make('email')
                     ->label('Email')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('departamento')
+                    ->label('Departamento')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('presentes_count')
@@ -131,5 +142,32 @@ class PersonaResource extends Resource
         $user = auth()->user();
 
         return $user?->hasRole(['facilitador', 'lider']) && ! $user->hasRole('admin');
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected static function departamentosMendoza(): array
+    {
+        return [
+            'Capital' => 'Capital',
+            'General Alvear' => 'General Alvear',
+            'Godoy Cruz' => 'Godoy Cruz',
+            'Guaymallén' => 'Guaymallén',
+            'Junín' => 'Junín',
+            'La Paz' => 'La Paz',
+            'Las Heras' => 'Las Heras',
+            'Lavalle' => 'Lavalle',
+            'Luján de Cuyo' => 'Luján de Cuyo',
+            'Maipú' => 'Maipú',
+            'Malargüe' => 'Malargüe',
+            'Rivadavia' => 'Rivadavia',
+            'San Carlos' => 'San Carlos',
+            'San Martín' => 'San Martín',
+            'San Rafael' => 'San Rafael',
+            'Santa Rosa' => 'Santa Rosa',
+            'Tunuyán' => 'Tunuyán',
+            'Tupungato' => 'Tupungato',
+        ];
     }
 }

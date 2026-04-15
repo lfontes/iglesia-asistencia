@@ -3,13 +3,23 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\MetagrupoResource\Pages;
+use App\Models\TipoGrupo;
 use App\Models\Metagrupo;
 use App\Models\Persona;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
+use Filament\Forms\Components\Actions;
+use Filament\Forms\Components\Actions\Action;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
+use Filament\Actions\Action as ModalAction;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 class MetagrupoResource extends Resource
 {
@@ -43,8 +53,105 @@ class MetagrupoResource extends Resource
                     ->getOptionLabelFromRecordUsing(fn (Persona $record): string => trim($record->apellido.' '.$record->nombre))
                     ->placeholder('Sin líder asignado'),
 
+                Hidden::make('tipo_grupo_filtro')
+                    ->default(null),
+                Hidden::make('activo_filtro')
+                    ->default(null),
+                Hidden::make('anio_filtro')
+                    ->default(null),
+
+                Actions::make([
+                    Action::make('abrirFiltros')
+                        ->label('Filtros')
+                        ->icon('heroicon-m-funnel')
+                        ->modalHeading('Filtros')
+                        ->modalSubmitActionLabel('Aplicar')
+                        ->modalCancelActionLabel('Cerrar')
+                        ->form([
+                            Forms\Components\Select::make('tipo_grupo_filtro')
+                                ->label('Tipo de grupo')
+                                ->options(fn (): array => self::tiposGrupoOptions())
+                                ->searchable()
+                                ->preload()
+                                ->native(false)
+                                ->placeholder('Todos'),
+                            Forms\Components\Select::make('activo_filtro')
+                                ->label('Activo')
+                                ->options([
+                                    '1' => 'Activos',
+                                    '0' => 'Inactivos',
+                                ])
+                                ->native(false)
+                                ->placeholder('Todos'),
+                            Forms\Components\Select::make('anio_filtro')
+                                ->label('Año')
+                                ->options(fn (): array => self::aniosGrupoOptions())
+                                ->native(false)
+                                ->placeholder('Todos'),
+                        ])
+                        ->extraModalFooterActions([
+                            ModalAction::make('resetearFiltros')
+                                ->label('Resetear filtros')
+                                ->color('gray')
+                                ->close()
+                                ->action(function (Set $set): void {
+                                    $set('tipo_grupo_filtro', null);
+                                    $set('activo_filtro', null);
+                                    $set('anio_filtro', null);
+                                }),
+                        ])
+                        ->action(function (array $data, Set $set): void {
+                            $set('tipo_grupo_filtro', $data['tipo_grupo_filtro'] ?? null);
+                            $set('activo_filtro', $data['activo_filtro'] ?? null);
+                            $set('anio_filtro', $data['anio_filtro'] ?? null);
+                        }),
+                ])
+                    ->alignStart()
+                    ->columnSpanFull(),
+
+                Placeholder::make('filtro_resumen')
+                    ->label('Filtro activo')
+                    ->content(function (Get $get): string {
+                        $options = self::tiposGrupoOptions();
+                        $tipoId = $get('tipo_grupo_filtro');
+                        $activo = $get('activo_filtro');
+                        $anio = $get('anio_filtro');
+
+                        $tipoLabel = $tipoId && isset($options[$tipoId])
+                            ? $options[$tipoId]
+                            : 'Todos';
+
+                        $activoLabel = match ($activo) {
+                            '1' => 'Activos',
+                            '0' => 'Inactivos',
+                            default => 'Todos',
+                        };
+
+                        $anioLabel = $anio ?: 'Todos';
+
+                        return "Tipo: {$tipoLabel} · Activo: {$activoLabel} · Año: {$anioLabel}";
+                    })
+                    ->columnSpanFull(),
+
                 Forms\Components\CheckboxList::make('grupos')
-                    ->relationship('grupos', 'nombre')
+                    ->relationship(
+                        'grupos',
+                        'nombre',
+                        fn (Builder $query, Get $get): Builder => $query
+                            ->when(
+                                $get('tipo_grupo_filtro'),
+                                fn (Builder $subQuery, $tipoId): Builder => $subQuery->where('tipo_grupo_id', $tipoId)
+                            )
+                            ->when(
+                                $get('activo_filtro') !== null && $get('activo_filtro') !== '',
+                                fn (Builder $subQuery) => $subQuery->where('activo', (bool) ((int) $get('activo_filtro')))
+                            )
+                            ->when(
+                                $get('anio_filtro'),
+                                fn (Builder $subQuery, $anio) => $subQuery->where('anio', (int) $anio)
+                            )
+                            ->orderBy('nombre')
+                    )
                     ->label('Grupos incluidos')
                     ->searchable()
                     ->columns(2)
@@ -146,5 +253,30 @@ class MetagrupoResource extends Resource
     public static function shouldRegisterNavigation(): bool
     {
         return (bool) auth()->user()?->hasRole('admin');
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected static function tiposGrupoOptions(): array
+    {
+        return TipoGrupo::query()
+            ->orderBy('nombre')
+            ->pluck('nombre', 'id')
+            ->all();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected static function aniosGrupoOptions(): array
+    {
+        return \App\Models\Grupo::query()
+            ->whereNotNull('anio')
+            ->distinct()
+            ->orderByDesc('anio')
+            ->pluck('anio', 'anio')
+            ->mapWithKeys(fn ($value, $key) => [(string) $key => (string) $value])
+            ->all();
     }
 }

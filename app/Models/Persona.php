@@ -42,6 +42,7 @@ class Persona extends Model
         'fecha_nacimiento',
         'telefono',
         'email',
+        'departamento',
         'telefono_normalizado',
     ];
 
