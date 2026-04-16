@@ -2,12 +2,12 @@
 
 namespace App\Filament\Resources;
 
+use App\Jobs\SendEventoReminderBatchJob;
 use App\Filament\Resources\EventoFechaResource\Pages;
 use App\Filament\Resources\EventoFechaResource\RelationManagers\AsistenciasRelationManager;
 use App\Models\EventoFecha;
 use App\Models\EventoInscripcion;
 use App\Models\WhatsAppMessage;
-use App\Services\WhatsAppService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -15,7 +15,6 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Http\Client\RequestException;
 
 class EventoFechaResource extends Resource
 {
@@ -181,75 +180,24 @@ class EventoFechaResource extends Resource
 
     protected static function enviarRecordatorioWhatsapp(EventoFecha $eventoFecha): void
     {
-        $inscripciones = $eventoFecha->inscripciones()
-            ->with('persona')
-            ->where('estado', 'inscripto')
-            ->get();
+        $stats = static::getReminderStats($eventoFecha);
 
-        $enviadosHoy = WhatsAppMessage::query()
-            ->where('use_case', 'recordatorio_evento')
-            ->where('evento_fecha_id', $eventoFecha->id)
-            ->whereDate('created_at', today())
-            ->pluck('persona_id')
-            ->filter()
-            ->map(fn ($id): int => (int) $id)
-            ->unique();
+        if ($stats['a_enviar'] === 0) {
+            Notification::make()
+                ->title('No hay recordatorios pendientes')
+                ->body('No hay inscriptos nuevos con teléfono válido para enviar hoy.')
+                ->color('gray')
+                ->send();
 
-        $enviados = 0;
-        $omitidos = 0;
-        $fallidos = 0;
-        $detalles = [];
-
-        foreach ($inscripciones as $inscripcion) {
-            $persona = $inscripcion->persona;
-
-            if (! $persona) {
-                $omitidos++;
-                $detalles[] = 'Inscripción sin persona asociada.';
-                continue;
-            }
-
-            if (blank($persona->telefono_normalizado ?: $persona->telefono)) {
-                $omitidos++;
-                $detalles[] = trim("{$persona->nombre} {$persona->apellido}") . ': sin teléfono válido.';
-                continue;
-            }
-
-            if ($enviadosHoy->contains((int) $persona->id)) {
-                $omitidos++;
-                continue;
-            }
-
-            try {
-                app(WhatsAppService::class)->sendEventReminder($eventoFecha->loadMissing('evento'), $persona);
-                $enviados++;
-            } catch (RequestException $exception) {
-                $fallidos++;
-                $detalles[] = trim("{$persona->nombre} {$persona->apellido}") . ': '
-                    . (string) ($exception->response?->json('error.message') ?? $exception->getMessage());
-            } catch (\RuntimeException $exception) {
-                $omitidos++;
-                $detalles[] = trim("{$persona->nombre} {$persona->apellido}") . ': ' . $exception->getMessage();
-            } catch (\Throwable $exception) {
-                $fallidos++;
-                $detalles[] = trim("{$persona->nombre} {$persona->apellido}") . ': ' . $exception->getMessage();
-            }
+            return;
         }
 
-        $body = "Enviados: {$enviados}. Omitidos: {$omitidos}. Fallidos: {$fallidos}.";
-
-        if ($detalles !== []) {
-            $body .= "\n" . implode("\n", array_slice($detalles, 0, 5));
-
-            if (count($detalles) > 5) {
-                $body .= "\n...y " . (count($detalles) - 5) . ' más.';
-            }
-        }
+        SendEventoReminderBatchJob::dispatch($eventoFecha->id, auth()->id());
 
         Notification::make()
-            ->title($fallidos > 0 ? 'Recordatorio enviado con observaciones' : 'Recordatorio enviado')
-            ->body($body)
-            ->color($fallidos > 0 ? 'warning' : 'success')
+            ->title('Recordatorio en cola')
+            ->body("Se encoló el envío para {$stats['a_enviar']} inscriptos.")
+            ->color('success')
             ->send();
     }
 }
