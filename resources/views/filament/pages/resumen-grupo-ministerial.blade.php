@@ -43,6 +43,7 @@
                                 <th class="px-4 py-3 font-medium">Persona</th>
                                 <th class="px-4 py-3 font-medium">Teléfono</th>
                                 <th class="px-4 py-3 font-medium">Crecimiento</th>
+                                <th class="px-4 py-3 font-medium">% asistencia</th>
                                 <th class="px-4 py-3 font-medium">Grupo(s) de crecimiento</th>
                             </tr>
                         </thead>
@@ -63,6 +64,9 @@
                                         <span class="inline-flex rounded-full px-3 py-1 text-xs font-medium {{ $row['en_crecimiento'] ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800' }}">
                                             {{ $row['en_crecimiento'] ? 'Sí' : 'No' }}
                                         </span>
+                                    </td>
+                                    <td class="px-4 py-4 text-gray-700">
+                                        {{ $row['porcentaje_asistencia_crecimiento'] !== null ? $row['porcentaje_asistencia_crecimiento'] . '%' : '-' }}
                                     </td>
                                     <td class="px-4 py-4 text-gray-700">{{ $row['grupos_crecimiento'] ?: '-' }}</td>
                                 </tr>

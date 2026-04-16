@@ -87,6 +87,12 @@ class UserResource extends Resource
                     ->label('Persona vinculada')
                     ->formatStateUsing(fn ($state, User $record): string => $record->persona ? trim($record->persona->apellido.' '.$record->persona->nombre) : '-')
                     ->sortable(),
+
+                Tables\Columns\TextColumn::make('roles.name')
+                    ->label('Roles')
+                    ->badge()
+                    ->separator(', ')
+                    ->sortable(false),
             ])
             ->defaultSort('name')
             ->actions([

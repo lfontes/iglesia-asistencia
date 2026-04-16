@@ -193,6 +193,44 @@ class WhatsAppService
         );
     }
 
+    /**
+     * @return array<string, mixed>
+     *
+     * @throws ConnectionException
+     * @throws RequestException
+     */
+    public function sendEventInvitation(EventoFecha $eventoFecha, Persona $persona): array
+    {
+        $telefono = $this->normalizePhoneForWhatsapp((string) ($persona->telefono_normalizado ?: $persona->telefono ?: ''));
+
+        if ($telefono === null) {
+            throw new RuntimeException('Sin teléfono válido para WhatsApp.');
+        }
+
+        $nombre = $this->resolveFirstName($persona->nombre);
+        $eventoNombre = (string) ($eventoFecha->evento?->nombre ?? 'el evento');
+        $fechaEvento = CarbonImmutable::parse($eventoFecha->fecha)->format('d/m/Y');
+        $urlInscripcion = route('eventos.inscripcion.create', $eventoFecha);
+        $renderedBody = "Hola {$nombre}, te invitamos a {$eventoNombre} el {$fechaEvento}. Si quieres participar, puedes inscribirte aqui: {$urlInscripcion}";
+
+        return $this->sendTemplateWithContext(
+            $telefono,
+            'invitacion_evento',
+            [
+                $nombre,
+                $eventoNombre,
+                $fechaEvento,
+                $urlInscripcion,
+            ],
+            [
+                'persona_id' => $persona->id,
+                'evento_fecha_id' => $eventoFecha->id,
+                'use_case' => 'invitacion_evento',
+            ],
+            $renderedBody,
+        );
+    }
+
     public function handleWebhook(array $payload): int
     {
         $updated = 0;

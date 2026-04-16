@@ -51,6 +51,10 @@ return [
                 'name' => env('WHATSAPP_TEMPLATE_RECORDATORIO_EVENTO_NAME', 'recordatorio_evento'),
                 'language' => env('WHATSAPP_TEMPLATE_RECORDATORIO_EVENTO_LANGUAGE', 'es'),
             ],
+            'invitacion_evento' => [
+                'name' => env('WHATSAPP_TEMPLATE_INVITACION_EVENTO_NAME', 'invitacion_clase_proposito'),
+                'language' => env('WHATSAPP_TEMPLATE_INVITACION_EVENTO_LANGUAGE', 'es'),
+            ],
         ],
     ],
 

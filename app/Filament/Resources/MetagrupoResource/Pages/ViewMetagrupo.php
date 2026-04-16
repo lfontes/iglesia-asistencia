@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\MetagrupoResource\Pages;
 
 use App\Filament\Resources\MetagrupoResource;
+use App\Models\AsistenciaGrupo;
 use App\Filament\Pages\ResumenAsistenciaGrupos;
 use App\Models\Persona;
 use App\Models\TipoGrupo;
@@ -59,7 +60,8 @@ class ViewMetagrupo extends ViewRecord
      *   grupos_metagrupo:string,
      *   en_crecimiento:bool,
      *   grupos_crecimiento:string,
-     *   primer_grupo_crecimiento_id:?int
+     *   primer_grupo_crecimiento_id:?int,
+     *   porcentaje_asistencia_crecimiento:?int
      * }>
      */
     public function getPeopleRows(): Collection
@@ -125,6 +127,10 @@ class ViewMetagrupo extends ViewRecord
                     'en_crecimiento' => $growthGroups->isNotEmpty(),
                     'grupos_crecimiento' => $growthGroups->pluck('nombre')->implode(', '),
                     'primer_grupo_crecimiento_id' => $growthGroups->first()['id'] ?? null,
+                    'porcentaje_asistencia_crecimiento' => $this->resolveGrowthAttendancePercentage(
+                        $persona->id,
+                        $growthGroups->first()['id'] ?? null,
+                    ),
                 ];
             })
             ->values();
@@ -140,5 +146,29 @@ class ViewMetagrupo extends ViewRecord
             'grupo_id' => $row['primer_grupo_crecimiento_id'],
             'persona_id' => $row['persona_id'],
         ]);
+    }
+
+    protected function resolveGrowthAttendancePercentage(int $personaId, ?int $grupoId): ?int
+    {
+        if (! $grupoId) {
+            return null;
+        }
+
+        $totalFechas = AsistenciaGrupo::query()
+            ->where('grupo_id', $grupoId)
+            ->distinct('fecha')
+            ->count('fecha');
+
+        if ($totalFechas === 0) {
+            return null;
+        }
+
+        $presentes = AsistenciaGrupo::query()
+            ->where('grupo_id', $grupoId)
+            ->where('persona_id', $personaId)
+            ->where('presente', true)
+            ->count();
+
+        return (int) round(($presentes / $totalFechas) * 100);
     }
 }

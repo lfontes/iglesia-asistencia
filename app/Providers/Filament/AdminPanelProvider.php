@@ -51,6 +51,13 @@ class AdminPanelProvider extends PanelProvider
                 return Dashboard::getUrl();
             })
             ->brandName('Iglesia de los Libres')
+            ->brandLogo(fn (): HtmlString => new HtmlString(
+                '<div class="flex items-center gap-3">'
+                . '<img src="' . e(asset('images/logo-iglesia-libres.png')) . '" alt="Logo Iglesia de los Libres" class="h-8 w-8 object-contain" />'
+                . '<span class="text-sm font-semibold text-gray-950 dark:text-white">Iglesia de los Libres</span>'
+                . '</div>'
+            ))
+            ->brandLogoHeight('2rem')
             ->sidebarFullyCollapsibleOnDesktop()
             ->colors([
                 'primary' => Color::Amber,
