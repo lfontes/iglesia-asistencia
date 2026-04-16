@@ -47,6 +47,10 @@ return [
                 'name' => env('WHATSAPP_TEMPLATE_RECORDATORIO_ASISTENCIA_GRUPO_NAME', 'recordatorio_asistencia_grupo'),
                 'language' => env('WHATSAPP_TEMPLATE_RECORDATORIO_ASISTENCIA_GRUPO_LANGUAGE', 'es'),
             ],
+            'recordatorio_evento' => [
+                'name' => env('WHATSAPP_TEMPLATE_RECORDATORIO_EVENTO_NAME', 'recordatorio_evento'),
+                'language' => env('WHATSAPP_TEMPLATE_RECORDATORIO_EVENTO_LANGUAGE', 'es'),
+            ],
         ],
     ],
 

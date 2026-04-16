@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\EventoFecha;
 use App\Models\Persona;
 use App\Models\WhatsAppMessage;
 use Carbon\CarbonImmutable;
@@ -9,6 +10,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 class WhatsAppService
@@ -99,7 +101,7 @@ class WhatsAppService
 
     /**
      * @param  list<string>  $bodyParameters
-     * @param  array{persona_id?:int|null,grupo_id?:int|null,use_case?:string|null,periodo_inicio?:string|null,periodo_fin?:string|null}  $context
+     * @param  array{persona_id?:int|null,grupo_id?:int|null,evento_fecha_id?:int|null,use_case?:string|null,periodo_inicio?:string|null,periodo_fin?:string|null}  $context
      * @return array<string, mixed>
      *
      * @throws ConnectionException
@@ -152,6 +154,42 @@ class WhatsAppService
                 ],
             ],
             $context,
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     *
+     * @throws ConnectionException
+     * @throws RequestException
+     */
+    public function sendEventReminder(EventoFecha $eventoFecha, Persona $persona): array
+    {
+        $telefono = $this->normalizePhoneForWhatsapp((string) ($persona->telefono_normalizado ?: $persona->telefono ?: ''));
+
+        if ($telefono === null) {
+            throw new RuntimeException('Sin teléfono válido para WhatsApp.');
+        }
+
+        $nombre = $this->resolveFirstName($persona->nombre);
+        $eventoNombre = (string) ($eventoFecha->evento?->nombre ?? 'el evento');
+        $fechaEvento = CarbonImmutable::parse($eventoFecha->fecha)->format('d/m/Y');
+        $renderedBody = "Hola {$nombre}, te recordamos tu inscripción a {$eventoNombre} del {$fechaEvento}. ¡Te esperamos!";
+
+        return $this->sendTemplateWithContext(
+            $telefono,
+            'recordatorio_evento',
+            [
+                $nombre,
+                $eventoNombre,
+                $fechaEvento,
+            ],
+            [
+                'persona_id' => $persona->id,
+                'evento_fecha_id' => $eventoFecha->id,
+                'use_case' => 'recordatorio_evento',
+            ],
+            $renderedBody,
         );
     }
 
@@ -267,7 +305,7 @@ class WhatsAppService
 
     /**
      * @param  array<string, mixed>  $payload
-     * @param  array{persona_id?:int|null,grupo_id?:int|null,use_case?:string|null,periodo_inicio?:string|null,periodo_fin?:string|null}  $context
+     * @param  array{persona_id?:int|null,grupo_id?:int|null,evento_fecha_id?:int|null,use_case?:string|null,periodo_inicio?:string|null,periodo_fin?:string|null}  $context
      * @return array<string, mixed>
      *
      * @throws ConnectionException
@@ -291,6 +329,7 @@ class WhatsAppService
             'message_type' => (string) ($payload['type'] ?? 'text'),
             'persona_id' => $context['persona_id'] ?? null,
             'grupo_id' => $context['grupo_id'] ?? null,
+            'evento_fecha_id' => $context['evento_fecha_id'] ?? null,
             'use_case' => $context['use_case'] ?? null,
             'periodo_inicio' => $context['periodo_inicio'] ?? null,
             'periodo_fin' => $context['periodo_fin'] ?? null,
@@ -331,6 +370,36 @@ class WhatsAppService
 
             throw $exception;
         }
+    }
+
+    protected function normalizePhoneForWhatsapp(string $telefono): ?string
+    {
+        $digits = preg_replace('/\D+/', '', $telefono) ?? '';
+
+        if ($digits === '') {
+            return null;
+        }
+
+        if (str_starts_with($digits, '54') && ! str_starts_with($digits, '549')) {
+            return $digits;
+        }
+
+        if (str_starts_with($digits, '549')) {
+            return '54' . substr($digits, 3);
+        }
+
+        return $digits;
+    }
+
+    protected function resolveFirstName(?string $nombre): string
+    {
+        $nombre = trim((string) $nombre);
+
+        if ($nombre === '') {
+            return 'amigo';
+        }
+
+        return (string) Str::of((string) preg_split('/\s+/', $nombre)[0] ?? $nombre)->title();
     }
 
     protected function extractInboundBody(array $messagePayload): ?string

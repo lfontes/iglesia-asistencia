@@ -57,7 +57,7 @@ class PersonaResource extends Resource
 
                 Select::make('departamento')
                     ->label('Departamento')
-                    ->options(self::departamentosMendoza())
+                    ->options(Persona::departamentosMendoza())
                     ->searchable()
                     ->placeholder('Selecciona un departamento'),
             ]);
@@ -142,32 +142,5 @@ class PersonaResource extends Resource
         $user = auth()->user();
 
         return $user?->hasRole(['facilitador', 'lider']) && ! $user->hasRole('admin');
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    protected static function departamentosMendoza(): array
-    {
-        return [
-            'Capital' => 'Capital',
-            'General Alvear' => 'General Alvear',
-            'Godoy Cruz' => 'Godoy Cruz',
-            'Guaymallén' => 'Guaymallén',
-            'Junín' => 'Junín',
-            'La Paz' => 'La Paz',
-            'Las Heras' => 'Las Heras',
-            'Lavalle' => 'Lavalle',
-            'Luján de Cuyo' => 'Luján de Cuyo',
-            'Maipú' => 'Maipú',
-            'Malargüe' => 'Malargüe',
-            'Rivadavia' => 'Rivadavia',
-            'San Carlos' => 'San Carlos',
-            'San Martín' => 'San Martín',
-            'San Rafael' => 'San Rafael',
-            'Santa Rosa' => 'Santa Rosa',
-            'Tunuyán' => 'Tunuyán',
-            'Tupungato' => 'Tupungato',
-        ];
     }
 }

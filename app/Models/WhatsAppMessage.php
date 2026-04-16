@@ -17,6 +17,7 @@ class WhatsAppMessage extends Model
         'conversation_key',
         'persona_id',
         'grupo_id',
+        'evento_fecha_id',
         'body',
         'direction',
         'message_type',
@@ -59,6 +60,11 @@ class WhatsAppMessage extends Model
     public function grupo()
     {
         return $this->belongsTo(Grupo::class);
+    }
+
+    public function eventoFecha()
+    {
+        return $this->belongsTo(EventoFecha::class);
     }
 
     public function isInbound(): bool

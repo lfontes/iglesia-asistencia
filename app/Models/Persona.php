@@ -9,6 +9,27 @@ use Illuminate\Support\Str;
 
 class Persona extends Model
 {
+    public const DEPARTAMENTOS_MENDOZA = [
+        'Capital' => 'Capital',
+        'General Alvear' => 'General Alvear',
+        'Godoy Cruz' => 'Godoy Cruz',
+        'Guaymallén' => 'Guaymallén',
+        'Junín' => 'Junín',
+        'La Paz' => 'La Paz',
+        'Las Heras' => 'Las Heras',
+        'Lavalle' => 'Lavalle',
+        'Luján de Cuyo' => 'Luján de Cuyo',
+        'Maipú' => 'Maipú',
+        'Malargüe' => 'Malargüe',
+        'Rivadavia' => 'Rivadavia',
+        'San Carlos' => 'San Carlos',
+        'San Martín' => 'San Martín',
+        'San Rafael' => 'San Rafael',
+        'Santa Rosa' => 'Santa Rosa',
+        'Tunuyán' => 'Tunuyán',
+        'Tupungato' => 'Tupungato',
+    ];
+
     protected const SEARCH_ACCENT_MAP = [
         'á' => 'a',
         'é' => 'e',
@@ -58,6 +79,11 @@ class Persona extends Model
     public function asistencias()
     {
         return $this->hasMany(Asistencia::class);
+    }
+
+    public function eventoInscripciones()
+    {
+        return $this->hasMany(EventoInscripcion::class);
     }
 
     public function participacionesGrupo()
@@ -179,5 +205,13 @@ class Persona extends Model
         }
 
         return $normalized;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function departamentosMendoza(): array
+    {
+        return self::DEPARTAMENTOS_MENDOZA;
     }
 }

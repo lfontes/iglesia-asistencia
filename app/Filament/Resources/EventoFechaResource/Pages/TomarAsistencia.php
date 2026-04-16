@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\EventoFechaResource\Pages;
 
 use App\Models\Asistencia;
+use App\Models\EventoInscripcion;
 use App\Models\Persona;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -101,6 +102,53 @@ class TomarAsistencia extends Page implements Forms\Contracts\HasForms
             ->title('Asistencia guardada correctamente')
             ->success()
             ->send();
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, EventoInscripcion>
+     */
+    public function getInscriptos(): \Illuminate\Support\Collection
+    {
+        return EventoInscripcion::query()
+            ->with('persona:id,nombre,apellido,telefono,email')
+            ->where('evento_fecha_id', $this->getRecord()->id)
+            ->where('estado', 'inscripto')
+            ->orderBy('created_at')
+            ->get();
+    }
+
+    public function getTotalInscriptos(): int
+    {
+        return $this->getInscriptos()->count();
+    }
+
+    public function getTotalPresentes(): int
+    {
+        return count($this->presentes);
+    }
+
+    public function getTotalInscriptosPresentes(): int
+    {
+        return $this->getInscriptos()
+            ->filter(fn (EventoInscripcion $inscripcion): bool => $this->isInscriptoPresente((int) $inscripcion->persona_id))
+            ->count();
+    }
+
+    public function getTotalPresentesNoInscriptos(): int
+    {
+        return collect($this->presentes)
+            ->diff($this->getInscriptos()->pluck('persona_id'))
+            ->count();
+    }
+
+    public function getFormularioInscripcionUrl(): string
+    {
+        return route('eventos.inscripcion.create', $this->getRecord());
+    }
+
+    public function isInscriptoPresente(int $personaId): bool
+    {
+        return in_array($personaId, $this->presentes, true);
     }
 
     protected function personaLabel(Persona $persona): string
