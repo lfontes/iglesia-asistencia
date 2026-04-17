@@ -8,34 +8,34 @@
     @endphp
 
     <div class="mt-6 grid gap-4 md:grid-cols-4">
-        <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-            <p class="text-sm text-gray-500">Grupo</p>
-            <p class="mt-2 text-sm font-semibold text-gray-900">
+        <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
+            <p class="text-sm text-gray-500 dark:text-gray-300">Grupo</p>
+            <p class="mt-2 text-sm font-semibold text-gray-900 dark:text-white">
                 {{ $summary['grupo']?->nombre ?? 'Sin seleccionar' }}
             </p>
         </div>
 
-        <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-            <p class="text-sm text-gray-500">Participantes</p>
-            <p class="mt-2 text-3xl font-semibold text-gray-900">{{ $summary['total_personas'] }}</p>
+        <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
+            <p class="text-sm text-gray-500 dark:text-gray-300">Participantes</p>
+            <p class="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">{{ $summary['total_personas'] }}</p>
         </div>
 
-        <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-            <p class="text-sm text-gray-500">Reuniones registradas</p>
-            <p class="mt-2 text-3xl font-semibold text-gray-900">{{ $summary['total_fechas'] }}</p>
+        <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
+            <p class="text-sm text-gray-500 dark:text-gray-300">Reuniones registradas</p>
+            <p class="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">{{ $summary['total_fechas'] }}</p>
         </div>
 
-        <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-            <p class="text-sm text-gray-500">Promedio de asistencia</p>
+        <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
+            <p class="text-sm text-gray-500 dark:text-gray-300">Promedio de asistencia</p>
             <p class="mt-2 text-3xl font-semibold text-emerald-600">{{ $summary['promedio_asistencia'] }}%</p>
         </div>
     </div>
 
-    <div class="mt-6 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+    <div class="mt-6 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/5">
         <div class="flex items-center justify-between gap-4">
             <div>
-                <h2 class="text-lg font-semibold text-gray-900">Asistencia por persona</h2>
-                <p class="text-sm text-gray-500">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Asistencia por persona</h2>
+                <p class="text-sm text-gray-500 dark:text-gray-300">
                     Matriz de doble entrada por persona y fecha de encuentro.
                 </p>
                 @if ($this->getFocusedPersonaName())
@@ -45,58 +45,58 @@
                 @endif
             </div>
 
-            <div class="text-right text-sm text-gray-500">
-                Total de presentes registrados: <span class="font-semibold text-gray-800">{{ $summary['total_presentes'] }}</span>
+            <div class="text-right text-sm text-gray-500 dark:text-gray-300">
+                Total de presentes registrados: <span class="font-semibold text-gray-800 dark:text-white">{{ $summary['total_presentes'] }}</span>
             </div>
         </div>
 
         @if ($rows->isEmpty())
-            <div class="mt-6 rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center text-sm text-gray-500">
+            <div class="mt-6 rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center text-sm text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-gray-300">
                 Aun no hay participantes o asistencias registradas para este grupo.
             </div>
         @else
-            <div class="mt-6 overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 text-sm">
+            <div class="mt-6 overflow-x-auto rounded-2xl border border-gray-200 dark:border-white/10">
+                <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-white/10">
                     <thead>
-                        <tr class="text-left text-xs uppercase tracking-[0.18em] text-gray-500">
-                            <th class="sticky left-0 z-10 bg-white px-4 py-3 font-medium">Persona</th>
-                            <th class="bg-white px-3 py-3 text-center font-medium normal-case tracking-normal">%</th>
+                        <tr class="text-left text-xs uppercase tracking-[0.18em] text-gray-500 dark:text-gray-300">
+                            <th class="sticky left-0 z-20 bg-white px-4 py-3 font-medium dark:!bg-gray-950">Persona</th>
+                            <th class="bg-white px-3 py-3 text-center font-medium normal-case tracking-normal dark:!bg-gray-950">%</th>
                             @foreach ($dates as $date)
-                                <th class="bg-white px-3 py-3 text-center font-medium normal-case tracking-normal">
+                                <th class="bg-white px-3 py-3 text-center font-medium normal-case tracking-normal dark:!bg-gray-950">
                                     {{ \Illuminate\Support\Carbon::parse($date)->format('d/m') }}
                                 </th>
                             @endforeach
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100">
+                    <tbody class="divide-y divide-gray-100 bg-white dark:divide-white/10 dark:bg-transparent">
                         @foreach ($rows as $row)
-                            <tr class="align-middle">
-                                <td class="sticky left-0 z-10 bg-white px-4 py-4">
-                                    <div class="font-medium text-gray-900">{{ $row['nombre_completo'] }}</div>
-                                    <div class="mt-1 text-xs text-gray-500">
+                            <tr class="align-middle dark:hover:bg-white/5">
+                                <td class="sticky left-0 z-10 bg-white px-4 py-4 dark:!bg-gray-950">
+                                    <div class="font-medium text-gray-900 dark:text-white">{{ $row['nombre_completo'] }}</div>
+                                    <div class="mt-1 text-xs text-gray-500 dark:text-gray-300">
                                         {{ $row['presentes'] }} asistencias
                                         @if ($summary['total_fechas'] > 0)
                                             · {{ $row['ausencias'] }} ausencias
                                         @endif
                                     </div>
                                 </td>
-                                <td class="px-3 py-4 text-center font-semibold text-emerald-700">
+                                <td class="px-3 py-4 text-center font-semibold text-emerald-700 dark:text-emerald-300">
                                     {{ $row['porcentaje'] }}%
                                 </td>
                                 @foreach ($dates as $date)
                                     @php $state = $row['attendance_by_date'][$date] ?? null; @endphp
-                                    <td class="px-3 py-4 text-center">
+                                    <td class="px-3 py-4 text-center dark:text-gray-200">
                                         @if ($state === true)
-                                            <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                                            <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300">
                                                 <x-heroicon-o-check-circle class="h-4 w-4" />
                                             </span>
                                         @elseif ($state === false)
-                                            <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-rose-100 text-rose-600">
+                                            <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300">
                                                 <x-heroicon-o-x-circle class="h-4 w-4" />
                                             </span>
                                         @else
-                                            <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-gray-300">
-                                                <span class="h-1.5 w-1.5 rounded-full bg-gray-300"></span>
+                                            <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-gray-300 dark:bg-white/10 dark:text-gray-500">
+                                                <span class="h-1.5 w-1.5 rounded-full bg-gray-300 dark:bg-gray-500"></span>
                                             </span>
                                         @endif
                                     </td>

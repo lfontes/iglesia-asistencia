@@ -3,16 +3,16 @@
         $conversations = $this->getConversations();
     @endphp
 
-    <div class="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+    <div class="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/5">
         <div class="flex items-center justify-between gap-4">
             <div>
-                <h2 class="text-lg font-semibold text-gray-900">Conversaciones</h2>
-                <p class="text-sm text-gray-500">Mensajes entrantes y salientes agrupados por contacto.</p>
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Conversaciones</h2>
+                <p class="text-sm text-gray-500 dark:text-gray-300">Mensajes entrantes y salientes agrupados por contacto.</p>
             </div>
         </div>
 
         @if ($conversations->isEmpty())
-            <div class="mt-6 rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center text-sm text-gray-500">
+            <div class="mt-6 rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center text-sm text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-gray-300">
                 Aún no hay conversaciones registradas.
             </div>
         @else
@@ -20,34 +20,34 @@
                 @foreach ($conversations as $conversation)
                     <a
                         href="{{ \App\Filament\Pages\WhatsAppConversacion::getUrl(['key' => $conversation['conversation_key']]) }}"
-                        class="block rounded-2xl border border-gray-200 bg-white p-4 transition hover:border-primary-300 hover:bg-primary-50/20"
+                        class="block rounded-2xl border border-gray-200 bg-white p-4 transition hover:border-primary-300 hover:bg-primary-50/20 dark:border-white/10 dark:bg-white/5 dark:hover:bg-primary-500/10"
                     >
                         <div class="flex items-start justify-between gap-4">
                             <div class="min-w-0 flex-1">
                                 <div class="flex items-center gap-2">
-                                    <h3 class="truncate text-sm font-semibold text-gray-900">
+                                    <h3 class="truncate text-sm font-semibold text-gray-900 dark:text-white">
                                         {{ $conversation['persona'] ? trim($conversation['persona']->apellido . ' ' . $conversation['persona']->nombre) : $conversation['telefono'] }}
                                     </h3>
                                     @if ($conversation['no_leidos'] > 0)
-                                        <span class="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                                        <span class="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">
                                             {{ $conversation['no_leidos'] }} sin leer
                                         </span>
                                     @endif
-                                    <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $conversation['ventana_abierta'] ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-700' }}">
+                                    <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $conversation['ventana_abierta'] ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-300' }}">
                                         {{ $conversation['ventana_abierta'] ? 'Ventana abierta' : 'Requiere plantilla' }}
                                     </span>
                                 </div>
-                                <div class="mt-1 text-xs text-gray-500">
+                                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                                     {{ $conversation['telefono'] }}
                                     @if ($conversation['grupo'])
                                         · {{ $conversation['grupo']->nombre }}
                                     @endif
                                 </div>
-                                <p class="mt-2 truncate text-sm text-gray-700">
+                                <p class="mt-2 truncate text-sm text-gray-700 dark:text-gray-200">
                                     {{ $conversation['ultimo_texto'] ?: 'Sin contenido de texto' }}
                                 </p>
                             </div>
-                            <div class="shrink-0 text-right text-xs text-gray-500">
+                            <div class="shrink-0 text-right text-xs text-gray-500 dark:text-gray-400">
                                 {{ $conversation['ultimo_momento']?->format('d/m/Y H:i') }}
                             </div>
                         </div>
