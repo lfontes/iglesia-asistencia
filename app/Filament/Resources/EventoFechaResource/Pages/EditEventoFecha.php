@@ -4,6 +4,7 @@ namespace App\Filament\Resources\EventoFechaResource\Pages;
 
 use App\Filament\Resources\EventoFechaResource;
 use App\Models\Asistencia;
+use App\Models\EventoInscripcion;
 use App\Models\Persona;
 use Carbon\Carbon;
 use Filament\Actions;
@@ -23,6 +24,73 @@ class EditEventoFecha extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('importar_inscriptos')
+                ->label('Importar inscriptos (Excel)')
+                ->icon('heroicon-o-document-arrow-up')
+                ->form([
+                    FileUpload::make('archivo_excel')
+                        ->label('Archivo Excel')
+                        ->acceptedFileTypes([
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        ])
+                        ->directory('imports/inscripciones-evento')
+                        ->disk('local')
+                        ->required(),
+                ])
+                ->action(function (array $data): void {
+                    $relativePath = $data['archivo_excel'] ?? null;
+
+                    if (! is_string($relativePath) || $relativePath === '') {
+                        Notification::make()
+                            ->title('No se recibió el archivo')
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
+
+                    $absolutePath = Storage::disk('local')->path($relativePath);
+
+                    if (! is_file($absolutePath)) {
+                        Notification::make()
+                            ->title('No se encontró el archivo subido')
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
+
+                    try {
+                        $summary = $this->importarInscriptosDesdeExcel($absolutePath);
+                    } catch (Throwable $exception) {
+                        report($exception);
+
+                        Notification::make()
+                            ->title('No se pudo importar el archivo')
+                            ->body($exception->getMessage())
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
+
+                    Notification::make()
+                        ->title('Importación de inscriptos completada')
+                        ->body(implode("\n", [
+                            "Filas procesadas: {$summary['procesadas']}",
+                            "Personas nuevas: {$summary['personas_nuevas']}",
+                            "Personas existentes: {$summary['personas_existentes']}",
+                            "Coincidencias por teléfono: {$summary['coincidencias_telefono']}",
+                            "Coincidencias por nombre/apellido: {$summary['coincidencias_nombre']}",
+                            "Inscriptos nuevos: {$summary['inscripciones_creadas']}",
+                            "Ya estaban inscriptos: {$summary['ya_inscriptos']}",
+                            "Filas inválidas: {$summary['invalidas']}",
+                            "Coincidencias ambiguas: {$summary['ambiguas']}",
+                            "Conflictos por teléfono: {$summary['conflictos_telefono']}",
+                        ]))
+                        ->success()
+                        ->send();
+                }),
             Actions\Action::make('importar_presentes')
                 ->label('Importar presentes (Excel)')
                 ->icon('heroicon-o-arrow-up-tray')
@@ -92,6 +160,170 @@ class EditEventoFecha extends EditRecord
                 }),
             Actions\DeleteAction::make(),
         ];
+    }
+
+    /**
+     * @return array{
+     *     procesadas:int,
+     *     personas_nuevas:int,
+     *     personas_existentes:int,
+     *     coincidencias_telefono:int,
+     *     coincidencias_nombre:int,
+     *     inscripciones_creadas:int,
+     *     ya_inscriptos:int,
+     *     invalidas:int,
+     *     ambiguas:int,
+     *     conflictos_telefono:int
+     * }
+     */
+    protected function importarInscriptosDesdeExcel(string $absolutePath): array
+    {
+        $personas = Persona::query()
+            ->select(['id', 'nombre', 'apellido', 'telefono', 'fecha_nacimiento', 'email', 'departamento'])
+            ->get();
+
+        $personasPorClave = $this->indexarPersonasPorNombreApellido($personas);
+        $personasPorTelefono = $this->indexarPersonasPorTelefono($personas);
+        $headerMap = [];
+        $sheetFound = false;
+        $summary = [
+            'procesadas' => 0,
+            'personas_nuevas' => 0,
+            'personas_existentes' => 0,
+            'coincidencias_telefono' => 0,
+            'coincidencias_nombre' => 0,
+            'inscripciones_creadas' => 0,
+            'ya_inscriptos' => 0,
+            'invalidas' => 0,
+            'ambiguas' => 0,
+            'conflictos_telefono' => 0,
+        ];
+
+        $reader = new XlsxReader();
+        $reader->open($absolutePath);
+
+        try {
+            foreach ($reader->getSheetIterator() as $sheet) {
+                $sheetFound = true;
+                $rowIndex = 0;
+
+                foreach ($sheet->getRowIterator() as $row) {
+                    $rowIndex++;
+                    $values = $row->toArray();
+
+                    if (! $this->rowHasContent($values)) {
+                        continue;
+                    }
+
+                    if ($rowIndex === 1) {
+                        $headerMap = $this->buildHeaderMap($values);
+
+                        if (! isset($headerMap['nombre'], $headerMap['apellido'])) {
+                            throw new \RuntimeException('El Excel debe incluir encabezados "nombre" y "apellido".');
+                        }
+
+                        continue;
+                    }
+
+                    $parsed = $this->parsePersonaData($values, $headerMap);
+
+                    if ($parsed === null) {
+                        $summary['invalidas']++;
+
+                        continue;
+                    }
+
+                    $summary['procesadas']++;
+
+                    $resolution = $this->resolverPersonaExistente($parsed, $personasPorClave, $personasPorTelefono);
+                    $estado = $resolution['estado'];
+                    $persona = $resolution['persona'];
+
+                    if ($estado === 'conflicto_telefono') {
+                        $summary['conflictos_telefono']++;
+
+                        continue;
+                    }
+
+                    if ($estado === 'ambigua') {
+                        $summary['ambiguas']++;
+
+                        continue;
+                    }
+
+                    if ($estado === 'nueva') {
+                        $persona = Persona::query()->create([
+                            'nombre' => $parsed['nombre'],
+                            'apellido' => $parsed['apellido'],
+                            'telefono' => $parsed['telefono'],
+                            'fecha_nacimiento' => $parsed['fecha_nacimiento'],
+                            'email' => $parsed['email'],
+                            'departamento' => $parsed['departamento'],
+                        ]);
+
+                        $summary['personas_nuevas']++;
+                        $this->agregarPersonaAlIndice($personasPorClave, $persona);
+                        $this->agregarPersonaAlIndiceTelefono($personasPorTelefono, $persona);
+                    } else {
+                        $summary['personas_existentes']++;
+                        if ($estado === 'existente_telefono') {
+                            $summary['coincidencias_telefono']++;
+                        }
+
+                        if ($estado === 'existente_nombre') {
+                            $summary['coincidencias_nombre']++;
+                        }
+
+                        if ($persona instanceof Persona && $this->completarDatosPersona($persona, $parsed)) {
+                            $persona->save();
+                            $this->agregarPersonaAlIndiceTelefono($personasPorTelefono, $persona);
+                        }
+                    }
+
+                    if (! $persona instanceof Persona) {
+                        $summary['invalidas']++;
+
+                        continue;
+                    }
+
+                    $inscripcion = EventoInscripcion::query()
+                        ->firstOrNew([
+                            'persona_id' => $persona->id,
+                            'evento_fecha_id' => $this->getRecord()->id,
+                        ]);
+
+                    $inscripcion->estado = 'inscripto';
+                    $inscripcion->datos_capturados = array_filter([
+                        'nombre' => $parsed['nombre'],
+                        'apellido' => $parsed['apellido'],
+                        'telefono' => $parsed['telefono'],
+                        'fecha_nacimiento' => $parsed['fecha_nacimiento'],
+                        'email' => $parsed['email'],
+                        'departamento' => $parsed['departamento'],
+                    ], fn (mixed $value): bool => $value !== null && $value !== '');
+
+                    if ($inscripcion->exists) {
+                        $inscripcion->save();
+                        $summary['ya_inscriptos']++;
+
+                        continue;
+                    }
+
+                    $inscripcion->save();
+                    $summary['inscripciones_creadas']++;
+                }
+
+                break;
+            }
+        } finally {
+            $reader->close();
+        }
+
+        if (! $sheetFound) {
+            throw new \RuntimeException('El archivo no contiene hojas para importar.');
+        }
+
+        return $summary;
     }
 
     /**
@@ -262,6 +494,8 @@ class EditEventoFecha extends EditRecord
                 'apellido', 'apellidos', 'last_name' => 'apellido',
                 'telefono', 'celular', 'movil', 'mobile', 'phone', 'telefono_celular' => 'telefono',
                 'fecha_nacimiento', 'fecha_de_nacimiento', 'fecha_nac', 'nacimiento', 'birthdate' => 'fecha_nacimiento',
+                'email', 'correo', 'mail', 'correo_electronico' => 'email',
+                'departamento' => 'departamento',
                 default => null,
             };
 
@@ -285,7 +519,7 @@ class EditEventoFecha extends EditRecord
     /**
      * @param  array<int, mixed>  $values
      * @param  array<string, int>  $headerMap
-     * @return array{nombre:string,apellido:string,telefono:?string,fecha_nacimiento:?string}|null
+     * @return array{nombre:string,apellido:string,telefono:?string,fecha_nacimiento:?string,email:?string,departamento:?string}|null
      */
     protected function parsePersonaData(array $values, array $headerMap): ?array
     {
@@ -298,6 +532,10 @@ class EditEventoFecha extends EditRecord
 
         $telefono = isset($headerMap['telefono']) ? trim((string) ($values[$headerMap['telefono']] ?? '')) : null;
         $telefono = $telefono !== '' ? $telefono : null;
+        $email = isset($headerMap['email']) ? trim((string) ($values[$headerMap['email']] ?? '')) : null;
+        $email = $email !== '' ? $email : null;
+        $departamento = isset($headerMap['departamento']) ? trim((string) ($values[$headerMap['departamento']] ?? '')) : null;
+        $departamento = $departamento !== '' ? $departamento : null;
 
         $fechaNacimiento = null;
 
@@ -310,6 +548,8 @@ class EditEventoFecha extends EditRecord
             'apellido' => $apellido,
             'telefono' => $telefono,
             'fecha_nacimiento' => $fechaNacimiento,
+            'email' => $email,
+            'departamento' => $departamento,
         ];
     }
 
@@ -457,6 +697,16 @@ class EditEventoFecha extends EditRecord
             $dirty = true;
         }
 
+        if (($persona->email === null || $persona->email === '') && filled($parsed['email'] ?? null)) {
+            $persona->email = $parsed['email'];
+            $dirty = true;
+        }
+
+        if (($persona->departamento === null || $persona->departamento === '') && filled($parsed['departamento'] ?? null)) {
+            $persona->departamento = $parsed['departamento'];
+            $dirty = true;
+        }
+
         return $dirty;
     }
 
@@ -467,7 +717,7 @@ class EditEventoFecha extends EditRecord
     }
 
     /**
-     * @param  array{nombre:string,apellido:string,telefono:?string,fecha_nacimiento:?string}  $parsed
+     * @param  array{nombre:string,apellido:string,telefono:?string,fecha_nacimiento:?string,email:?string,departamento:?string}  $parsed
      * @param  array<string, array<int, Persona>>  $personasPorClave
      * @param  array<string, array<int, Persona>>  $personasPorTelefono
      * @return array{estado:'nueva'|'existente_telefono'|'existente_nombre'|'ambigua'|'conflicto_telefono', persona:?Persona}

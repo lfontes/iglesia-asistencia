@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Jobs\SendEventoReminderBatchJob;
 use App\Filament\Resources\EventoFechaResource\Pages;
 use App\Filament\Resources\EventoFechaResource\RelationManagers\AsistenciasRelationManager;
+use App\Filament\Resources\EventoFechaResource\RelationManagers\InscripcionesRelationManager;
 use App\Models\EventoFecha;
 use App\Models\EventoInscripcion;
 use App\Models\WhatsAppMessage;
@@ -98,6 +99,7 @@ class EventoFechaResource extends Resource
     {
         
            return [
+        InscripcionesRelationManager::class,
         AsistenciasRelationManager::class,
     ];
         
