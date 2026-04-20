@@ -336,14 +336,23 @@ class AsistenciaGruposCrecimiento extends Page implements Forms\Contracts\HasFor
             return;
         }
 
-        foreach ($participaciones as $participacion) {
-            $participacion->fecha_fin = $fechaFin;
+        $tieneAsistencias = AsistenciaGrupo::query()
+            ->where('grupo_id', $this->grupo_id)
+            ->where('persona_id', $personaId)
+            ->exists();
 
-            if ($participacion->fecha_inicio && $participacion->fecha_inicio->gt($participacion->fecha_fin)) {
-                $participacion->fecha_inicio = $participacion->fecha_fin;
+        if ($tieneAsistencias) {
+            foreach ($participaciones as $participacion) {
+                $participacion->fecha_fin = $fechaFin;
+
+                if ($participacion->fecha_inicio && $participacion->fecha_inicio->gt($participacion->fecha_fin)) {
+                    $participacion->fecha_inicio = $participacion->fecha_fin;
+                }
+
+                $participacion->save();
             }
-
-            $participacion->save();
+        } else {
+            $participaciones->each->delete();
         }
 
         $this->presentes = collect($this->presentes)
@@ -356,7 +365,7 @@ class AsistenciaGruposCrecimiento extends Page implements Forms\Contracts\HasFor
         $persona = Persona::query()->find($personaId);
 
         Notification::make()
-            ->title('Persona quitada del grupo')
+            ->title($tieneAsistencias ? 'Persona quitada del grupo' : 'Persona eliminada del grupo')
             ->body($persona ? $this->personaLabel($persona) : null)
             ->success()
             ->send();
