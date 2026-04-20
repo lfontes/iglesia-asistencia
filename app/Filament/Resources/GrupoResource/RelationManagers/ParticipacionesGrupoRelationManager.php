@@ -2,8 +2,11 @@
 
 namespace App\Filament\Resources\GrupoResource\RelationManagers;
 
+use App\Models\AsistenciaGrupo;
+use App\Models\ParticipacionGrupo;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -79,6 +82,37 @@ class ParticipacionesGrupoRelationManager extends RelationManager
             ->headerActions([])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('eliminarDelGrupo')
+                    ->label('Eliminar del grupo')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('Eliminar persona del grupo')
+                    ->modalDescription('Solo se eliminará la participación si la persona no tiene asistencias presentes registradas en este grupo.')
+                    ->action(function (ParticipacionGrupo $record): void {
+                        $tieneAsistenciasPresentes = AsistenciaGrupo::query()
+                            ->where('grupo_id', $record->grupo_id)
+                            ->where('persona_id', $record->persona_id)
+                            ->where('presente', true)
+                            ->exists();
+
+                        if ($tieneAsistenciasPresentes) {
+                            Notification::make()
+                                ->title('No se puede eliminar esta persona del grupo')
+                                ->body('Tiene asistencias presentes registradas en este grupo. Para conservar el historial, no se permite eliminar la participación.')
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
+
+                        $record->delete();
+
+                        Notification::make()
+                            ->title('Persona eliminada del grupo')
+                            ->success()
+                            ->send();
+                    }),
             ])
             ->bulkActions([]);
     }
