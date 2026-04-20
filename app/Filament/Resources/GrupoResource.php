@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\GrupoResource\Pages;
 use App\Filament\Resources\GrupoResource\RelationManagers\ParticipacionesGrupoRelationManager;
 use App\Models\Grupo;
+use App\Models\TipoGrupo;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -50,13 +51,21 @@ class GrupoResource extends Resource
                     ->label('Tipo de grupo')
                     ->relationship('tipoGrupo', 'nombre')
                     ->searchable()
-                    ->preload(),
+                    ->preload()
+                    ->live()
+                    ->afterStateUpdated(function (Forms\Set $set, $state): void {
+                        if (static::isTipoMinisterio($state)) {
+                            $set('frecuencia_asistencia', Grupo::FRECUENCIA_SIN_ASISTENCIA);
+                        }
+                    }),
 
                 Forms\Components\Select::make('frecuencia_asistencia')
                     ->label('Frecuencia de asistencia')
                     ->options(Grupo::frecuenciasAsistencia())
                     ->live()
                     ->default(Grupo::FRECUENCIA_SEMANAL)
+                    ->disabled(fn (Forms\Get $get): bool => static::isTipoMinisterio($get('tipo_grupo_id')))
+                    ->dehydrated()
                     ->required(),
 
                 Forms\Components\Toggle::make('activo')
@@ -176,5 +185,17 @@ class GrupoResource extends Resource
         $user = auth()->user();
 
         return $user?->hasRole(['facilitador', 'lider']) && ! $user->hasRole('admin');
+    }
+
+    protected static function isTipoMinisterio($tipoGrupoId): bool
+    {
+        if (! filled($tipoGrupoId)) {
+            return false;
+        }
+
+        return TipoGrupo::query()
+            ->whereKey($tipoGrupoId)
+            ->whereRaw('LOWER(nombre) = ?', ['ministerio'])
+            ->exists();
     }
 }

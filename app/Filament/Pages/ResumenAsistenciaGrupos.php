@@ -58,7 +58,7 @@ class ResumenAsistenciaGrupos extends Page implements Forms\Contracts\HasForms
         }
 
         $this->form->fill([
-            'grupo_id' => $this->grupo_id ?? array_key_first($availableGroups),
+            'grupo_id' => $this->grupo_id,
         ]);
     }
 

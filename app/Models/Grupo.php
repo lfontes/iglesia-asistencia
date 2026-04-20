@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Grupo extends Model
 {
@@ -11,6 +12,8 @@ class Grupo extends Model
     public const FRECUENCIA_QUINCENAL = 'quincenal';
 
     public const FRECUENCIA_MENSUAL = 'mensual';
+
+    public const FRECUENCIA_SIN_ASISTENCIA = 'sin_asistencia';
 
     protected $fillable = [
         'nombre',
@@ -27,7 +30,26 @@ class Grupo extends Model
             self::FRECUENCIA_SEMANAL => 'Semanal',
             self::FRECUENCIA_QUINCENAL => 'Quincenal',
             self::FRECUENCIA_MENSUAL => 'Mensual',
+            self::FRECUENCIA_SIN_ASISTENCIA => 'Sin asistencia',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $grupo): void {
+            if ($grupo->esTipoMinisterio()) {
+                $grupo->frecuencia_asistencia = self::FRECUENCIA_SIN_ASISTENCIA;
+            }
+        });
+    }
+
+    public function esTipoMinisterio(): bool
+    {
+        $nombreTipo = (string) ($this->tipoGrupo?->nombre
+            ?? TipoGrupo::query()->whereKey($this->tipo_grupo_id)->value('nombre')
+            ?? '');
+
+        return Str::lower($nombreTipo) === 'ministerio';
     }
 
     public function tipoGrupo()
