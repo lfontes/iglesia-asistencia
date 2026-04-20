@@ -12,17 +12,20 @@ class EditUser extends EditRecord
 
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        $data['role'] = $this->record->roles()->pluck('name')->first();
+        $data['role_names'] = $this->record->roles()->pluck('name')->all();
 
         return $data;
     }
 
     protected function afterSave(): void
     {
-        $role = $this->data['role'] ?? null;
+        $roles = collect($this->data['role_names'] ?? [])
+            ->filter()
+            ->values()
+            ->all();
 
-        if (filled($role)) {
-            $this->record->syncRoles([$role]);
+        if ($roles !== []) {
+            $this->record->syncRoles($roles);
         }
     }
 

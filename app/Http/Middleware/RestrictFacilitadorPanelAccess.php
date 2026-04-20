@@ -30,6 +30,10 @@ class RestrictFacilitadorPanelAccess
         $isLider = $user->hasRole('lider');
 
         if ($routeName === 'filament.admin.pages.dashboard') {
+            if ($user->hasCombinedFacilitadorLiderAccess()) {
+                return $next($request);
+            }
+
             if ($isFacilitador) {
                 return redirect(ResumenAsistenciaGrupos::getUrl());
             }

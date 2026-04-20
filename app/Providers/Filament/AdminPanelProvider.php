@@ -38,6 +38,10 @@ class AdminPanelProvider extends PanelProvider
             ->homeUrl(function (): string {
                 $user = auth()->user();
 
+                if ($user?->hasCombinedFacilitadorLiderAccess()) {
+                    return Dashboard::getUrl();
+                }
+
                 if ($user && $user->hasRole('facilitador') && ! $user->hasRole('admin')) {
                     return AsistenciaGruposCrecimiento::getUrl();
                 }

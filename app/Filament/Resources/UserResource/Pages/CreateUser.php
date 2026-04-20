@@ -11,10 +11,13 @@ class CreateUser extends CreateRecord
 
     protected function afterCreate(): void
     {
-        $role = $this->data['role'] ?? null;
+        $roles = collect($this->data['role_names'] ?? [])
+            ->filter()
+            ->values()
+            ->all();
 
-        if (filled($role)) {
-            $this->record->syncRoles([$role]);
+        if ($roles !== []) {
+            $this->record->syncRoles($roles);
         }
     }
 }

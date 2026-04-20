@@ -51,12 +51,14 @@ class UserResource extends Resource
                     ->getOptionLabelFromRecordUsing(fn (Persona $record): string => trim($record->apellido.' '.$record->nombre).($record->email ? " ({$record->email})" : ''))
                     ->placeholder('Sin vincular'),
 
-                Forms\Components\Select::make('role')
-                    ->label('Rol de acceso')
+                Forms\Components\Select::make('role_names')
+                    ->label('Roles de acceso')
                     ->options(fn (): array => Role::query()
                         ->orderBy('name')
                         ->pluck('name', 'name')
                         ->all())
+                    ->multiple()
+                    ->minItems(1)
                     ->required()
                     ->dehydrated(false),
 

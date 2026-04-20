@@ -45,6 +45,11 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasRole(['facilitador', 'lider']) && ! $this->hasRole('admin');
     }
 
+    public function hasCombinedFacilitadorLiderAccess(): bool
+    {
+        return $this->hasAllRoles(['facilitador', 'lider']) && ! $this->hasRole('admin');
+    }
+
     public function isSoloLider(): bool
     {
         return $this->hasRole('lider') && ! $this->hasRole(['admin', 'facilitador']);
