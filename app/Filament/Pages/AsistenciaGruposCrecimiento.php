@@ -40,10 +40,8 @@ class AsistenciaGruposCrecimiento extends Page implements Forms\Contracts\HasFor
     public function mount(): void
     {
         $this->fecha = now()->toDateString();
-        $this->grupo_id = $this->gruposDeCrecimientoQuery()
-            ->where('activo', true)
-            ->orderBy('nombre')
-            ->value('id');
+        $grupoIdDesdeUrl = request()->integer('grupo_id');
+        $this->grupo_id = $grupoIdDesdeUrl ?: null;
 
         $this->refrescarAsistenciaCargada();
     }
@@ -65,6 +63,7 @@ class AsistenciaGruposCrecimiento extends Page implements Forms\Contracts\HasFor
                 ->schema([
                     Forms\Components\Select::make('grupo_id')
                         ->label('Grupo de crecimiento')
+                        ->placeholder('Selecciona tu grupo')
                         ->required()
                         ->searchable()
                         ->preload()
