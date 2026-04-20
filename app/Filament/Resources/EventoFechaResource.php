@@ -76,7 +76,7 @@ class EventoFechaResource extends Resource
                     ->icon('heroicon-o-check'),
                 Tables\Actions\Action::make('inscripcion_publica')
                     ->label('Formulario público')
-                    ->url(fn ($record) => route('eventos.inscripcion.create', $record))
+                    ->url(fn (EventoFecha $record): string => $record->publicInscriptionUrl())
                     ->openUrlInNewTab()
                     ->icon('heroicon-o-arrow-top-right-on-square'),
                 Tables\Actions\Action::make('recordatorio_whatsapp')

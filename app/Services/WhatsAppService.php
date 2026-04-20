@@ -210,7 +210,7 @@ class WhatsAppService
         $nombre = $this->resolveFirstName($persona->nombre);
         $eventoNombre = (string) ($eventoFecha->evento?->nombre ?? 'el evento');
         $fechaEvento = CarbonImmutable::parse($eventoFecha->fecha)->format('d/m/Y');
-        $urlInscripcion = route('eventos.inscripcion.create', $eventoFecha);
+        $urlInscripcion = $eventoFecha->publicInscriptionUrl();
         $renderedBody = "Hola {$nombre}, te invitamos a {$eventoNombre} el {$fechaEvento}. Si quieres participar, puedes inscribirte aqui: {$urlInscripcion}";
 
         return $this->sendTemplateWithContext(

@@ -178,7 +178,7 @@ class TomarAsistencia extends Page implements Forms\Contracts\HasForms
 
     public function getFormularioInscripcionUrl(): string
     {
-        return route('eventos.inscripcion.create', $this->getRecord());
+        return $this->getRecord()->publicInscriptionUrl();
     }
 
     public function isInscriptoPresente(int $personaId): bool

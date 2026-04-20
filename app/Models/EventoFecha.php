@@ -28,6 +28,13 @@ class EventoFecha extends Model
         return $this->hasMany(EventoInscripcion::class);
     }
 
+    public function publicInscriptionUrl(): string
+    {
+        $path = route('eventos.inscripcion.create', $this, false);
+
+        return rtrim((string) config('app.public_url'), '/') . $path;
+    }
+
     /**
      * @return Collection<int, EventoInscripcion>
      */
