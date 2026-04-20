@@ -56,6 +56,7 @@
                                 <th class="px-4 py-3 font-medium">Teléfono</th>
                                 <th class="px-4 py-3 font-medium">Email</th>
                                 <th class="px-4 py-3 font-medium">Estado</th>
+                                <th class="px-4 py-3 text-right font-medium">Acción</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-stone-100 bg-white dark:divide-white/10 dark:bg-transparent">
@@ -74,6 +75,25 @@
                                         ])>
                                             {{ $this->isInscriptoPresente((int) $inscripto->persona_id) ? 'Presente' : 'Pendiente' }}
                                         </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-right">
+                                        @if ($this->isInscriptoPresente((int) $inscripto->persona_id))
+                                            <x-filament::button
+                                                size="xs"
+                                                color="gray"
+                                                wire:click="quitarInscriptoPresente({{ (int) $inscripto->persona_id }})"
+                                            >
+                                                Quitar presente
+                                            </x-filament::button>
+                                        @else
+                                            <x-filament::button
+                                                size="xs"
+                                                color="success"
+                                                wire:click="marcarInscriptoPresente({{ (int) $inscripto->persona_id }})"
+                                            >
+                                                Marcar presente
+                                            </x-filament::button>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach

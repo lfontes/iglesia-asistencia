@@ -15,11 +15,14 @@ class EventoInscripcionController extends Controller
 {
     public function create(EventoFecha $eventoFecha): View
     {
+        $this->ensureCaptchaChallenge($eventoFecha);
+
         return view('eventos.inscripcion', [
             'eventoFecha' => $eventoFecha->load('evento'),
             'candidates' => collect(),
             'departamentos' => Persona::departamentosMendoza(),
             'input' => old(),
+            'captchaQuestion' => session($this->captchaQuestionKey($eventoFecha)),
         ]);
     }
 
@@ -28,13 +31,26 @@ class EventoInscripcionController extends Controller
         $validated = $request->validate([
             'nombre' => ['required', 'string', 'max:255'],
             'apellido' => ['required', 'string', 'max:255'],
-            'fecha_nacimiento' => ['nullable', 'date'],
-            'telefono' => ['nullable', 'string', 'max:255'],
+            'fecha_nacimiento' => ['required', 'date'],
+            'telefono' => ['required', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],
-            'departamento' => ['nullable', 'string', 'max:100', Rule::in(array_keys(Persona::departamentosMendoza()))],
+            'departamento' => ['required', 'string', 'max:100', Rule::in(array_keys(Persona::departamentosMendoza()))],
             'modo' => ['nullable', 'in:confirmar_existente,crear_nueva'],
             'persona_existente_id' => ['nullable', 'integer'],
         ]);
+
+        if (! $this->captchaAlreadyPassed($request, $eventoFecha)) {
+            if (! $this->captchaIsValid($request, $eventoFecha)) {
+                $this->regenerateCaptchaChallenge($eventoFecha);
+
+                return redirect()
+                    ->back()
+                    ->withErrors(['captcha_answer' => 'La respuesta de verificación no es correcta. Inténtalo nuevamente.'])
+                    ->withInput();
+            }
+
+            $request->session()->put($this->captchaPassedKey($eventoFecha), true);
+        }
 
         if (($validated['modo'] ?? null) === null) {
             $candidates = $matchingService->findCandidates($validated);
@@ -45,6 +61,7 @@ class EventoInscripcionController extends Controller
                     'candidates' => $candidates,
                     'departamentos' => Persona::departamentosMendoza(),
                     'input' => $validated,
+                    'captchaQuestion' => null,
                 ]);
             }
         }
@@ -55,6 +72,8 @@ class EventoInscripcionController extends Controller
         $message = $created
             ? 'Tu inscripción quedó registrada correctamente.'
             : 'Ya estabas inscripto para esta fecha. Actualizamos tus datos.';
+
+        $this->clearCaptchaState($request, $eventoFecha);
 
         return redirect()
             ->route('eventos.inscripcion.create', $eventoFecha)
@@ -116,5 +135,63 @@ class EventoInscripcionController extends Controller
             'email' => $validated['email'] ?? null,
             'departamento' => $validated['departamento'] ?? null,
         ]);
+    }
+
+    protected function ensureCaptchaChallenge(EventoFecha $eventoFecha): void
+    {
+        if (session()->has($this->captchaQuestionKey($eventoFecha)) && session()->has($this->captchaAnswerKey($eventoFecha))) {
+            return;
+        }
+
+        $this->regenerateCaptchaChallenge($eventoFecha);
+    }
+
+    protected function regenerateCaptchaChallenge(EventoFecha $eventoFecha): void
+    {
+        $first = random_int(2, 9);
+        $second = random_int(2, 9);
+
+        session()->put($this->captchaQuestionKey($eventoFecha), "{$first} + {$second}");
+        session()->put($this->captchaAnswerKey($eventoFecha), $first + $second);
+        session()->forget($this->captchaPassedKey($eventoFecha));
+    }
+
+    protected function captchaIsValid(Request $request, EventoFecha $eventoFecha): bool
+    {
+        $expected = session($this->captchaAnswerKey($eventoFecha));
+        $answer = $request->input('captcha_answer');
+
+        return $expected !== null
+            && is_numeric($answer)
+            && (int) $answer === (int) $expected;
+    }
+
+    protected function captchaAlreadyPassed(Request $request, EventoFecha $eventoFecha): bool
+    {
+        return $request->session()->get($this->captchaPassedKey($eventoFecha)) === true;
+    }
+
+    protected function clearCaptchaState(Request $request, EventoFecha $eventoFecha): void
+    {
+        $request->session()->forget([
+            $this->captchaQuestionKey($eventoFecha),
+            $this->captchaAnswerKey($eventoFecha),
+            $this->captchaPassedKey($eventoFecha),
+        ]);
+    }
+
+    protected function captchaQuestionKey(EventoFecha $eventoFecha): string
+    {
+        return "evento_inscripcion.{$eventoFecha->id}.captcha_question";
+    }
+
+    protected function captchaAnswerKey(EventoFecha $eventoFecha): string
+    {
+        return "evento_inscripcion.{$eventoFecha->id}.captcha_answer";
+    }
+
+    protected function captchaPassedKey(EventoFecha $eventoFecha): string
+    {
+        return "evento_inscripcion.{$eventoFecha->id}.captcha_passed";
     }
 }

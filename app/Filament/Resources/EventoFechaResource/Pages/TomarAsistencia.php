@@ -104,6 +104,41 @@ class TomarAsistencia extends Page implements Forms\Contracts\HasForms
             ->send();
     }
 
+    public function marcarInscriptoPresente(int $personaId): void
+    {
+        Asistencia::updateOrCreate(
+            [
+                'persona_id' => $personaId,
+                'evento_fecha_id' => $this->getRecord()->id,
+            ],
+            [
+                'presente' => true,
+            ]
+        );
+
+        $this->sincronizarPresentesDesdeBase();
+
+        Notification::make()
+            ->title('Inscripto marcado como presente')
+            ->success()
+            ->send();
+    }
+
+    public function quitarInscriptoPresente(int $personaId): void
+    {
+        Asistencia::query()
+            ->where('persona_id', $personaId)
+            ->where('evento_fecha_id', $this->getRecord()->id)
+            ->delete();
+
+        $this->sincronizarPresentesDesdeBase();
+
+        Notification::make()
+            ->title('Presente quitado')
+            ->color('gray')
+            ->send();
+    }
+
     /**
      * @return \Illuminate\Support\Collection<int, EventoInscripcion>
      */
@@ -149,6 +184,17 @@ class TomarAsistencia extends Page implements Forms\Contracts\HasForms
     public function isInscriptoPresente(int $personaId): bool
     {
         return in_array($personaId, $this->presentes, true);
+    }
+
+    protected function sincronizarPresentesDesdeBase(): void
+    {
+        $this->presentes = Asistencia::query()
+            ->where('evento_fecha_id', $this->getRecord()->id)
+            ->where('presente', true)
+            ->pluck('persona_id')
+            ->map(fn ($id): int => (int) $id)
+            ->values()
+            ->all();
     }
 
     protected function personaLabel(Persona $persona): string

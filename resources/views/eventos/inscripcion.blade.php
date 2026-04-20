@@ -72,6 +72,7 @@
                                 name="fecha_nacimiento"
                                 value="{{ old('fecha_nacimiento', $input['fecha_nacimiento'] ?? '') }}"
                                 class="w-full rounded-2xl border border-stone-300 px-4 py-3 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                                required
                             >
                         </label>
 
@@ -81,11 +82,12 @@
                                 name="telefono"
                                 value="{{ old('telefono', $input['telefono'] ?? '') }}"
                                 class="w-full rounded-2xl border border-stone-300 px-4 py-3 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                                required
                             >
                         </label>
 
                         <label class="block md:col-span-2">
-                            <span class="mb-2 block text-sm font-medium text-stone-700 dark:text-gray-200">Email</span>
+                            <span class="mb-2 block text-sm font-medium text-stone-700 dark:text-gray-200">Email <span class="font-normal text-stone-500 dark:text-gray-400">(opcional)</span></span>
                             <input
                                 type="email"
                                 name="email"
@@ -99,6 +101,7 @@
                             <select
                                 name="departamento"
                                 class="w-full rounded-2xl border border-stone-300 px-4 py-3 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                                required
                             >
                                 <option value="">Selecciona un departamento</option>
                                 @foreach ($departamentos as $value => $label)
@@ -112,6 +115,22 @@
                             </select>
                         </label>
                     </div>
+
+                    @if (filled($captchaQuestion ?? null))
+                        <label class="block rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 dark:border-amber-500/30 dark:bg-amber-500/10">
+                            <span class="mb-2 block text-sm font-medium text-amber-900 dark:text-amber-200">
+                                Verificación rápida: ¿cuánto es {{ $captchaQuestion }}?
+                            </span>
+                            <input
+                                name="captcha_answer"
+                                inputmode="numeric"
+                                autocomplete="off"
+                                value="{{ old('captcha_answer') }}"
+                                class="w-full rounded-2xl border border-amber-200 px-4 py-3 dark:border-amber-500/30 dark:bg-white/5 dark:text-white"
+                                required
+                            >
+                        </label>
+                    @endif
 
                     <div class="flex flex-wrap gap-3">
                         <button class="rounded-full bg-stone-950 px-6 py-3 text-sm font-medium text-white dark:bg-white dark:text-slate-900">
