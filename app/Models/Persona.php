@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 class Persona extends Model
@@ -65,6 +66,17 @@ class Persona extends Model
         'email',
         'departamento',
         'telefono_normalizado',
+        'es_menor',
+        'responsable_persona_id',
+        'responsable_nombre',
+        'responsable_telefono',
+        'responsable_telefono_normalizado',
+        'observaciones_ipn',
+    ];
+
+    protected $casts = [
+        'fecha_nacimiento' => 'date',
+        'es_menor' => 'boolean',
     ];
 
     public function setTelefonoAttribute(mixed $value): void
@@ -74,6 +86,15 @@ class Persona extends Model
 
         $this->attributes['telefono'] = $telefono;
         $this->attributes['telefono_normalizado'] = $this->normalizePhone($telefono);
+    }
+
+    public function setResponsableTelefonoAttribute(mixed $value): void
+    {
+        $telefono = is_string($value) ? trim($value) : null;
+        $telefono = $telefono !== '' ? $telefono : null;
+
+        $this->attributes['responsable_telefono'] = $telefono;
+        $this->attributes['responsable_telefono_normalizado'] = $this->normalizePhone($telefono);
     }
 
     public function asistencias()
@@ -94,6 +115,33 @@ class Persona extends Model
     public function asistenciasGrupo()
     {
         return $this->hasMany(AsistenciaGrupo::class);
+    }
+
+    public function ipnParticipaciones()
+    {
+        return $this->hasMany(IpnAulaPersona::class);
+    }
+
+    public function ipnAulas()
+    {
+        return $this->belongsToMany(IpnAula::class, 'ipn_aula_persona', 'persona_id', 'ipn_aula_id')
+            ->withPivot(['fecha_inicio', 'fecha_fin', 'activo', 'observaciones'])
+            ->withTimestamps();
+    }
+
+    public function ipnAsistencias()
+    {
+        return $this->hasMany(IpnAsistencia::class);
+    }
+
+    public function responsablePersona()
+    {
+        return $this->belongsTo(self::class, 'responsable_persona_id');
+    }
+
+    public function menoresResponsables()
+    {
+        return $this->hasMany(self::class, 'responsable_persona_id');
     }
 
     public function metagruposLiderados()
@@ -152,6 +200,29 @@ class Persona extends Model
     public function user()
     {
         return $this->hasOne(User::class);
+    }
+
+    public function getEdadAttribute(): ?int
+    {
+        if (! $this->fecha_nacimiento) {
+            return null;
+        }
+
+        return Carbon::parse($this->fecha_nacimiento)->age;
+    }
+
+    public function responsableIpnLabel(): ?string
+    {
+        if ($this->responsablePersona) {
+            return trim("{$this->responsablePersona->apellido} {$this->responsablePersona->nombre}");
+        }
+
+        return $this->responsable_nombre;
+    }
+
+    public function responsableIpnTelefono(): ?string
+    {
+        return $this->responsablePersona?->telefono ?: $this->responsable_telefono;
     }
 
     protected function normalizePhone(?string $value): ?string

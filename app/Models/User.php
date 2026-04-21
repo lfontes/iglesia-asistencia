@@ -32,7 +32,7 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->hasRole(['admin', 'secretario', 'facilitador', 'lider']);
+        return $this->hasRole(['admin', 'secretario', 'facilitador', 'lider', 'director_ipn', 'servidor_ipn']);
     }
 
     public function persona()
@@ -58,6 +58,21 @@ class User extends Authenticatable implements FilamentUser
     public function canManageLeadershipArea(): bool
     {
         return $this->hasRole(['admin', 'lider']);
+    }
+
+    public function canAccessIpn(): bool
+    {
+        return $this->hasRole(['admin', 'director_ipn', 'servidor_ipn']);
+    }
+
+    public function canManageIpn(): bool
+    {
+        return $this->hasRole(['admin', 'director_ipn']);
+    }
+
+    public function canTakeIpnAttendance(): bool
+    {
+        return $this->hasRole(['admin', 'director_ipn', 'servidor_ipn']);
     }
 
     public function metagruposLiderados(): Builder
