@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\IpnNinoResource\Pages;
 
 use App\Filament\Resources\IpnNinoResource;
-use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 
 class EditIpnNino extends EditRecord
@@ -15,12 +14,5 @@ class EditIpnNino extends EditRecord
         $data['es_menor'] = true;
 
         return $data;
-    }
-
-    protected function getHeaderActions(): array
-    {
-        return [
-            Actions\DeleteAction::make(),
-        ];
     }
 }

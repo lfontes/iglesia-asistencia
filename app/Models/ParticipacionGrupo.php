@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
@@ -67,5 +68,40 @@ class ParticipacionGrupo extends Model
             ?? '');
 
         return Str::contains(Str::lower($nombreRol), 'facilit');
+    }
+
+    public function esLider(): bool
+    {
+        $nombreRol = (string) ($this->rolGrupo?->nombre
+            ?? RolGrupo::query()->whereKey($this->rol_grupo_id)->value('nombre')
+            ?? '');
+
+        return Str::contains(Str::lower(Str::ascii($nombreRol)), 'lider');
+    }
+
+    public function scopeVigenteEnFecha(Builder $query, string $fecha): Builder
+    {
+        return $query
+            ->where(function (Builder $subQuery) use ($fecha): void {
+                $subQuery->whereNull('fecha_inicio')
+                    ->orWhereDate('fecha_inicio', '<=', $fecha);
+            })
+            ->where(function (Builder $subQuery) use ($fecha): void {
+                $subQuery->whereNull('fecha_fin')
+                    ->orWhereDate('fecha_fin', '>=', $fecha);
+            });
+    }
+
+    public function scopeVigenteEnAnio(Builder $query, int $anio): Builder
+    {
+        return $query
+            ->where(function (Builder $subQuery) use ($anio): void {
+                $subQuery->whereNull('fecha_inicio')
+                    ->orWhereDate('fecha_inicio', '<=', "{$anio}-12-31");
+            })
+            ->where(function (Builder $subQuery) use ($anio): void {
+                $subQuery->whereNull('fecha_fin')
+                    ->orWhereDate('fecha_fin', '>=', "{$anio}-01-01");
+            });
     }
 }

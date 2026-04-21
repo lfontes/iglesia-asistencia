@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class IpnAulaServidor extends Model
@@ -32,5 +33,32 @@ class IpnAulaServidor extends Model
     public function persona()
     {
         return $this->belongsTo(Persona::class);
+    }
+
+    public function scopeVigenteEnFecha(Builder $query, string $fecha): Builder
+    {
+        return $query
+            ->where('activo', true)
+            ->where(function (Builder $subQuery) use ($fecha): void {
+                $subQuery->whereNull('fecha_inicio')
+                    ->orWhereDate('fecha_inicio', '<=', $fecha);
+            })
+            ->where(function (Builder $subQuery) use ($fecha): void {
+                $subQuery->whereNull('fecha_fin')
+                    ->orWhereDate('fecha_fin', '>=', $fecha);
+            });
+    }
+
+    public function scopeVigenteEnAnio(Builder $query, int $anio): Builder
+    {
+        return $query
+            ->where(function (Builder $subQuery) use ($anio): void {
+                $subQuery->whereNull('fecha_inicio')
+                    ->orWhereDate('fecha_inicio', '<=', "{$anio}-12-31");
+            })
+            ->where(function (Builder $subQuery) use ($anio): void {
+                $subQuery->whereNull('fecha_fin')
+                    ->orWhereDate('fecha_fin', '>=', "{$anio}-01-01");
+            });
     }
 }
