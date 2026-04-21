@@ -134,6 +134,11 @@ class Persona extends Model
         return $this->hasMany(IpnAsistencia::class);
     }
 
+    public function ipnAulasServidor()
+    {
+        return $this->hasMany(IpnAulaServidor::class);
+    }
+
     public function responsablePersona()
     {
         return $this->belongsTo(self::class, 'responsable_persona_id');

@@ -34,43 +34,60 @@ class IpnDashboard extends Page
 
     public function getStats(): array
     {
+        $user = auth()->user();
+        $aulaIds = $user?->ipnAulasDisponibles()->pluck('id') ?? collect();
+
         $ultimaFecha = IpnAsistencia::query()
+            ->whereIn('ipn_aula_id', $aulaIds)
             ->max('fecha');
 
         $asistenciasUltimaFecha = $ultimaFecha
             ? IpnAsistencia::query()
+                ->whereIn('ipn_aula_id', $aulaIds)
                 ->whereDate('fecha', $ultimaFecha)
                 ->where('presente', true)
                 ->count()
             : 0;
 
         $totalRegistros30Dias = IpnAsistencia::query()
+            ->whereIn('ipn_aula_id', $aulaIds)
             ->whereDate('fecha', '>=', now()->subDays(30)->toDateString())
             ->count();
 
         $presentes30Dias = IpnAsistencia::query()
+            ->whereIn('ipn_aula_id', $aulaIds)
             ->whereDate('fecha', '>=', now()->subDays(30)->toDateString())
             ->where('presente', true)
             ->count();
 
         return [
-            'ninos' => Persona::query()->where('es_menor', true)->count(),
-            'aulas' => IpnAula::query()->where('activo', true)->count(),
+            'ninos' => $user?->canManageAllIpnAulas()
+                ? Persona::query()->where('es_menor', true)->count()
+                : Persona::query()
+                    ->where('es_menor', true)
+                    ->whereHas('ipnParticipaciones', fn ($query) => $query->whereIn('ipn_aula_id', $aulaIds))
+                    ->count(),
+            'aulas' => IpnAula::query()
+                ->whereIn('id', $aulaIds)
+                ->where('activo', true)
+                ->count(),
             'presentes_ultima_fecha' => $asistenciasUltimaFecha,
             'ultima_fecha' => $ultimaFecha,
             'promedio_30_dias' => $totalRegistros30Dias > 0
                 ? (int) round(($presentes30Dias / $totalRegistros30Dias) * 100)
                 : 0,
-            'sin_aula' => Persona::query()
-                ->where('es_menor', true)
-                ->whereDoesntHave('ipnParticipaciones', function ($query): void {
-                    $query->where('activo', true)
-                        ->where(function ($activeQuery): void {
-                            $activeQuery->whereNull('fecha_fin')
-                                ->orWhereDate('fecha_fin', '>=', now()->toDateString());
-                        });
-                })
-                ->count(),
+            'sin_aula' => $user?->canManageAllIpnAulas()
+                ? Persona::query()
+                    ->where('es_menor', true)
+                    ->whereDoesntHave('ipnParticipaciones', function ($query): void {
+                        $query->where('activo', true)
+                            ->where(function ($activeQuery): void {
+                                $activeQuery->whereNull('fecha_fin')
+                                    ->orWhereDate('fecha_fin', '>=', now()->toDateString());
+                            });
+                    })
+                    ->count()
+                : 0,
         ];
     }
 

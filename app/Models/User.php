@@ -75,6 +75,28 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasRole(['admin', 'director_ipn', 'servidor_ipn']);
     }
 
+    public function canManageAllIpnAulas(): bool
+    {
+        return $this->hasRole(['admin', 'director_ipn']);
+    }
+
+    public function ipnAulasDisponibles(): Builder
+    {
+        $query = IpnAula::query();
+
+        if ($this->canManageAllIpnAulas()) {
+            return $query;
+        }
+
+        if (! $this->persona_id) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereHas('servidoresActivos', function (Builder $serverQuery): void {
+            $serverQuery->where('persona_id', $this->persona_id);
+        });
+    }
+
     public function metagruposLiderados(): Builder
     {
         if (! $this->persona_id) {

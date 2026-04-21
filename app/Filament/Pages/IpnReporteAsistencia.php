@@ -38,7 +38,10 @@ class IpnReporteAsistencia extends Page implements Forms\Contracts\HasForms
 
     public function mount(): void
     {
-        $this->ipn_aula_id = request()->integer('ipn_aula_id') ?: null;
+        $aulaIdDesdeUrl = request()->integer('ipn_aula_id') ?: null;
+        $this->ipn_aula_id = $aulaIdDesdeUrl && array_key_exists($aulaIdDesdeUrl, $this->aulasOptions())
+            ? $aulaIdDesdeUrl
+            : null;
         $this->desde = now()->subMonths(2)->toDateString();
         $this->hasta = now()->toDateString();
 
@@ -68,10 +71,7 @@ class IpnReporteAsistencia extends Page implements Forms\Contracts\HasForms
                     Forms\Components\Select::make('ipn_aula_id')
                         ->label('Aula')
                         ->placeholder('Selecciona un aula')
-                        ->options(fn (): array => IpnAula::query()
-                            ->orderBy('nombre')
-                            ->pluck('nombre', 'id')
-                            ->all())
+                        ->options(fn (): array => $this->aulasOptions())
                         ->searchable()
                         ->preload()
                         ->live(),
@@ -101,6 +101,10 @@ class IpnReporteAsistencia extends Page implements Forms\Contracts\HasForms
             return [];
         }
 
+        if (! array_key_exists($this->ipn_aula_id, $this->aulasOptions())) {
+            return [];
+        }
+
         return Persona::query()
             ->whereHas('ipnParticipaciones', fn ($query) => $query->where('ipn_aula_id', $this->ipn_aula_id))
             ->orderBy('apellido')
@@ -118,6 +122,10 @@ class IpnReporteAsistencia extends Page implements Forms\Contracts\HasForms
     public function getDates(): Collection
     {
         if (! $this->ipn_aula_id) {
+            return collect();
+        }
+
+        if (! array_key_exists($this->ipn_aula_id, $this->aulasOptions())) {
             return collect();
         }
 
@@ -141,7 +149,9 @@ class IpnReporteAsistencia extends Page implements Forms\Contracts\HasForms
         $totalPosibles = $rows->count() * $dates->count();
 
         return [
-            'aula' => $this->ipn_aula_id ? IpnAula::query()->find($this->ipn_aula_id) : null,
+            'aula' => $this->ipn_aula_id && array_key_exists($this->ipn_aula_id, $this->aulasOptions())
+                ? IpnAula::query()->find($this->ipn_aula_id)
+                : null,
             'total_ninos' => $rows->count(),
             'total_fechas' => $dates->count(),
             'total_presentes' => $totalPresentes,
@@ -152,6 +162,10 @@ class IpnReporteAsistencia extends Page implements Forms\Contracts\HasForms
     public function getRows(): Collection
     {
         if (! $this->ipn_aula_id) {
+            return collect();
+        }
+
+        if (! array_key_exists($this->ipn_aula_id, $this->aulasOptions())) {
             return collect();
         }
 
@@ -195,5 +209,22 @@ class IpnReporteAsistencia extends Page implements Forms\Contracts\HasForms
             })
             ->sortBy('nombre_completo')
             ->values();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function aulasOptions(): array
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return [];
+        }
+
+        return $user->ipnAulasDisponibles()
+            ->orderBy('nombre')
+            ->pluck('nombre', 'id')
+            ->all();
     }
 }

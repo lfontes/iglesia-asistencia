@@ -40,7 +40,10 @@ class IpnTomarAsistencia extends Page implements Forms\Contracts\HasForms
     public function mount(): void
     {
         $this->fecha = now()->toDateString();
-        $this->ipn_aula_id = request()->integer('ipn_aula_id') ?: null;
+        $aulaIdDesdeUrl = request()->integer('ipn_aula_id') ?: null;
+        $this->ipn_aula_id = $aulaIdDesdeUrl && array_key_exists($aulaIdDesdeUrl, $this->aulasOptions())
+            ? $aulaIdDesdeUrl
+            : null;
 
         $this->refrescarAsistenciaCargada();
     }
@@ -63,11 +66,7 @@ class IpnTomarAsistencia extends Page implements Forms\Contracts\HasForms
                     Forms\Components\Select::make('ipn_aula_id')
                         ->label('Aula')
                         ->placeholder('Selecciona un aula')
-                        ->options(fn (): array => IpnAula::query()
-                            ->activas()
-                            ->orderBy('nombre')
-                            ->pluck('nombre', 'id')
-                            ->all())
+                        ->options(fn (): array => $this->aulasOptions())
                         ->searchable()
                         ->preload()
                         ->live()
@@ -158,6 +157,15 @@ class IpnTomarAsistencia extends Page implements Forms\Contracts\HasForms
             return;
         }
 
+        if (! array_key_exists($aulaId, $this->aulasOptions())) {
+            Notification::make()
+                ->title('No tienes acceso a esta aula')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
         $ninos = $this->ninosActivos();
         $presentesIds = collect($this->presentes)
             ->filter(fn ($id): bool => filled($id))
@@ -195,6 +203,10 @@ class IpnTomarAsistencia extends Page implements Forms\Contracts\HasForms
             return collect();
         }
 
+        if (! array_key_exists($this->ipn_aula_id, $this->aulasOptions())) {
+            return collect();
+        }
+
         $fecha = $this->fecha ?: now()->toDateString();
 
         return IpnAulaPersona::query()
@@ -229,6 +241,12 @@ class IpnTomarAsistencia extends Page implements Forms\Contracts\HasForms
             return;
         }
 
+        if (! array_key_exists($this->ipn_aula_id, $this->aulasOptions())) {
+            $this->presentes = [];
+
+            return;
+        }
+
         $this->presentes = IpnAsistencia::query()
             ->where('ipn_aula_id', $this->ipn_aula_id)
             ->whereDate('fecha', $this->fecha)
@@ -242,6 +260,15 @@ class IpnTomarAsistencia extends Page implements Forms\Contracts\HasForms
     protected function agregarNinoAlAula(array $data): void
     {
         if (! $this->ipn_aula_id) {
+            return;
+        }
+
+        if (! array_key_exists($this->ipn_aula_id, $this->aulasOptions())) {
+            Notification::make()
+                ->title('No tienes acceso a esta aula')
+                ->danger()
+                ->send();
+
             return;
         }
 
@@ -291,6 +318,24 @@ class IpnTomarAsistencia extends Page implements Forms\Contracts\HasForms
     protected function personaLabel(Persona $persona): string
     {
         return trim("{$persona->id} - {$persona->apellido} {$persona->nombre}");
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function aulasOptions(): array
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return [];
+        }
+
+        return $user->ipnAulasDisponibles()
+            ->activas()
+            ->orderBy('nombre')
+            ->pluck('nombre', 'id')
+            ->all();
     }
 
     protected function personaNombreCompleto(Persona $persona): string

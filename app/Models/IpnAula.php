@@ -50,6 +50,21 @@ class IpnAula extends Model
         return $this->hasMany(IpnAsistencia::class, 'ipn_aula_id');
     }
 
+    public function servidores()
+    {
+        return $this->hasMany(IpnAulaServidor::class, 'ipn_aula_id');
+    }
+
+    public function servidoresActivos()
+    {
+        return $this->servidores()
+            ->where('activo', true)
+            ->where(function (Builder $query): void {
+                $query->whereNull('fecha_fin')
+                    ->orWhereDate('fecha_fin', '>=', now()->toDateString());
+            });
+    }
+
     public function scopeActivas(Builder $query): Builder
     {
         return $query->where('activo', true);

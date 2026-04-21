@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\IpnAulaResource\Pages;
 use App\Filament\Resources\IpnAulaResource\RelationManagers\NinosRelationManager;
+use App\Filament\Resources\IpnAulaResource\RelationManagers\ServidoresRelationManager;
 use App\Models\IpnAula;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -75,6 +76,11 @@ class IpnAulaResource extends Resource
                     ->counts('participacionesActivas')
                     ->sortable(),
 
+                Tables\Columns\TextColumn::make('servidores_activos_count')
+                    ->label('Servidores')
+                    ->counts('servidoresActivos')
+                    ->sortable(),
+
                 Tables\Columns\IconColumn::make('activo')
                     ->boolean(),
             ])
@@ -90,13 +96,25 @@ class IpnAulaResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery();
+        $user = auth()->user();
+
+        if (! $user?->canAccessIpn()) {
+            return parent::getEloquentQuery()->whereRaw('1 = 0');
+        }
+
+        if ($user->canManageAllIpnAulas()) {
+            return parent::getEloquentQuery();
+        }
+
+        return parent::getEloquentQuery()
+            ->whereIn('id', $user->ipnAulasDisponibles()->select('id'));
     }
 
     public static function getRelations(): array
     {
         return [
             NinosRelationManager::class,
+            ServidoresRelationManager::class,
         ];
     }
 
