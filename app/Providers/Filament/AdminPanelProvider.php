@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 
 use App\Filament\Pages\AsistenciaGruposCrecimiento;
 use App\Filament\Pages\Dashboard;
+use App\Filament\Pages\IpnDashboard;
 use App\Filament\Pages\MisGruposMinisteriales;
 use App\Filament\Pages\MisMetagrupos;
 use App\Filament\Widgets\AsistenciasSemanalesGruposWidget;
@@ -40,6 +41,10 @@ class AdminPanelProvider extends PanelProvider
 
                 if ($user?->hasCombinedFacilitadorLiderAccess()) {
                     return Dashboard::getUrl();
+                }
+
+                if ($user && $user->canAccessIpn() && ! $user->hasRole(['admin', 'facilitador', 'lider'])) {
+                    return IpnDashboard::getUrl();
                 }
 
                 if ($user && $user->hasRole('facilitador') && ! $user->hasRole('admin')) {

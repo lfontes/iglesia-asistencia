@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\PersonaResource\Pages;
 use App\Filament\Resources\PersonaResource\RelationManagers\AsistenciasRelationManager;
+use App\Filament\Resources\PersonaResource\RelationManagers\IpnAulasServidorRelationManager;
 use App\Filament\Resources\PersonaResource\RelationManagers\ParticipacionesGrupoRelationManager;
 use App\Models\Persona;
 use Filament\Forms;
@@ -113,6 +114,7 @@ class PersonaResource extends Resource
     {
         return [
             ParticipacionesGrupoRelationManager::class,
+            IpnAulasServidorRelationManager::class,
             AsistenciasRelationManager::class,
         ];
     }
