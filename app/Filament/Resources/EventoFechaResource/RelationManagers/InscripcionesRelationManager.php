@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\EventoFechaResource\RelationManagers;
 
-use App\Models\Persona;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;

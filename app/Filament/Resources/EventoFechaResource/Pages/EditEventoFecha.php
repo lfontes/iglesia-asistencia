@@ -199,7 +199,7 @@ class EditEventoFecha extends EditRecord
             'conflictos_telefono' => 0,
         ];
 
-        $reader = new XlsxReader();
+        $reader = new XlsxReader;
         $reader->open($absolutePath);
 
         try {
@@ -363,7 +363,7 @@ class EditEventoFecha extends EditRecord
             'conflictos_telefono' => 0,
         ];
 
-        $reader = new XlsxReader();
+        $reader = new XlsxReader;
         $reader->open($absolutePath);
 
         try {

@@ -9,4 +9,3 @@ class CreateGrupo extends CreateRecord
 {
     protected static string $resource = GrupoResource::class;
 }
-

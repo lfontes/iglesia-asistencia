@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Resources\EventoFechaResource\Pages\TomarAsistencia;
 use App\Filament\Resources\EventoResource\Pages;
 use App\Filament\Resources\EventoResource\RelationManagers\FechasRelationManager;
-use App\Filament\Resources\EventoFechaResource\Pages\TomarAsistencia;
 use App\Models\Evento;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -122,14 +122,12 @@ class EventoResource extends Resource
             ]);
     }
 
-
     public static function getRelations(): array
     {
         return [
             FechasRelationManager::class,
         ];
     }
-
 
     public static function getPages(): array
     {

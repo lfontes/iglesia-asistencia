@@ -4,7 +4,6 @@ namespace App\Filament\Pages;
 
 use App\Models\AsistenciaGrupo;
 use App\Models\Grupo;
-use App\Models\ParticipacionGrupo;
 use App\Models\Persona;
 use App\Models\TipoGrupo;
 use Filament\Actions\Action;

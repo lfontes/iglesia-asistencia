@@ -14,7 +14,7 @@ class AsistenciasSemanalesGruposWidget extends ChartWidget
 
     protected static ?int $sort = 2;
 
-    protected int | string | array $columnSpan = [
+    protected int|string|array $columnSpan = [
         'default' => 'full',
         'xl' => 2,
     ];
@@ -28,7 +28,7 @@ class AsistenciasSemanalesGruposWidget extends ChartWidget
 
                 return [
                     'key' => $start->format('o-\WW'),
-                    'label' => $start->format('d/m') . ' - ' . $end->format('d/m'),
+                    'label' => $start->format('d/m').' - '.$end->format('d/m'),
                     'start' => $start,
                     'end' => $end,
                 ];

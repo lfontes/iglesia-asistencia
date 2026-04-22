@@ -17,7 +17,6 @@ use Filament\Resources\Pages\Page;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Illuminate\Database\Eloquent\Builder;
 use OpenSpout\Reader\XLSX\Reader as XlsxReader;
 use Throwable;
 
@@ -37,7 +36,7 @@ class RegistrarParticipacion extends Page implements Forms\Contracts\HasForms
 
     public ?int $persona_recordatorio_id = null;
 
-    public function mount(int | string $record): void
+    public function mount(int|string $record): void
     {
         $this->record = $this->resolveRecord($record);
         $this->cargarParticipantes();
@@ -328,7 +327,7 @@ class RegistrarParticipacion extends Page implements Forms\Contracts\HasForms
         return trim("{$persona->apellido} {$persona->nombre}");
     }
 
-    protected function normalizarRolGrupoId(int | string | null $valor): ?int
+    protected function normalizarRolGrupoId(int|string|null $valor): ?int
     {
         return filled($valor) ? (int) $valor : null;
     }
@@ -387,7 +386,7 @@ class RegistrarParticipacion extends Page implements Forms\Contracts\HasForms
         ];
         $personaIdsImportados = [];
 
-        $reader = new XlsxReader();
+        $reader = new XlsxReader;
         $reader->open($absolutePath);
 
         try {
@@ -417,6 +416,7 @@ class RegistrarParticipacion extends Page implements Forms\Contracts\HasForms
 
                     if ($parsed === null) {
                         $summary['invalidas']++;
+
                         continue;
                     }
 
@@ -428,11 +428,13 @@ class RegistrarParticipacion extends Page implements Forms\Contracts\HasForms
 
                     if ($estado === 'conflicto_telefono') {
                         $summary['conflictos_telefono']++;
+
                         continue;
                     }
 
                     if ($estado === 'ambigua') {
                         $summary['ambiguas']++;
+
                         continue;
                     }
 
@@ -466,6 +468,7 @@ class RegistrarParticipacion extends Page implements Forms\Contracts\HasForms
 
                     if (! $persona instanceof Persona) {
                         $summary['invalidas']++;
+
                         continue;
                     }
 
@@ -480,6 +483,7 @@ class RegistrarParticipacion extends Page implements Forms\Contracts\HasForms
 
                     if ($participacion->exists) {
                         $summary['ya_registradas']++;
+
                         continue;
                     }
 

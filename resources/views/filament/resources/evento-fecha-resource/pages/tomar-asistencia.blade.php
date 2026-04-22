@@ -69,11 +69,17 @@
                                     <td class="px-4 py-3 text-stone-600 dark:text-gray-300">{{ $inscripto->persona->email ?: '-' }}</td>
                                     <td class="px-4 py-3">
                                         <span @class([
-                                            'inline-flex rounded-full px-3 py-1 text-xs font-medium',
+                                            'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium',
                                             'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300' => $this->isInscriptoPresente((int) $inscripto->persona_id),
-                                            'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' => ! $this->isInscriptoPresente((int) $inscripto->persona_id),
+                                            'bg-rose-100 text-rose-800 dark:bg-rose-500/15 dark:text-rose-300' => ! $this->isInscriptoPresente((int) $inscripto->persona_id),
                                         ])>
-                                            {{ $this->isInscriptoPresente((int) $inscripto->persona_id) ? 'Presente' : 'Pendiente' }}
+                                            @if ($this->isInscriptoPresente((int) $inscripto->persona_id))
+                                                <x-heroicon-o-check-circle class="h-4 w-4" />
+                                                Presente
+                                            @else
+                                                <x-heroicon-o-x-circle class="h-4 w-4" />
+                                                Ausente
+                                            @endif
                                         </span>
                                     </td>
                                     <td class="px-4 py-3 text-right">

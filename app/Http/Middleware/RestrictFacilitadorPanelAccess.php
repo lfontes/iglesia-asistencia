@@ -2,12 +2,10 @@
 
 namespace App\Http\Middleware;
 
-use App\Filament\Pages\AsistenciaGruposCrecimiento;
 use App\Filament\Pages\IpnDashboard;
 use App\Filament\Pages\MisGruposMinisteriales;
 use App\Filament\Pages\MisMetagrupos;
 use App\Filament\Pages\ResumenAsistenciaGrupos;
-use App\Filament\Pages\ResumenGrupoMinisterial;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;

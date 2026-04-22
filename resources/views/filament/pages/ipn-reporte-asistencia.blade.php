@@ -7,42 +7,38 @@
         $dates = $this->getDates();
     @endphp
 
-    <div class="mt-6 grid gap-4 md:grid-cols-4">
-        <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
-            <p class="text-sm text-gray-500 dark:text-gray-300">Aula</p>
-            <p class="mt-2 text-sm font-semibold text-gray-900 dark:text-white">{{ $summary['aula']?->nombre ?? 'Sin seleccionar' }}</p>
-        </div>
-        <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
-            <p class="text-sm text-gray-500 dark:text-gray-300">Niños</p>
-            <p class="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">{{ $summary['total_ninos'] }}</p>
-        </div>
-        <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
-            <p class="text-sm text-gray-500 dark:text-gray-300">Encuentros</p>
-            <p class="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">{{ $summary['total_fechas'] }}</p>
-        </div>
-        <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
-            <p class="text-sm text-gray-500 dark:text-gray-300">Promedio</p>
-            <p class="mt-2 text-3xl font-semibold text-emerald-600 dark:text-emerald-300">{{ $summary['promedio'] }}%</p>
-        </div>
+    <div class="mt-6">
+        @livewire(
+            \App\Filament\Widgets\IpnReporteResumenWidget::class,
+            [
+                'ipnAulaId' => $this->ipn_aula_id,
+                'personaId' => $this->persona_id,
+                'desde' => $this->desde,
+                'hasta' => $this->hasta,
+            ],
+            key('ipn-reporte-resumen-' . ($this->ipn_aula_id ?? 'sin-aula') . '-' . ($this->persona_id ?? 'todos') . '-' . ($this->desde ?? 'sin-desde') . '-' . ($this->hasta ?? 'sin-hasta'))
+        )
     </div>
 
-    <div class="mt-6 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/5">
-        <div class="flex items-center justify-between gap-4">
-            <div>
-                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Asistencia por niño</h2>
-                <p class="text-sm text-gray-500 dark:text-gray-300">Matriz de doble entrada por niño y fecha.</p>
-            </div>
+    <x-filament::section class="mt-6" icon="heroicon-o-table-cells" icon-color="primary">
+        <x-slot name="heading">
+            Asistencia por niño
+        </x-slot>
+
+        <x-slot name="headerEnd">
             <div class="text-sm text-gray-500 dark:text-gray-300">
                 Presentes registrados: <span class="font-semibold text-gray-800 dark:text-white">{{ $summary['total_presentes'] }}</span>
             </div>
-        </div>
+        </x-slot>
 
         @if ($rows->isEmpty())
-            <div class="mt-6 rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center text-sm text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-gray-300">
-                Selecciona un aula o registra asistencia IPN para ver el reporte.
-            </div>
+            <x-filament-tables::empty-state
+                heading="Sin datos de asistencia"
+                description="Selecciona un aula o registra asistencia IPN para ver el reporte."
+                icon="heroicon-o-clipboard-document-list"
+            />
         @else
-            <div class="mt-6 overflow-x-auto rounded-2xl border border-gray-200 dark:border-white/10">
+            <div class="overflow-x-auto rounded-xl ring-1 ring-gray-950/5 dark:ring-white/10">
                 <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-white/10">
                     <thead>
                         <tr class="text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-300">
@@ -71,16 +67,31 @@
                                     @php $state = $row['attendance_by_date'][$date] ?? null; @endphp
                                     <td class="px-3 py-4 text-center dark:text-gray-200">
                                         @if ($state === true)
-                                            <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300">
-                                                <x-heroicon-o-check-circle class="h-4 w-4" />
+                                            <span
+                                                aria-label="Presente"
+                                                title="Presente"
+                                                class="inline-flex h-7 w-7 items-center justify-center rounded-full"
+                                                style="background-color: #dcfce7; border: 1px solid #bbf7d0; color: #16a34a;"
+                                            >
+                                                <span aria-hidden="true" style="font-size: 1rem; font-weight: 700; line-height: 1;">✓</span>
                                             </span>
                                         @elseif ($state === false)
-                                            <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300">
-                                                <x-heroicon-o-x-circle class="h-4 w-4" />
+                                            <span
+                                                aria-label="Ausente"
+                                                title="Ausente"
+                                                class="inline-flex h-7 w-7 items-center justify-center rounded-full"
+                                                style="background-color: #ffe4e6; border: 1px solid #fecdd3; color: #e11d48;"
+                                            >
+                                                <span aria-hidden="true" style="font-size: 1rem; font-weight: 700; line-height: 1;">×</span>
                                             </span>
                                         @else
-                                            <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-gray-300 dark:bg-white/10 dark:text-gray-500">
-                                                <span class="h-1.5 w-1.5 rounded-full bg-gray-300 dark:bg-gray-500"></span>
+                                            <span
+                                                aria-label="Sin registro"
+                                                title="Sin registro"
+                                                class="inline-flex h-7 w-7 items-center justify-center rounded-full"
+                                                style="background-color: #f3f4f6; border: 1px solid #e5e7eb; color: #9ca3af;"
+                                            >
+                                                <span aria-hidden="true" style="font-size: 1rem; font-weight: 700; line-height: 1;">·</span>
                                             </span>
                                         @endif
                                     </td>
@@ -91,5 +102,5 @@
                 </table>
             </div>
         @endif
-    </div>
+    </x-filament::section>
 </x-filament-panels::page>

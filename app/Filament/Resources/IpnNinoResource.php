@@ -178,6 +178,6 @@ class IpnNinoResource extends Resource
 
     protected static function personaOptionLabel(Persona $persona): string
     {
-        return trim("{$persona->id} - {$persona->apellido} {$persona->nombre}") . ($persona->telefono ? " ({$persona->telefono})" : '');
+        return trim("{$persona->id} - {$persona->apellido} {$persona->nombre}").($persona->telefono ? " ({$persona->telefono})" : '');
     }
 }

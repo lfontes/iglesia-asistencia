@@ -17,4 +17,3 @@ class ListRolGrupos extends ListRecords
         ];
     }
 }
-

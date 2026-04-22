@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources\MetagrupoResource\Pages;
 
+use App\Filament\Pages\ResumenAsistenciaGrupos;
 use App\Filament\Resources\MetagrupoResource;
 use App\Models\AsistenciaGrupo;
-use App\Filament\Pages\ResumenAsistenciaGrupos;
 use App\Models\Persona;
 use App\Models\TipoGrupo;
 use Filament\Actions;

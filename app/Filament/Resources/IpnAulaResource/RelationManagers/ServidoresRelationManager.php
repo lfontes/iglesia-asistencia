@@ -172,6 +172,6 @@ class ServidoresRelationManager extends RelationManager
 
     protected function personaLabel(Persona $persona): string
     {
-        return trim("{$persona->id} - {$persona->apellido} {$persona->nombre}") . ($persona->telefono ? " ({$persona->telefono})" : '');
+        return trim("{$persona->id} - {$persona->apellido} {$persona->nombre}").($persona->telefono ? " ({$persona->telefono})" : '');
     }
 }

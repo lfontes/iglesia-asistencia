@@ -2,12 +2,12 @@
 
 namespace App\Filament\Resources\EventoFechaResource\Pages;
 
+use App\Filament\Resources\EventoFechaResource;
 use App\Models\Asistencia;
 use App\Models\EventoInscripcion;
 use App\Models\Persona;
 use Filament\Forms;
 use Filament\Forms\Form;
-use App\Filament\Resources\EventoFechaResource;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
@@ -24,7 +24,7 @@ class TomarAsistencia extends Page implements Forms\Contracts\HasForms
     /** @var array<int, int|string> */
     public array $presentes = [];
 
-    public function mount(int | string $record): void
+    public function mount(int|string $record): void
     {
         $this->record = $this->resolveRecord($record);
 

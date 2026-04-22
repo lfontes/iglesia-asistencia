@@ -4,11 +4,11 @@ namespace App\Filament\Resources\EventoResource\RelationManagers;
 
 use App\Filament\Resources\EventoFechaResource;
 use Filament\Forms;
-use Filament\Tables;
 use Filament\Forms\Form;
+use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Filament\Resources\RelationManagers\RelationManager;
 
 class FechasRelationManager extends RelationManager
 {

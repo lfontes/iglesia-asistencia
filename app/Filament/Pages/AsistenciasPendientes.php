@@ -3,7 +3,6 @@
 namespace App\Filament\Pages;
 
 use App\Models\Grupo;
-use App\Filament\Pages\AsistenciaGruposCrecimiento;
 use App\Models\WhatsAppBulkDispatch;
 use App\Models\WhatsAppMessage;
 use App\Services\AsistenciasPendientesService;
@@ -184,6 +183,7 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
             if ($facilitador === null) {
                 $omitidos++;
                 $detalles[] = $this->buildErrorDetalle((string) $item['grupo'], 'Sin facilitador elegible para el envío.');
+
                 continue;
             }
 
@@ -229,10 +229,10 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
         $body = "Enviados: {$enviados}. Omitidos: {$omitidos}. Fallidos: {$fallidos}.";
 
         if ($detalles !== []) {
-            $body .= "\n" . implode("\n", array_slice($detalles, 0, 5));
+            $body .= "\n".implode("\n", array_slice($detalles, 0, 5));
 
             if (count($detalles) > 5) {
-                $body .= "\n...y " . (count($detalles) - 5) . ' más.';
+                $body .= "\n...y ".(count($detalles) - 5).' más.';
             }
         }
 
@@ -370,7 +370,7 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
         }
 
         if (Str::startsWith($digits, '549')) {
-            return '54' . substr($digits, 3);
+            return '54'.substr($digits, 3);
         }
 
         return $digits;
@@ -405,7 +405,7 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
         }
 
         $nombreFacilitador = $this->normalizarNombreFacilitador((string) $facilitador['nombre']);
-        $periodo = Carbon::parse($item['periodo_inicio'])->format('d/m/Y') . ' al ' . Carbon::parse($item['periodo_fin'])->format('d/m/Y');
+        $periodo = Carbon::parse($item['periodo_inicio'])->format('d/m/Y').' al '.Carbon::parse($item['periodo_fin'])->format('d/m/Y');
         $url = AsistenciaGruposCrecimiento::getUrl();
         $renderedBody = "Hola {$nombreFacilitador}, te recordamos cargar la asistencia del grupo {$item['grupo']} correspondiente al período {$periodo}.\n\nPuedes hacerlo aquí:\n{$url}";
 
@@ -436,7 +436,7 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
         $nombre = trim($nombre) !== '' ? $nombre : 'Facilitador';
         $detalle = trim($detalle) !== '' ? $detalle : 'Sin detalle';
 
-        return $nombre . ': ' . $detalle;
+        return $nombre.': '.$detalle;
     }
 
     protected function getCurrentPeriodHash(): ?string
@@ -461,7 +461,7 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
     protected function getCurrentPeriodSummary(): ?string
     {
         $periods = $this->getPendientes()
-            ->map(fn (array $item): string => Carbon::parse($item['periodo_inicio'])->format('d/m/Y') . ' al ' . Carbon::parse($item['periodo_fin'])->format('d/m/Y'))
+            ->map(fn (array $item): string => Carbon::parse($item['periodo_inicio'])->format('d/m/Y').' al '.Carbon::parse($item['periodo_fin'])->format('d/m/Y'))
             ->unique()
             ->values()
             ->all();

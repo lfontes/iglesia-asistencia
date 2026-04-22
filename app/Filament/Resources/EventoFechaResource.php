@@ -2,10 +2,10 @@
 
 namespace App\Filament\Resources;
 
-use App\Jobs\SendEventoReminderBatchJob;
 use App\Filament\Resources\EventoFechaResource\Pages;
 use App\Filament\Resources\EventoFechaResource\RelationManagers\AsistenciasRelationManager;
 use App\Filament\Resources\EventoFechaResource\RelationManagers\InscripcionesRelationManager;
+use App\Jobs\SendEventoReminderBatchJob;
 use App\Models\EventoFecha;
 use App\Models\EventoInscripcion;
 use App\Models\WhatsAppMessage;
@@ -15,7 +15,6 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
 
 class EventoFechaResource extends Resource
 {
@@ -47,7 +46,6 @@ class EventoFechaResource extends Resource
                     ->columnSpanFull(),
             ]);
     }
-
 
     public static function table(Table $table): Table
     {
@@ -91,18 +89,17 @@ class EventoFechaResource extends Resource
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),
             ]);
-            
-    }
 
+    }
 
     public static function getRelations(): array
     {
-        
-           return [
-        InscripcionesRelationManager::class,
-        AsistenciasRelationManager::class,
-    ];
-        
+
+        return [
+            InscripcionesRelationManager::class,
+            AsistenciasRelationManager::class,
+        ];
+
     }
 
     public static function getPages(): array
@@ -173,11 +170,11 @@ class EventoFechaResource extends Resource
         $stats = static::getReminderStats($eventoFecha);
 
         return "Se enviará un recordatorio por WhatsApp a los inscriptos con teléfono válido.\n\n"
-            . "Inscriptos: {$stats['inscriptos']}.\n"
-            . "Con teléfono: {$stats['con_telefono']}.\n"
-            . "Sin teléfono: {$stats['sin_telefono']}.\n"
-            . "Ya enviados hoy: {$stats['ya_enviados']}.\n"
-            . "Se enviarán ahora: {$stats['a_enviar']}.";
+            ."Inscriptos: {$stats['inscriptos']}.\n"
+            ."Con teléfono: {$stats['con_telefono']}.\n"
+            ."Sin teléfono: {$stats['sin_telefono']}.\n"
+            ."Ya enviados hoy: {$stats['ya_enviados']}.\n"
+            ."Se enviarán ahora: {$stats['a_enviar']}.";
     }
 
     protected static function enviarRecordatorioWhatsapp(EventoFecha $eventoFecha): void

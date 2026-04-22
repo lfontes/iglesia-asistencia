@@ -17,4 +17,3 @@ class ListTipoGrupos extends ListRecords
         ];
     }
 }
-

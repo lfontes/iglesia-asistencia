@@ -3,7 +3,6 @@
 namespace App\Filament\Pages;
 
 use App\Models\IpnAsistencia;
-use App\Models\IpnAula;
 use App\Models\IpnAulaPersona;
 use App\Models\Persona;
 use Filament\Actions;

@@ -2,12 +2,12 @@
 
 namespace App\Filament\Resources\EventoFechaResource\RelationManagers;
 
-use Filament\Forms;
-use Filament\Tables;
-use Filament\Forms\Form;
-use Filament\Tables\Table;
-use Filament\Resources\RelationManagers\RelationManager;
 use App\Models\Persona;
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Tables;
+use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
 class AsistenciasRelationManager extends RelationManager
@@ -65,6 +65,10 @@ class AsistenciasRelationManager extends RelationManager
 
                 Tables\Columns\IconColumn::make('presente')
                     ->boolean()
+                    ->trueColor('success')
+                    ->falseColor('danger')
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-x-circle')
                     ->size('sm'),
 
                 Tables\Columns\TextColumn::make('created_at')
