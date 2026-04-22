@@ -29,7 +29,7 @@ class ActivityLogResource extends Resource
 
     protected static ?string $navigationGroup = 'Administración';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 100;
 
     public static function canCreate(): bool
     {
