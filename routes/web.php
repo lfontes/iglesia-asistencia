@@ -9,6 +9,16 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/images/logo-iglesia-libres.png', function () {
+    $path = public_path('images/logo-iglesia-libres.png');
+
+    abort_unless(is_file($path), 404);
+
+    return response()->file($path, [
+        'Cache-Control' => 'public, max-age=604800',
+    ]);
+})->name('assets.logo');
+
 Route::get('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'verify']);
 Route::post('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'receive'])
     ->withoutMiddleware([VerifyCsrfToken::class]);
