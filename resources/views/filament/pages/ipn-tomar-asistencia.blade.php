@@ -7,57 +7,82 @@
         @endphp
 
         @if (filled($this->ipn_aula_id))
-            <div class="mt-6 overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
-                <div class="flex items-center justify-between gap-4 border-b border-gray-100 px-5 py-4 dark:border-white/10">
-                    <div>
-                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Niños del aula</h2>
-                        <p class="text-sm text-gray-500 dark:text-gray-300">Marca presentes para la fecha seleccionada.</p>
+            <x-filament::section class="mt-6" icon="heroicon-o-user-group" icon-color="primary">
+                <x-slot name="heading">
+                    Niños del aula
+                </x-slot>
+
+                <x-slot name="description">
+                    Marca presentes para la fecha seleccionada.
+                </x-slot>
+
+                <x-slot name="headerEnd">
+                    <div class="flex flex-wrap items-center justify-end gap-2">
+                        <x-filament::badge color="gray">
+                            {{ $ninos->count() }} niños
+                        </x-filament::badge>
+
+                        <x-filament::badge color="success">
+                            {{ collect($this->presentes)->filter()->unique()->count() }} presentes
+                        </x-filament::badge>
                     </div>
-                    <div class="text-sm text-gray-500 dark:text-gray-300">{{ $ninos->count() }} niños</div>
-                </div>
+                </x-slot>
 
                 @if ($ninos->isEmpty())
-                    <div class="p-8 text-center text-sm text-gray-500 dark:text-gray-300">
-                        No hay niños activos en esta aula para la fecha seleccionada.
-                    </div>
+                    <x-filament-tables::empty-state
+                        heading="Sin niños activos"
+                        description="No hay niños activos en esta aula para la fecha seleccionada."
+                        icon="heroicon-o-face-smile"
+                    />
                 @else
-                    <div class="overflow-x-auto">
+                    <div class="overflow-x-auto rounded-xl ring-1 ring-gray-950/5 dark:ring-white/10">
                         <table class="min-w-full divide-y divide-gray-100 text-sm dark:divide-white/10">
                             <thead class="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500 dark:bg-white/5 dark:text-gray-300">
                                 <tr>
-                                    <th class="px-4 py-3">Presente</th>
-                                    <th class="px-4 py-3">Persona ID</th>
+                                    <th class="w-28 px-4 py-3 text-center">Presente</th>
                                     <th class="px-4 py-3">Niño</th>
-                                    <th class="px-4 py-3">Edad</th>
                                     <th class="px-4 py-3">Responsable</th>
+                                    <th class="px-4 py-3 text-center">ID</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-100 dark:divide-white/10">
+                            <tbody class="divide-y divide-gray-100 bg-white dark:divide-white/10 dark:bg-transparent">
                                 @foreach ($ninos as $nino)
                                     <tr class="dark:hover:bg-white/5">
-                                        <td class="px-4 py-3">
+                                        <td class="px-4 py-4 text-center">
                                             <input
                                                 type="checkbox"
                                                 value="{{ $nino['id'] }}"
                                                 wire:model="presentes"
-                                                class="rounded border-gray-300 text-primary-600 shadow-sm focus:ring-primary-500"
+                                                class="h-5 w-5 rounded border-gray-300 text-success-600 shadow-sm focus:ring-success-500 dark:border-white/20 dark:bg-white/5"
                                             >
                                         </td>
-                                        <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ $nino['id'] }}</td>
-                                        <td class="px-4 py-3 text-gray-900 dark:text-white">{{ $nino['label'] }}</td>
-                                        <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ $nino['edad'] !== null ? $nino['edad'] . ' años' : '-' }}</td>
-                                        <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ $nino['responsable'] ?: '-' }}</td>
+                                        <td class="px-4 py-4">
+                                            <div class="font-medium text-gray-950 dark:text-white">{{ $nino['label'] }}</div>
+                                            <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                                {{ $nino['edad'] !== null ? $nino['edad'] . ' años' : 'Edad sin cargar' }}
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-4 text-gray-600 dark:text-gray-300">
+                                            {{ $nino['responsable'] ?: 'Sin responsable' }}
+                                        </td>
+                                        <td class="px-4 py-4 text-center">
+                                            <x-filament::badge color="gray">
+                                                {{ $nino['id'] }}
+                                            </x-filament::badge>
+                                        </td>
                                     </tr>
                                 @endforeach
                             </tbody>
                         </table>
                     </div>
                 @endif
-            </div>
+            </x-filament::section>
         @endif
 
-        <x-filament::button type="submit" class="mt-4">
-            Guardar asistencia IPN
-        </x-filament::button>
+        <div class="mt-4">
+            <x-filament::button type="submit" icon="heroicon-o-check-circle">
+                Guardar asistencia IPN
+            </x-filament::button>
+        </div>
     </form>
 </x-filament-panels::page>
