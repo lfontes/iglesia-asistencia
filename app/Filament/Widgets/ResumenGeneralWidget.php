@@ -10,6 +10,17 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class ResumenGeneralWidget extends BaseWidget
 {
+    public static function canView(): bool
+    {
+        $user = auth()->user();
+
+        return (bool) $user
+            && (
+                ! $user->isRestrictedPanelUser()
+                || $user->hasCombinedFacilitadorLiderAccess()
+            );
+    }
+
     protected function getStats(): array
     {
         $currentYear = (int) date('Y');

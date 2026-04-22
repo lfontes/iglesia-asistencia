@@ -49,9 +49,7 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
 
     public static function canAccess(): bool
     {
-        $user = auth()->user();
-
-        return (bool) $user?->hasRole('admin');
+        return auth()->user()?->canViewAsistenciasPendientes() ?? false;
     }
 
     public static function shouldRegisterNavigation(): bool

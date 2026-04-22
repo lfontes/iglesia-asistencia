@@ -48,7 +48,7 @@ class AsistenciaGruposCrecimiento extends Page implements Forms\Contracts\HasFor
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole(['admin', 'facilitador']) ?? false;
+        return auth()->user()?->canTakeGrupoAttendance() ?? false;
     }
 
     public static function shouldRegisterNavigation(): bool

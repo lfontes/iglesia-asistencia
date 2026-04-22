@@ -124,7 +124,10 @@ class GrupoResource extends Resource
                         ->all()),
                 Tables\Filters\SelectFilter::make('tipo_grupo_id')
                     ->label('Tipo')
-                    ->relationship('tipoGrupo', 'nombre'),
+                    ->relationship('tipoGrupo', 'nombre')
+                    ->default(fn (): ?int => auth()->user()?->hasRole('coordinador_grupos')
+                        ? static::tipoCrecimientoId()
+                        : null),
                 Tables\Filters\SelectFilter::make('frecuencia_asistencia')
                     ->label('Frecuencia')
                     ->options(Grupo::frecuenciasAsistencia()),
@@ -172,19 +175,32 @@ class GrupoResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return ! static::isSoloFacilitador() && parent::canViewAny();
+        return auth()->user()?->canManageGrupos() ?? false;
     }
 
     public static function shouldRegisterNavigation(): bool
     {
-        return ! static::isSoloFacilitador() && parent::shouldRegisterNavigation();
+        return static::canViewAny();
     }
 
-    protected static function isSoloFacilitador(): bool
+    public static function canCreate(): bool
     {
-        $user = auth()->user();
+        return auth()->user()?->canManageGrupos() ?? false;
+    }
 
-        return $user?->hasRole(['facilitador', 'lider']) && ! $user->hasRole('admin');
+    public static function canEdit($record): bool
+    {
+        return auth()->user()?->canManageGrupos() ?? false;
+    }
+
+    public static function canDelete($record): bool
+    {
+        return auth()->user()?->canManageGrupos() ?? false;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return auth()->user()?->canManageGrupos() ?? false;
     }
 
     protected static function isTipoMinisterio($tipoGrupoId): bool
@@ -197,5 +213,23 @@ class GrupoResource extends Resource
             ->whereKey($tipoGrupoId)
             ->whereRaw('LOWER(nombre) = ?', ['ministerio'])
             ->exists();
+    }
+
+    protected static function tipoCrecimientoId(): ?int
+    {
+        $exactMatch = TipoGrupo::query()
+            ->whereRaw('LOWER(nombre) = ?', ['crecimiento'])
+            ->value('id');
+
+        if ($exactMatch) {
+            return (int) $exactMatch;
+        }
+
+        $partialMatch = TipoGrupo::query()
+            ->whereRaw('LOWER(nombre) LIKE ?', ['%crecimiento%'])
+            ->orderBy('nombre')
+            ->value('id');
+
+        return $partialMatch ? (int) $partialMatch : null;
     }
 }

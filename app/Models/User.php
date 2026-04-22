@@ -3,20 +3,19 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-
-//class User extends Authenticatable
+// class User extends Authenticatable
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles;
+    use HasFactory, HasRoles, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -32,7 +31,7 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->hasRole(['admin', 'secretario', 'facilitador', 'lider', 'director_ipn', 'servidor_ipn']);
+        return $this->hasRole(['admin', 'secretario', 'facilitador', 'lider', 'coordinador_grupos', 'director_ipn', 'servidor_ipn']);
     }
 
     public function persona()
@@ -42,7 +41,7 @@ class User extends Authenticatable implements FilamentUser
 
     public function isRestrictedPanelUser(): bool
     {
-        return $this->hasRole(['facilitador', 'lider']) && ! $this->hasRole('admin');
+        return $this->hasRole(['facilitador', 'lider', 'coordinador_grupos']) && ! $this->hasRole('admin');
     }
 
     public function hasCombinedFacilitadorLiderAccess(): bool
@@ -58,6 +57,26 @@ class User extends Authenticatable implements FilamentUser
     public function canManageLeadershipArea(): bool
     {
         return $this->hasRole(['admin', 'lider']);
+    }
+
+    public function canManageGrupos(): bool
+    {
+        return $this->hasRole(['admin', 'coordinador_grupos']);
+    }
+
+    public function canTakeGrupoAttendance(): bool
+    {
+        return $this->hasRole(['admin', 'facilitador', 'coordinador_grupos']);
+    }
+
+    public function canViewGrupoAttendanceReports(): bool
+    {
+        return $this->hasRole(['admin', 'facilitador', 'lider', 'coordinador_grupos']);
+    }
+
+    public function canViewAsistenciasPendientes(): bool
+    {
+        return $this->hasRole(['admin', 'coordinador_grupos']);
     }
 
     public function canAccessIpn(): bool

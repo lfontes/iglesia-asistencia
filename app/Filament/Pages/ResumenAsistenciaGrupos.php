@@ -33,7 +33,7 @@ class ResumenAsistenciaGrupos extends Page implements Forms\Contracts\HasForms
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole(['admin', 'facilitador', 'lider']) ?? false;
+        return auth()->user()?->canViewGrupoAttendanceReports() ?? false;
     }
 
     public static function shouldRegisterNavigation(): bool

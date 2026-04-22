@@ -15,7 +15,11 @@ class Dashboard extends \Filament\Pages\Dashboard
         $user = auth()->user();
 
         return (bool) $user
-            && (! $user->isRestrictedPanelUser() || $user->hasCombinedFacilitadorLiderAccess());
+            && (
+                ! $user->isRestrictedPanelUser()
+                || $user->hasCombinedFacilitadorLiderAccess()
+                || $user->canManageGrupos()
+            );
     }
 
     public static function shouldRegisterNavigation(): bool

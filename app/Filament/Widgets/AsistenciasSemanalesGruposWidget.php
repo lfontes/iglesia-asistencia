@@ -19,6 +19,18 @@ class AsistenciasSemanalesGruposWidget extends ChartWidget
         'xl' => 2,
     ];
 
+    public static function canView(): bool
+    {
+        $user = auth()->user();
+
+        return (bool) $user
+            && (
+                ! $user->isRestrictedPanelUser()
+                || $user->hasCombinedFacilitadorLiderAccess()
+                || $user->canManageGrupos()
+            );
+    }
+
     protected function getData(): array
     {
         $weeks = collect(range(7, 0))

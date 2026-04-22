@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Filament\Pages\AsistenciasPendientes;
 use App\Filament\Pages\IpnDashboard;
 use App\Filament\Pages\MisGruposMinisteriales;
 use App\Filament\Pages\MisMetagrupos;
@@ -27,11 +28,16 @@ class RestrictFacilitadorPanelAccess
         $routeName = (string) ($request->route()?->getName() ?? '');
         $isFacilitador = $user->hasRole('facilitador');
         $isLider = $user->hasRole('lider');
+        $isCoordinadorGrupos = $user->hasRole('coordinador_grupos');
         $isIpn = $user->hasRole(['director_ipn', 'servidor_ipn']);
 
         if ($routeName === 'filament.admin.pages.dashboard') {
-            if ($user->hasCombinedFacilitadorLiderAccess()) {
+            if ($user->hasCombinedFacilitadorLiderAccess() || $isCoordinadorGrupos) {
                 return $next($request);
+            }
+
+            if ($isCoordinadorGrupos) {
+                return redirect(AsistenciasPendientes::getUrl());
             }
 
             if ($isFacilitador) {
@@ -51,7 +57,7 @@ class RestrictFacilitadorPanelAccess
             }
         }
 
-        if ($isFacilitador || $isLider || $isIpn) {
+        if ($isFacilitador || $isLider || $isCoordinadorGrupos || $isIpn) {
             $allowedRoutes = [
                 'filament.admin.auth.logout',
             ];
@@ -60,6 +66,19 @@ class RestrictFacilitadorPanelAccess
                 $allowedRoutes = array_merge($allowedRoutes, [
                     'filament.admin.pages.asistencia-grupos-crecimiento',
                     'filament.admin.pages.resumen-asistencia-grupos',
+                ]);
+            }
+
+            if ($isCoordinadorGrupos) {
+                $allowedRoutes = array_merge($allowedRoutes, [
+                    'filament.admin.pages.dashboard',
+                    'filament.admin.pages.asistencia-grupos-crecimiento',
+                    'filament.admin.pages.resumen-asistencia-grupos',
+                    'filament.admin.pages.asistencias-pendientes',
+                    'filament.admin.resources.grupos.index',
+                    'filament.admin.resources.grupos.create',
+                    'filament.admin.resources.grupos.edit',
+                    'filament.admin.resources.grupos.participacion',
                 ]);
             }
 

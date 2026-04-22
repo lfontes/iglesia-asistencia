@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\AsistenciaGruposCrecimiento;
+use App\Filament\Pages\AsistenciasPendientes;
 use App\Filament\Pages\Dashboard;
 use App\Filament\Pages\IpnDashboard;
 use App\Filament\Pages\MisGruposMinisteriales;
@@ -43,7 +44,15 @@ class AdminPanelProvider extends PanelProvider
                     return Dashboard::getUrl();
                 }
 
-                if ($user && $user->canAccessIpn() && ! $user->hasRole(['admin', 'facilitador', 'lider'])) {
+                if ($user?->canManageGrupos() && ! $user->hasRole('admin')) {
+                    return Dashboard::getUrl();
+                }
+
+                if ($user && $user->canViewAsistenciasPendientes() && ! $user->hasRole('admin')) {
+                    return AsistenciasPendientes::getUrl();
+                }
+
+                if ($user && $user->canAccessIpn() && ! $user->hasRole(['admin', 'facilitador', 'lider', 'coordinador_grupos'])) {
                     return IpnDashboard::getUrl();
                 }
 
