@@ -22,7 +22,7 @@ FROM php:8.4-fpm-alpine
 WORKDIR /var/www/html
 
 RUN apk add --no-cache nginx gettext \
-    && docker-php-ext-install pdo pdo_pgsql bcmath exif pcntl \
+    && docker-php-ext-install pdo pdo_mysql bcmath exif pcntl \
     && rm -rf /var/cache/apk/*
 
 COPY --from=vendor /app/vendor ./vendor

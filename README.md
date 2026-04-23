@@ -46,14 +46,12 @@ Centralizar en una sola plataforma tareas habituales de la vida de la iglesia, p
 
 ### Base de datos
 
-- **Desarrollo local:** MySQL (vía Laravel Sail)
-- **Producción / Render:** PostgreSQL
+- MySQL
 
 ### Infraestructura
 
 - Docker / Dockerfile multi-stage
 - Laravel Sail para entorno local
-- Despliegue en Render
 
 ## Módulos del sistema
 
@@ -258,38 +256,19 @@ routes/
   web.php
 ```
 
-## Despliegue en Render
-
-El repositorio incluye:
-
-- `Dockerfile`
-- `render.yaml`
-- `start.sh`
-- `nginx.conf`
-
-La configuración actual de Render usa:
-
-- servicio web Docker
-- `healthCheckPath: /up`
-- `DB_CONNECTION=pgsql`
-- `CACHE_STORE=database`
-- `SESSION_DRIVER=database`
-- `QUEUE_CONNECTION=database`
-- `preDeployCommand: php artisan migrate --force`
-
 ## Producción
 
 El `Dockerfile` compila dependencias PHP y frontend por separado, y luego arma una imagen final con:
 
 - PHP 8.4 FPM Alpine
 - Nginx
-- extensión `pdo_pgsql`
+- extensión `pdo_mysql`
 - build de Vite
 
 El script `start.sh` además:
 
 - valida que `APP_KEY` exista
-- genera configuración de Nginx con el puerto dinámico de Render
+- genera configuración de Nginx con el puerto definido por el entorno
 - cachea configuración, rutas y vistas
 - intenta crear el symlink de storage
 

@@ -252,8 +252,7 @@ class Persona extends Model
             return $query;
         }
 
-        $driver = $query->getConnection()->getDriverName();
-        $normalizeSql = fn (string $expression): string => $this->normalizedSearchExpression($expression, $driver);
+        $normalizeSql = fn (string $expression): string => $this->normalizedSearchExpression($expression);
 
         return $query->where(function (Builder $q) use ($normalized, $normalizeSql): void {
             $q->whereRaw($normalizeSql('nombre').' LIKE ?', ["%{$normalized}%"])
@@ -263,16 +262,9 @@ class Persona extends Model
         });
     }
 
-    protected function normalizedSearchExpression(string $expression, string $driver): string
+    protected function normalizedSearchExpression(string $expression): string
     {
         $lowered = "lower({$expression})";
-
-        if ($driver === 'pgsql') {
-            $from = implode('', array_keys(self::SEARCH_ACCENT_MAP));
-            $to = implode('', array_values(self::SEARCH_ACCENT_MAP));
-
-            return "translate({$lowered}, '{$from}', '{$to}')";
-        }
 
         $normalized = $lowered;
 

@@ -82,7 +82,6 @@ function display_help {
     echo "${YELLOW}Database Commands:${NC}"
     echo "  ${GREEN}sail mysql${NC}     Start a MySQL CLI session within the 'mysql' container"
     echo "  ${GREEN}sail mariadb${NC}   Start a MySQL CLI session within the 'mariadb' container"
-    echo "  ${GREEN}sail psql${NC}      Start a PostgreSQL CLI session within the 'pgsql' container"
     echo "  ${GREEN}sail mongodb${NC}   Start a Mongo Shell session within the 'mongodb' container"
     echo "  ${GREEN}sail redis${NC}     Start a Redis CLI session within the 'redis' container"
     echo "  ${GREEN}sail valkey${NC}    Start a Valkey CLI session within the 'valkey' container"
@@ -503,19 +502,6 @@ elif [ "$1" == "mariadb" ]; then
         [ ! -t 0 ] && ARGS+=(-T)
         ARGS+=(mariadb bash -c)
         ARGS+=("MYSQL_PWD=\${MYSQL_PASSWORD} mariadb -u \${MYSQL_USER} \${MYSQL_DATABASE}")
-    else
-        sail_is_not_running
-    fi
-
-# Initiate a PostgreSQL CLI terminal session within the "pgsql" container...
-elif [ "$1" == "psql" ]; then
-    shift 1
-
-    if [ "$EXEC" == "yes" ]; then
-        ARGS+=(exec)
-        [ ! -t 0 ] && ARGS+=(-T)
-        ARGS+=(pgsql bash -c)
-        ARGS+=("PGPASSWORD=\${PGPASSWORD} psql -U \${POSTGRES_USER} \${POSTGRES_DB}")
     else
         sail_is_not_running
     fi
