@@ -8,15 +8,18 @@ use App\Models\AsistenciaGrupo;
 use App\Models\Persona;
 use App\Models\TipoGrupo;
 use Filament\Actions;
+use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\Section;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Infolist;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\HtmlString;
 
 class ViewMetagrupo extends ViewRecord
 {
     protected static string $resource = MetagrupoResource::class;
-
-    protected static string $view = 'filament.resources.metagrupo-resource.pages.view-metagrupo';
 
     /**
      * @throws AuthorizationException
@@ -35,6 +38,122 @@ class ViewMetagrupo extends ViewRecord
         }
 
         return [Actions\EditAction::make()];
+    }
+
+    public function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist
+            ->schema([
+                Section::make('Resumen')
+                    ->icon('heroicon-o-chart-bar')
+                    ->schema([
+                        TextEntry::make('total_grupos')
+                            ->label('Grupos')
+                            ->state(fn (): int => $this->getSummary()['total_grupos'])
+                            ->badge(),
+                        TextEntry::make('total_personas')
+                            ->label('Personas únicas')
+                            ->state(fn (): int => $this->getSummary()['total_personas'])
+                            ->badge(),
+                        TextEntry::make('en_crecimiento')
+                            ->label('En crecimiento')
+                            ->state(fn (): int => $this->getSummary()['en_crecimiento'])
+                            ->badge()
+                            ->color('success'),
+                        TextEntry::make('sin_crecimiento')
+                            ->label('Sin crecimiento')
+                            ->state(fn (): int => $this->getSummary()['sin_crecimiento'])
+                            ->badge()
+                            ->color('warning'),
+                    ])
+                    ->columns(4),
+
+                Section::make('Datos del metagrupo')
+                    ->icon('heroicon-o-rectangle-group')
+                    ->schema([
+                        TextEntry::make('nombre')
+                            ->label('Metagrupo')
+                            ->state(fn (): string => (string) $this->record->nombre)
+                            ->weight('bold')
+                            ->columnSpan(2),
+                        TextEntry::make('lider_nombre')
+                            ->label('Líder')
+                            ->state(fn (): string => $this->record->lider ? trim($this->record->lider->apellido.' '.$this->record->lider->nombre) : 'Sin asignar'),
+                        TextEntry::make('activo')
+                            ->label('Estado')
+                            ->state(fn (): string => $this->record->activo ? 'Activo' : 'Inactivo')
+                            ->badge()
+                            ->color(fn (string $state): string => $state === 'Activo' ? 'success' : 'gray'),
+                        TextEntry::make('grupos_incluidos')
+                            ->label('Grupos incluidos')
+                            ->state(fn (): ?string => ($value = $this->record->grupos->pluck('nombre')->implode(', ')) !== '' ? $value : null)
+                            ->default('Sin grupos')
+                            ->columnSpanFull(),
+                        TextEntry::make('descripcion')
+                            ->label('Descripción')
+                            ->state(fn (): ?string => filled($this->record->descripcion) ? $this->record->descripcion : null)
+                            ->default('Sin descripción')
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(3),
+
+                Section::make('Personas del metagrupo')
+                    ->icon('heroicon-o-users')
+                    ->visible(fn (): bool => $this->getPeopleRows()->isNotEmpty())
+                    ->schema([
+                        RepeatableEntry::make('personas')
+                            ->hiddenLabel()
+                            ->state(fn (): array => $this->getPeopleRows()->all())
+                            ->schema([
+                                TextEntry::make('nombre')
+                                    ->label('Persona')
+                                    ->weight('medium')
+                                    ->html()
+                                    ->formatStateUsing(function (TextEntry $component, string $state): HtmlString {
+                                        $url = $this->getGrowthAttendanceUrl($component->getContainer()->getState());
+
+                                        if (! filled($url)) {
+                                            return new HtmlString(e($state));
+                                        }
+
+                                        return new HtmlString(sprintf(
+                                            '<a href="%s" class="text-primary-600 hover:underline">%s</a>',
+                                            e($url),
+                                            e($state),
+                                        ));
+                                    }),
+                                TextEntry::make('telefono')
+                                    ->label('Teléfono')
+                                    ->default('-'),
+                                TextEntry::make('grupos_metagrupo')
+                                    ->label('Grupos del metagrupo')
+                                    ->default('-'),
+                                TextEntry::make('en_crecimiento')
+                                    ->label('Crecimiento')
+                                    ->formatStateUsing(fn (bool $state): string => $state ? 'Sí' : 'No')
+                                    ->badge()
+                                    ->color(fn (string $state): string => $state === 'Sí' ? 'success' : 'warning'),
+                                TextEntry::make('porcentaje_asistencia_crecimiento')
+                                    ->label('% asistencia')
+                                    ->formatStateUsing(fn ($state): ?string => $state !== null && $state !== '' ? $state.'%' : null)
+                                    ->default('-'),
+                                TextEntry::make('grupos_crecimiento')
+                                    ->label('Grupo(s) de crecimiento')
+                                    ->default('-'),
+                            ])
+                            ->columns(6),
+                    ]),
+
+                Section::make('Personas del metagrupo')
+                    ->icon('heroicon-o-users')
+                    ->visible(fn (): bool => $this->getPeopleRows()->isEmpty())
+                    ->schema([
+                        TextEntry::make('sin_personas')
+                            ->hiddenLabel()
+                            ->state('Este metagrupo todavía no tiene personas activas en sus grupos.')
+                            ->color('gray'),
+                    ]),
+            ]);
     }
 
     /**

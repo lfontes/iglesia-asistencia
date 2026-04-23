@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PersonaResource\Pages;
 
+use App\Filament\Pages\ResumenAsistenciaGrupos;
 use App\Filament\Resources\PersonaResource;
 use App\Filament\Widgets\PersonaPerfilStatsWidget;
 use App\Models\Asistencia;
@@ -15,6 +16,7 @@ use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Infolist;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Support\Collection;
+use Illuminate\Support\HtmlString;
 
 class ViewPersona extends ViewRecord
 {
@@ -94,7 +96,21 @@ class ViewPersona extends ViewRecord
                             ->schema([
                                 TextEntry::make('grupo')
                                     ->label('Grupo')
-                                    ->weight('medium'),
+                                    ->weight('medium')
+                                    ->html()
+                                    ->formatStateUsing(function (TextEntry $component, string $state): HtmlString {
+                                        $url = data_get($component->getContainer()->getState(), 'attendance_url');
+
+                                        if (! filled($url)) {
+                                            return new HtmlString(e($state));
+                                        }
+
+                                        return new HtmlString(sprintf(
+                                            '<a href="%s" class="text-primary-600 hover:underline">%s</a>',
+                                            e($url),
+                                            e($state),
+                                        ));
+                                    }),
                                 TextEntry::make('rol')
                                     ->label('Rol')
                                     ->badge(),
@@ -298,6 +314,12 @@ class ViewPersona extends ViewRecord
         return $this->getParticipacionesCrecimiento()
             ->map(fn (ParticipacionGrupo $row): array => [
                 'grupo' => $row->grupo?->nombre ?? '-',
+                'attendance_url' => $row->grupo_id
+                    ? ResumenAsistenciaGrupos::getUrl([
+                        'grupo_id' => $row->grupo_id,
+                        'persona_id' => $this->record->id,
+                    ])
+                    : null,
                 'rol' => $this->roleBadge($row->rolGrupo?->nombre),
                 'estado' => $this->estadoLabel($row),
                 'fecha_inicio' => $row->fecha_inicio?->format('d/m/Y') ?? '-',
