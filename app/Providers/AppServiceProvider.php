@@ -70,6 +70,8 @@ class AppServiceProvider extends ServiceProvider
             return;
         }
 
+        config(['livewire.asset_url' => "/{$path}/livewire/livewire.js"]);
+
         Livewire::setScriptRoute(function ($handle) use ($path) {
             return Route::get("/{$path}/livewire/livewire.js", $handle);
         });
