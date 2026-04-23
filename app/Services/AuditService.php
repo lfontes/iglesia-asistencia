@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Database\Eloquent\Model;
-use Spatie\Activitylog\Facades\LogActivity;
+use Spatie\Activitylog\Models\Activity;
 
 class AuditService
 {
@@ -47,7 +47,8 @@ class AuditService
                 $description = 'Acción: ' . $event;
         }
 
-        LogActivity::performedOn($model)
+        activity()
+            ->performedOn($model)
             ->causedBy(auth()->user())
             ->withProperties($properties)
             ->log($event);
@@ -73,7 +74,7 @@ class AuditService
             return collect();
         }
 
-        return LogActivity::query()
+        return Activity::query()
             ->where('causer_id', auth()->id())
             ->latest()
             ->limit($limit)
@@ -85,7 +86,7 @@ class AuditService
      */
     public static function getRecentActivity(int $limit = 50)
     {
-        return LogActivity::query()
+        return Activity::query()
             ->with('subject', 'causer')
             ->latest()
             ->limit($limit)

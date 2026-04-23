@@ -2,8 +2,6 @@
 
 namespace App\Traits;
 
-use Spatie\Activitylog\Facades\LogActivity;
-
 trait LogsActivity
 {
     /**
@@ -12,14 +10,16 @@ trait LogsActivity
     public static function bootLogsActivity(): void
     {
         static::created(function ($model) {
-            LogActivity::performedOn($model)
+            activity()
+                ->performedOn($model)
                 ->causedBy(auth()->user())
                 ->withProperties(['attributes' => $model->getAttributes()])
                 ->log('created');
         });
 
         static::updated(function ($model) {
-            LogActivity::performedOn($model)
+            activity()
+                ->performedOn($model)
                 ->causedBy(auth()->user())
                 ->withProperties([
                     'old' => $model->getOriginal(),
@@ -29,7 +29,8 @@ trait LogsActivity
         });
 
         static::deleted(function ($model) {
-            LogActivity::performedOn($model)
+            activity()
+                ->performedOn($model)
                 ->causedBy(auth()->user())
                 ->withProperties(['attributes' => $model->getAttributes()])
                 ->log('deleted');

@@ -27,7 +27,7 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
 
     protected static ?string $navigationLabel = 'Asistencias pendientes';
 
-    protected static ?int $navigationSort = 18;
+    protected static ?int $navigationSort = 20;
 
     protected static ?string $title = 'Asistencias pendientes';
 

@@ -31,6 +31,16 @@ class ActivityLogResource extends Resource
 
     protected static ?int $navigationSort = 201;
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->check() && auth()->user()->hasRole('admin');
+    }
+
+    public static function canAccess(): bool
+    {
+        return auth()->check() && auth()->user()->hasRole('admin');
+    }
+
     public static function canCreate(): bool
     {
         return false;

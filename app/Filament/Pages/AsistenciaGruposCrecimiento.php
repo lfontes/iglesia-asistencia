@@ -24,7 +24,7 @@ class AsistenciaGruposCrecimiento extends Page implements Forms\Contracts\HasFor
 
     protected static ?string $navigationLabel = 'Asistencia Gr. Crecimiento';
 
-    protected static ?int $navigationSort = 20;
+    protected static ?int $navigationSort = 17;
 
     protected static string $view = 'filament.pages.asistencia-grupos-crecimiento';
 
