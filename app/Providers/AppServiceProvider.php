@@ -3,8 +3,9 @@
 namespace App\Providers;
 
 use Carbon\Carbon;
-use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\ServiceProvider;
 use App\Models\Persona;
 use App\Models\Grupo;
 use App\Models\Evento;
@@ -25,6 +26,7 @@ use App\Observers\ParticipacionGrupoObserver;
 use App\Observers\WhatsAppMessageObserver;
 use App\Observers\AsistenciaObserver;
 use App\Observers\AsistenciaGrupoObserver;
+use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -45,6 +47,8 @@ class AppServiceProvider extends ServiceProvider
         Carbon::setLocale('es');
         Date::setLocale('es');
 
+        $this->configureLivewireRoutes();
+
         // Register model observers for activity logging
         Persona::observe(PersonaObserver::class);
         Grupo::observe(GrupoObserver::class);
@@ -56,5 +60,22 @@ class AppServiceProvider extends ServiceProvider
         WhatsAppMessage::observe(WhatsAppMessageObserver::class);
         Asistencia::observe(AsistenciaObserver::class);
         AsistenciaGrupo::observe(AsistenciaGrupoObserver::class);
+    }
+
+    protected function configureLivewireRoutes(): void
+    {
+        $path = trim((string) parse_url((string) config('app.url'), PHP_URL_PATH), '/');
+
+        if ($path === '') {
+            return;
+        }
+
+        Livewire::setScriptRoute(function ($handle) use ($path) {
+            return Route::get("/{$path}/livewire/livewire.js", $handle);
+        });
+
+        Livewire::setUpdateRoute(function ($handle) use ($path) {
+            return Route::post("/{$path}/livewire/update", $handle);
+        });
     }
 }
