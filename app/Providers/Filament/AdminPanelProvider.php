@@ -62,16 +62,16 @@ class AdminPanelProvider extends PanelProvider
                 }
 
                 if ($user && $user->hasRole('lider') && ! $user->hasRole('admin')) {
+                    if ($user->canCreateGrupos()) {
+                        return MisGrupos::getUrl();
+                    }
+
                     if ($user->metagruposLiderados()->exists()) {
                         return MisMetagrupos::getUrl();
                     }
 
                     if ($user->gruposMinisterialesLiderados()->exists()) {
                         return MisGruposMinisteriales::getUrl();
-                    }
-
-                    if ($user->canCreateGrupos()) {
-                        return MisGrupos::getUrl();
                     }
 
                     return $user->metagruposLiderados()->exists()

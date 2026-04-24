@@ -77,10 +77,7 @@ class GrupoResource extends Resource
                     ->preload()
                     ->required()
                     ->placeholder('Selecciona un líder')
-                    ->default(fn (): ?int => auth()->user()?->hasRole('lider') ? auth()->user()?->persona_id : null)
-                    ->disabled(fn (): bool => auth()->user()?->hasRole('lider')
-                        && filled(auth()->user()?->persona_id)
-                        && ! auth()->user()?->canManageGrupos())
+                    ->default(fn (): ?int => auth()->user()?->persona_id)
                     ->dehydrated(),
 
                 Forms\Components\Toggle::make('activo')
@@ -202,6 +199,13 @@ class GrupoResource extends Resource
     public static function canViewAny(): bool
     {
         return auth()->user()?->canManageGrupos() ?? false;
+    }
+
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        return (bool) ($user?->canManageGrupos() || $user?->canCreateGrupos());
     }
 
     public static function shouldRegisterNavigation(): bool

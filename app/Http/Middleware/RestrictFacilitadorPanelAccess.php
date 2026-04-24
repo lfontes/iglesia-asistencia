@@ -5,8 +5,6 @@ namespace App\Http\Middleware;
 use App\Filament\Pages\AsistenciasPendientes;
 use App\Filament\Pages\IpnDashboard;
 use App\Filament\Pages\MisGrupos;
-use App\Filament\Pages\MisGruposMinisteriales;
-use App\Filament\Pages\MisMetagrupos;
 use App\Filament\Pages\ResumenAsistenciaGrupos;
 use Closure;
 use Illuminate\Http\Request;
@@ -46,13 +44,7 @@ class RestrictFacilitadorPanelAccess
             }
 
             if ($isLider) {
-                return redirect(
-                    $user->metagruposLiderados()->exists()
-                        ? MisMetagrupos::getUrl()
-                        : ($user->gruposMinisterialesLiderados()->exists()
-                            ? MisGruposMinisteriales::getUrl()
-                            : MisGrupos::getUrl())
-                );
+                return redirect(MisGrupos::getUrl());
             }
 
             if ($isIpn) {

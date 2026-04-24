@@ -15,10 +15,6 @@ class CreateGrupo extends CreateRecord
 
         $data['created_by'] = $user?->id;
 
-        if ($user?->hasRole('lider') && filled($user->persona_id) && ! $user->canManageGrupos()) {
-            $data['lider_persona_id'] = $user->persona_id;
-        }
-
         return $data;
     }
 }
