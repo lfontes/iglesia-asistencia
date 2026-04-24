@@ -2,16 +2,18 @@
 
 namespace App\Filament\Widgets;
 
-use Spatie\Activitylog\Models\Activity;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
+use Spatie\Activitylog\Models\Activity;
 
 class RecentActivityWidget extends BaseWidget
 {
+    protected static bool $isDiscovered = false;
+
     protected static ?int $sort = 3;
 
-    protected int | string | array $columnSpan = 'full';
+    protected int|string|array $columnSpan = 'full';
 
     public function table(Table $table): Table
     {

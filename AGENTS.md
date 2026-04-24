@@ -4,14 +4,11 @@ Este repositorio es una aplicacion Laravel para gestion de asistencia, personas,
 
 ## Stack principal
 
-- PHP 8.2+
+- PHP 8.3
 - Laravel 12
 - Filament 3.3
-- Tailwind CSS 4
-- Vite configurado para assets frontend
 - MySQL para desarrollo local con Laravel Sail
 - Base de datos de produccion: mysql
-- Docker / Docker Compose
 - Laravel Sail para entorno local
 
 ## Paquetes relevantes
@@ -91,6 +88,7 @@ Antes de cambiar accesos en Filament, revisar los metodos de permisos existentes
 - Evitar commitear `.env`, caches, resultados de pruebas o archivos generados innecesarios.
 - Si se modifica el panel, revisar tanto recursos como paginas, widgets y restricciones por rol.
 - Si se modifica auditoria o permisos, agregar o ajustar pruebas de feature.
+- Usar componentes nativos de Filament siempre que sea posible.
 
 ## Comandos utiles
 
