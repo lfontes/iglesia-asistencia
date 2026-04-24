@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\GrupoResource\Pages;
 use App\Filament\Resources\GrupoResource\RelationManagers\ParticipacionesGrupoRelationManager;
 use App\Models\Grupo;
+use App\Models\Persona;
 use App\Models\TipoGrupo;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -68,6 +69,17 @@ class GrupoResource extends Resource
                     ->dehydrated()
                     ->required(),
 
+                Forms\Components\Select::make('lider_persona_id')
+                    ->label('Líder del grupo')
+                    ->relationship('lider', 'apellido')
+                    ->getOptionLabelFromRecordUsing(fn (Persona $record): string => trim($record->apellido.' '.$record->nombre))
+                    ->searchable(['nombre', 'apellido', 'telefono'])
+                    ->preload()
+                    ->required()
+                    ->placeholder('Selecciona un líder')
+                    ->default(fn (): ?int => auth()->user()?->persona_id)
+                    ->dehydrated(),
+
                 Forms\Components\Toggle::make('activo')
                     ->default(true)
                     ->required(),
@@ -92,6 +104,12 @@ class GrupoResource extends Resource
                     ->searchable()
                     ->sortable(),
 
+                Tables\Columns\TextColumn::make('lider.apellido')
+                    ->label('Líder')
+                    ->formatStateUsing(fn ($state, Grupo $record): string => $record->lider ? trim($record->lider->apellido.' '.$record->lider->nombre) : '-')
+                    ->searchable(['personas.apellido', 'personas.nombre'])
+                    ->sortable(),
+
                 Tables\Columns\TextColumn::make('anio')
                     ->label('Anio')
                     ->sortable(),
@@ -109,6 +127,11 @@ class GrupoResource extends Resource
 
                 Tables\Columns\IconColumn::make('activo')
                     ->boolean(),
+
+                Tables\Columns\TextColumn::make('creator.name')
+                    ->label('Creado por')
+                    ->placeholder('-')
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('nombre')
             ->filters([
@@ -178,6 +201,13 @@ class GrupoResource extends Resource
         return auth()->user()?->canManageGrupos() ?? false;
     }
 
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        return (bool) ($user?->canManageGrupos() || $user?->canCreateGrupos());
+    }
+
     public static function shouldRegisterNavigation(): bool
     {
         return static::canViewAny();
@@ -185,17 +215,17 @@ class GrupoResource extends Resource
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->canManageGrupos() ?? false;
+        return auth()->user()?->canCreateGrupos() ?? false;
     }
 
     public static function canEdit($record): bool
     {
-        return auth()->user()?->canManageGrupos() ?? false;
+        return auth()->user()?->canManageGrupo($record) ?? false;
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->canManageGrupos() ?? false;
+        return auth()->user()?->canManageGrupo($record) ?? false;
     }
 
     public static function canDeleteAny(): bool

@@ -39,6 +39,7 @@ class RegistrarParticipacion extends Page implements Forms\Contracts\HasForms
     public function mount(int|string $record): void
     {
         $this->record = $this->resolveRecord($record);
+        abort_unless(auth()->user()?->canManageGrupo($this->record), 403);
         $this->cargarParticipantes();
         $this->form->fill([
             'rol_grupo_id' => $this->rol_grupo_id,
