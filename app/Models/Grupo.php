@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
@@ -22,6 +23,8 @@ class Grupo extends Model
         'frecuencia_asistencia',
         'descripcion',
         'activo',
+        'created_by',
+        'lider_persona_id',
     ];
 
     public static function frecuenciasAsistencia(): array
@@ -57,6 +60,16 @@ class Grupo extends Model
         return $this->belongsTo(TipoGrupo::class);
     }
 
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function lider()
+    {
+        return $this->belongsTo(Persona::class, 'lider_persona_id');
+    }
+
     public function participacionesGrupo()
     {
         return $this->hasMany(ParticipacionGrupo::class);
@@ -72,5 +85,38 @@ class Grupo extends Model
         return $this->belongsToMany(Metagrupo::class, 'grupo_metagrupo')
             ->withTimestamps()
             ->orderBy('nombre');
+    }
+
+    public function isManagedBy(User $user): bool
+    {
+        if ($user->canManageGrupos()) {
+            return true;
+        }
+
+        if (! $user->hasRole('lider')) {
+            return false;
+        }
+
+        if ((int) $this->created_by === (int) $user->id) {
+            return true;
+        }
+
+        return $user->persona_id !== null
+            && (int) $this->lider_persona_id === (int) $user->persona_id;
+    }
+
+    public function scopeManagedBy(Builder $query, User $user): Builder
+    {
+        if ($user->canManageGrupos()) {
+            return $query;
+        }
+
+        return $query->where(function (Builder $managedQuery) use ($user): void {
+            $managedQuery->where('created_by', $user->id);
+
+            if ($user->persona_id) {
+                $managedQuery->orWhere('lider_persona_id', $user->persona_id);
+            }
+        });
     }
 }

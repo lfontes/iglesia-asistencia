@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Filament\Pages\AsistenciasPendientes;
 use App\Filament\Pages\IpnDashboard;
+use App\Filament\Pages\MisGrupos;
 use App\Filament\Pages\MisGruposMinisteriales;
 use App\Filament\Pages\MisMetagrupos;
 use App\Filament\Pages\ResumenAsistenciaGrupos;
@@ -48,7 +49,9 @@ class RestrictFacilitadorPanelAccess
                 return redirect(
                     $user->metagruposLiderados()->exists()
                         ? MisMetagrupos::getUrl()
-                        : MisGruposMinisteriales::getUrl()
+                        : ($user->gruposMinisterialesLiderados()->exists()
+                            ? MisGruposMinisteriales::getUrl()
+                            : MisGrupos::getUrl())
                 );
             }
 
@@ -84,11 +87,15 @@ class RestrictFacilitadorPanelAccess
 
             if ($isLider) {
                 $allowedRoutes = array_merge($allowedRoutes, [
+                    'filament.admin.pages.mis-grupos',
                     'filament.admin.pages.mis-metagrupos',
                     'filament.admin.pages.mis-grupos-ministeriales',
                     'filament.admin.pages.resumen-grupo-ministerial',
                     'filament.admin.pages.resumen-asistencia-grupos',
                     'filament.admin.resources.metagrupos.view',
+                    'filament.admin.resources.grupos.create',
+                    'filament.admin.resources.grupos.edit',
+                    'filament.admin.resources.grupos.participacion',
                 ]);
             }
 

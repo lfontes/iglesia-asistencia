@@ -64,6 +64,24 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasRole(['admin', 'coordinador_grupos']);
     }
 
+    public function canCreateGrupos(): bool
+    {
+        return $this->hasRole(['admin', 'coordinador_grupos', 'lider']);
+    }
+
+    public function canManageGrupo(Grupo $grupo): bool
+    {
+        return $grupo->isManagedBy($this);
+    }
+
+    public function misGruposQuery(): Builder
+    {
+        return Grupo::query()
+            ->managedBy($this)
+            ->with(['tipoGrupo:id,nombre', 'lider:id,nombre,apellido'])
+            ->orderBy('nombre');
+    }
+
     public function canTakeGrupoAttendance(): bool
     {
         return $this->hasRole(['admin', 'facilitador', 'coordinador_grupos']);

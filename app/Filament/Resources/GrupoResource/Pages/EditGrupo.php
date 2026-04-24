@@ -12,6 +12,13 @@ class EditGrupo extends EditRecord
 {
     protected static string $resource = GrupoResource::class;
 
+    public function mount(int|string $record): void
+    {
+        parent::mount($record);
+
+        abort_unless(auth()->user()?->canManageGrupo($this->record), 403);
+    }
+
     protected function mutateFormDataBeforeFill(array $data): array
     {
         $esMinisterio = TipoGrupo::query()
