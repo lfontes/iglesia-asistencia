@@ -20,9 +20,9 @@ class MisGruposMinisteriales extends Page implements HasTable
 
     protected static ?string $navigationGroup = 'Liderazgo';
 
-    protected static ?string $navigationLabel = 'Mis grupos ministeriales';
+    protected static ?string $navigationLabel = 'Asistencia a grupos';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 99;
 
     protected static ?string $title = 'Mis grupos ministeriales';
 

@@ -68,6 +68,7 @@ class RestrictFacilitadorPanelAccess
                 $allowedRoutes = array_merge($allowedRoutes, [
                     'filament.admin.pages.dashboard',
                     'filament.admin.pages.asistencia-grupos-crecimiento',
+                    'filament.admin.pages.reporte-grupos-crecimiento',
                     'filament.admin.pages.resumen-asistencia-grupos',
                     'filament.admin.pages.asistencias-pendientes',
                     'filament.admin.resources.grupos.index',
