@@ -2,6 +2,8 @@
 
 namespace App\Jobs;
 
+use RuntimeException;
+use Throwable;
 use App\Models\EventoFecha;
 use App\Models\WhatsAppBulkDispatch;
 use App\Models\WhatsAppMessage;
@@ -71,10 +73,10 @@ class SendEventoReminderBatchJob implements ShouldQueue
                 $fallidos++;
                 $detalles[] = trim("{$persona->nombre} {$persona->apellido}") . ': '
                     . (string) ($exception->response?->json('error.message') ?? $exception->getMessage());
-            } catch (\RuntimeException $exception) {
+            } catch (RuntimeException $exception) {
                 $omitidos++;
                 $detalles[] = trim("{$persona->nombre} {$persona->apellido}") . ': ' . $exception->getMessage();
-            } catch (\Throwable $exception) {
+            } catch (Throwable $exception) {
                 report($exception);
                 $fallidos++;
                 $detalles[] = trim("{$persona->nombre} {$persona->apellido}") . ': ' . $exception->getMessage();

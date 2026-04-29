@@ -2,7 +2,10 @@
 
 namespace App\Filament\Resources\EventoFechaResource\RelationManagers;
 
-use Filament\Forms\Form;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -14,9 +17,9 @@ class InscripcionesRelationManager extends RelationManager
 
     protected static ?string $title = 'Inscriptos';
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([]);
+        return $schema->components([]);
     }
 
     public function table(Table $table): Table
@@ -24,7 +27,7 @@ class InscripcionesRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('persona_id')
             ->columns([
-                Tables\Columns\TextColumn::make('persona.apellido')
+                TextColumn::make('persona.apellido')
                     ->label('Apellido')
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query->whereHas(
                         'persona',
@@ -32,7 +35,7 @@ class InscripcionesRelationManager extends RelationManager
                     ))
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('persona.nombre')
+                TextColumn::make('persona.nombre')
                     ->label('Nombre')
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query->whereHas(
                         'persona',
@@ -40,15 +43,15 @@ class InscripcionesRelationManager extends RelationManager
                     ))
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('persona.telefono')
+                TextColumn::make('persona.telefono')
                     ->label('Teléfono')
                     ->toggleable(),
 
-                Tables\Columns\TextColumn::make('persona.email')
+                TextColumn::make('persona.email')
                     ->label('Email')
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('estado')
+                TextColumn::make('estado')
                     ->badge()
                     ->sortable()
                     ->color(fn (string $state): string => match ($state) {
@@ -57,18 +60,18 @@ class InscripcionesRelationManager extends RelationManager
                         default => 'gray',
                     }),
 
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Inscripto el')
                     ->dateTime('d/m/Y H:i')
                     ->sortable(),
             ])
             ->defaultSort('created_at', 'desc')
             ->headerActions([])
-            ->actions([
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                DeleteBulkAction::make(),
             ]);
     }
 }

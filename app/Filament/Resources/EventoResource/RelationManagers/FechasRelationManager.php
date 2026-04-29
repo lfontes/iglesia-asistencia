@@ -2,9 +2,15 @@
 
 namespace App\Filament\Resources\EventoResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Textarea;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Actions\CreateAction;
+use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
 use App\Filament\Resources\EventoFechaResource;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -16,13 +22,13 @@ class FechasRelationManager extends RelationManager
 
     protected static ?string $title = 'Fechas';
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\DatePicker::make('fecha')
+        return $schema->components([
+            DatePicker::make('fecha')
                 ->required(),
 
-            Forms\Components\Textarea::make('observaciones')
+            Textarea::make('observaciones')
                 ->columnSpanFull(),
         ]);
     }
@@ -32,29 +38,29 @@ class FechasRelationManager extends RelationManager
         return $table
             ->recordUrl(fn ($record): string => EventoFechaResource::getUrl('edit', ['record' => $record]))
             ->columns([
-                Tables\Columns\TextColumn::make('fecha')
+                TextColumn::make('fecha')
                     ->date()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('asistencias_count')
+                TextColumn::make('asistencias_count')
                     ->label('Asistentes')
                     ->counts([
                         'asistencias' => fn (Builder $query) => $query->where('presente', true),
                     ])
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->dateTime(),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make(),
+                CreateAction::make(),
             ])
-            ->actions([
-                Tables\Actions\Action::make('editar')
+            ->recordActions([
+                Action::make('editar')
                     ->label('Editar')
                     ->icon('heroicon-o-pencil-square')
                     ->url(fn ($record): string => EventoFechaResource::getUrl('edit', ['record' => $record])),
-                Tables\Actions\DeleteAction::make(),
+                DeleteAction::make(),
             ]);
     }
 }

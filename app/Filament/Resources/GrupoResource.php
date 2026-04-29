@@ -2,16 +2,32 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
+use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Textarea;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Actions\Action;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\GrupoResource\Pages\ListGrupos;
+use App\Filament\Resources\GrupoResource\Pages\CreateGrupo;
+use App\Filament\Resources\GrupoResource\Pages\EditGrupo;
+use App\Filament\Resources\GrupoResource\Pages\RegistrarParticipacion;
 use App\Filament\Resources\GrupoResource\Pages;
 use App\Filament\Resources\GrupoResource\RelationManagers\ParticipacionesGrupoRelationManager;
 use App\Models\Grupo;
 use App\Models\Persona;
 use App\Models\TipoGrupo;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +36,7 @@ class GrupoResource extends Resource
 {
     protected static ?string $model = Grupo::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-user-group';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-user-group';
 
     protected static ?string $navigationLabel = 'Grupos';
 
@@ -28,19 +44,19 @@ class GrupoResource extends Resource
 
     protected static ?string $pluralModelLabel = 'grupos';
 
-    protected static ?string $navigationGroup = null;
+    protected static string | \UnitEnum | null $navigationGroup = null;
 
     protected static ?int $navigationSort = 3;
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\TextInput::make('nombre')
+        return $schema
+            ->components([
+                TextInput::make('nombre')
                     ->required()
                     ->maxLength(255),
 
-                Forms\Components\TextInput::make('anio')
+                TextInput::make('anio')
                     ->label('Anio del grupo')
                     ->numeric()
                     ->minValue(1900)
@@ -48,28 +64,28 @@ class GrupoResource extends Resource
                     ->default((int) date('Y'))
                     ->required(),
 
-                Forms\Components\Select::make('tipo_grupo_id')
+                Select::make('tipo_grupo_id')
                     ->label('Tipo de grupo')
                     ->relationship('tipoGrupo', 'nombre')
                     ->searchable()
                     ->preload()
                     ->live()
-                    ->afterStateUpdated(function (Forms\Set $set, $state): void {
+                    ->afterStateUpdated(function (Set $set, $state): void {
                         if (static::isTipoMinisterio($state)) {
                             $set('frecuencia_asistencia', Grupo::FRECUENCIA_SIN_ASISTENCIA);
                         }
                     }),
 
-                Forms\Components\Select::make('frecuencia_asistencia')
+                Select::make('frecuencia_asistencia')
                     ->label('Frecuencia de asistencia')
                     ->options(Grupo::frecuenciasAsistencia())
                     ->live()
                     ->default(Grupo::FRECUENCIA_SEMANAL)
-                    ->disabled(fn (Forms\Get $get): bool => static::isTipoMinisterio($get('tipo_grupo_id')))
+                    ->disabled(fn (Get $get): bool => static::isTipoMinisterio($get('tipo_grupo_id')))
                     ->dehydrated()
                     ->required(),
 
-                Forms\Components\Select::make('lider_persona_id')
+                Select::make('lider_persona_id')
                     ->label('Líder del grupo')
                     ->relationship('lider', 'apellido')
                     ->getOptionLabelFromRecordUsing(fn (Persona $record): string => trim($record->apellido.' '.$record->nombre))
@@ -80,11 +96,11 @@ class GrupoResource extends Resource
                     ->default(fn (): ?int => auth()->user()?->persona_id)
                     ->dehydrated(),
 
-                Forms\Components\Toggle::make('activo')
+                Toggle::make('activo')
                     ->default(true)
                     ->required(),
 
-                Forms\Components\Textarea::make('descripcion')
+                Textarea::make('descripcion')
                     ->rows(3)
                     ->columnSpanFull(),
             ]);
@@ -94,49 +110,49 @@ class GrupoResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('nombre')
+                TextColumn::make('nombre')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('tipoGrupo.nombre')
+                TextColumn::make('tipoGrupo.nombre')
                     ->label('Tipo')
                     ->placeholder('-')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('lider.apellido')
+                TextColumn::make('lider.apellido')
                     ->label('Líder')
                     ->formatStateUsing(fn ($state, Grupo $record): string => $record->lider ? trim($record->lider->apellido.' '.$record->lider->nombre) : '-')
                     ->searchable(['personas.apellido', 'personas.nombre'])
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('anio')
+                TextColumn::make('anio')
                     ->label('Anio')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('frecuencia_asistencia')
+                TextColumn::make('frecuencia_asistencia')
                     ->label('Frecuencia')
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => Grupo::frecuenciasAsistencia()[$state] ?? ucfirst($state))
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('participantes_count')
+                TextColumn::make('participantes_count')
                     ->label('Participantes')
                     ->sortable()
                     ->placeholder('0'),
 
-                Tables\Columns\IconColumn::make('activo')
+                IconColumn::make('activo')
                     ->boolean(),
 
-                Tables\Columns\TextColumn::make('creator.name')
+                TextColumn::make('creator.name')
                     ->label('Creado por')
                     ->placeholder('-')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('nombre')
             ->filters([
-                Tables\Filters\TernaryFilter::make('activo'),
-                Tables\Filters\SelectFilter::make('anio')
+                TernaryFilter::make('activo'),
+                SelectFilter::make('anio')
                     ->label('Anio')
                     ->options(fn (): array => Grupo::query()
                         ->whereNotNull('anio')
@@ -145,17 +161,17 @@ class GrupoResource extends Resource
                         ->pluck('anio', 'anio')
                         ->mapWithKeys(fn ($anio): array => [(string) $anio => (string) $anio])
                         ->all()),
-                Tables\Filters\SelectFilter::make('tipo_grupo_id')
+                SelectFilter::make('tipo_grupo_id')
                     ->label('Tipo')
                     ->relationship('tipoGrupo', 'nombre')
                     ->default(fn (): ?int => auth()->user()?->hasRole('coordinador_grupos')
                         ? static::tipoCrecimientoId()
                         : null),
-                Tables\Filters\SelectFilter::make('frecuencia_asistencia')
+                SelectFilter::make('frecuencia_asistencia')
                     ->label('Frecuencia')
                     ->options(Grupo::frecuenciasAsistencia()),
             ])
-            ->actions([
+            ->recordActions([
                 Action::make('participacion')
                     ->label('Registrar participantes')
                     ->url(fn ($record) => GrupoResource::getUrl('participacion', [
@@ -163,10 +179,10 @@ class GrupoResource extends Resource
                     ]))
                     ->icon('heroicon-o-user-plus'),
 
-                Tables\Actions\EditAction::make(),
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                DeleteBulkAction::make(),
             ]);
     }
 
@@ -182,10 +198,10 @@ class GrupoResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListGrupos::route('/'),
-            'create' => Pages\CreateGrupo::route('/create'),
-            'edit' => Pages\EditGrupo::route('/{record}/edit'),
-            'participacion' => Pages\RegistrarParticipacion::route('/{record}/participacion'),
+            'index' => ListGrupos::route('/'),
+            'create' => CreateGrupo::route('/create'),
+            'edit' => EditGrupo::route('/{record}/edit'),
+            'participacion' => RegistrarParticipacion::route('/{record}/participacion'),
         ];
     }
 

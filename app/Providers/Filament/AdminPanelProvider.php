@@ -83,9 +83,9 @@ class AdminPanelProvider extends PanelProvider
             })
             ->brandName('Iglesia de los Libres')
             ->brandLogo(fn (): HtmlString => new HtmlString(
-                '<div class="flex items-center gap-3">'
-                .'<img src="'.e(rtrim((string) config('app.public_url'), '/').'/images/logo-iglesia-libres.png').'" alt="Logo Iglesia de los Libres" class="h-8 w-8 object-contain" />'
-                .'<span class="text-sm font-semibold text-gray-950 dark:text-white">Iglesia de los Libres</span>'
+                '<div style="display: flex; align-items: center; gap: 0.75rem; height: 2rem; max-width: 100%; overflow: hidden;">'
+                .'<img src="'.e(rtrim((string) config('app.public_url'), '/').'/images/logo-iglesia-libres.png').'" alt="Logo Iglesia de los Libres" style="display: block; width: 2rem; height: 2rem; max-width: 2rem; max-height: 2rem; object-fit: contain; flex: none;" />'
+                .'<span style="font-size: 0.875rem; font-weight: 600; line-height: 1.25rem; white-space: nowrap;">Iglesia de los Libres</span>'
                 .'</div>'
             ))
             ->brandLogoHeight('2rem')

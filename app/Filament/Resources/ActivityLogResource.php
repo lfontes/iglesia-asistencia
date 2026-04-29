@@ -2,6 +2,9 @@
 
 namespace App\Filament\Resources;
 
+use Illuminate\Database\Eloquent\Model;
+use Filament\Forms\Components\DatePicker;
+use App\Filament\Resources\ActivityLogResource\Pages\ListActivityLogs;
 use App\Filament\Resources\ActivityLogResource\Pages;
 use Spatie\Activitylog\Models\Activity;
 use Filament\Forms;
@@ -19,7 +22,7 @@ class ActivityLogResource extends Resource
 {
     protected static ?string $model = Activity::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-list-bullet';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-list-bullet';
 
     protected static ?string $navigationLabel = 'Auditoría';
 
@@ -27,7 +30,7 @@ class ActivityLogResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Registros de Auditoría';
 
-    protected static ?string $navigationGroup = 'Administración';
+    protected static string | \UnitEnum | null $navigationGroup = 'Administración';
 
     protected static ?int $navigationSort = 201;
 
@@ -46,12 +49,12 @@ class ActivityLogResource extends Resource
         return false;
     }
 
-    public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool
+    public static function canDelete(Model $record): bool
     {
         return false;
     }
 
-    public static function canEdit(\Illuminate\Database\Eloquent\Model $record): bool
+    public static function canEdit(Model $record): bool
     {
         return false;
     }
@@ -113,10 +116,10 @@ class ActivityLogResource extends Resource
                     ->searchable(),
                 Filter::make('created_at')
                     ->label('Fecha')
-                    ->form([
-                        Forms\Components\DatePicker::make('created_from')
+                    ->schema([
+                        DatePicker::make('created_from')
                             ->label('Desde'),
-                        Forms\Components\DatePicker::make('created_until')
+                        DatePicker::make('created_until')
                             ->label('Hasta'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
@@ -146,7 +149,7 @@ class ActivityLogResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListActivityLogs::route('/'),
+            'index' => ListActivityLogs::route('/'),
         ];
     }
 }

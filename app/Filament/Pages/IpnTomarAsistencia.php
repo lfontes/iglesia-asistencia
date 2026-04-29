@@ -2,24 +2,31 @@
 
 namespace App\Filament\Pages;
 
+use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\DatePicker;
+use Filament\Actions\Action;
+use Filament\Forms\Components\TextInput;
 use App\Models\IpnAsistencia;
 use App\Models\IpnAulaPersona;
 use App\Models\Persona;
 use Filament\Actions;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
-class IpnTomarAsistencia extends Page implements Forms\Contracts\HasForms
+class IpnTomarAsistencia extends Page implements HasForms
 {
-    use Forms\Concerns\InteractsWithForms;
+    use InteractsWithForms;
 
-    protected static ?string $navigationIcon = 'heroicon-o-check-badge';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-check-badge';
 
-    protected static ?string $navigationGroup = 'IPN';
+    protected static string | \UnitEnum | null $navigationGroup = 'IPN';
 
     protected static ?string $navigationLabel = 'Tomar asistencia';
 
@@ -27,7 +34,7 @@ class IpnTomarAsistencia extends Page implements Forms\Contracts\HasForms
 
     protected static ?string $title = 'Tomar asistencia IPN';
 
-    protected static string $view = 'filament.pages.ipn-tomar-asistencia';
+    protected string $view = 'filament.pages.ipn-tomar-asistencia';
 
     public ?int $ipn_aula_id = null;
 
@@ -57,12 +64,12 @@ class IpnTomarAsistencia extends Page implements Forms\Contracts\HasForms
         return static::canAccess();
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\Section::make('Filtro')
+        return $schema->components([
+            Section::make('Filtro')
                 ->schema([
-                    Forms\Components\Select::make('ipn_aula_id')
+                    Select::make('ipn_aula_id')
                         ->label('Aula')
                         ->placeholder('Selecciona un aula')
                         ->options(fn (): array => $this->aulasOptions())
@@ -71,7 +78,7 @@ class IpnTomarAsistencia extends Page implements Forms\Contracts\HasForms
                         ->live()
                         ->required()
                         ->afterStateUpdated(fn (): mixed => $this->refrescarAsistenciaCargada()),
-                    Forms\Components\DatePicker::make('fecha')
+                    DatePicker::make('fecha')
                         ->label('Fecha')
                         ->default(now()->toDateString())
                         ->live()
@@ -85,12 +92,12 @@ class IpnTomarAsistencia extends Page implements Forms\Contracts\HasForms
     protected function getHeaderActions(): array
     {
         return [
-            Actions\Action::make('agregarNino')
+            Action::make('agregarNino')
                 ->label('Agregar niño al aula')
                 ->icon('heroicon-o-user-plus')
                 ->disabled(fn (): bool => blank($this->ipn_aula_id))
-                ->form([
-                    Forms\Components\Select::make('persona_id')
+                ->schema([
+                    Select::make('persona_id')
                         ->label('Niño existente')
                         ->searchable()
                         ->getSearchResultsUsing(fn (string $search): array => Persona::query()
@@ -109,16 +116,16 @@ class IpnTomarAsistencia extends Page implements Forms\Contracts\HasForms
 
                             return $persona ? $this->personaLabel($persona) : null;
                         }),
-                    Forms\Components\TextInput::make('nombre')
+                    TextInput::make('nombre')
                         ->label('Nombre nuevo')
                         ->maxLength(255),
-                    Forms\Components\TextInput::make('apellido')
+                    TextInput::make('apellido')
                         ->label('Apellido nuevo')
                         ->maxLength(255),
-                    Forms\Components\DatePicker::make('fecha_nacimiento')
+                    DatePicker::make('fecha_nacimiento')
                         ->label('Fecha de nacimiento')
                         ->native(false),
-                    Forms\Components\Select::make('responsable_persona_id')
+                    Select::make('responsable_persona_id')
                         ->label('Responsable / tutor')
                         ->searchable()
                         ->getSearchResultsUsing(fn (string $search): array => Persona::query()

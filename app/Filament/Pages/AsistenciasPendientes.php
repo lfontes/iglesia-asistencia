@@ -2,6 +2,12 @@
 
 namespace App\Filament\Pages;
 
+use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\DatePicker;
+use Throwable;
+use RuntimeException;
 use App\Models\Grupo;
 use App\Models\WhatsAppBulkDispatch;
 use App\Models\WhatsAppMessage;
@@ -10,20 +16,19 @@ use App\Services\WhatsAppService;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
-class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
+class AsistenciasPendientes extends Page implements HasForms
 {
-    use Forms\Concerns\InteractsWithForms;
+    use InteractsWithForms;
 
-    protected static ?string $navigationIcon = 'heroicon-o-chat-bubble-left-right';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-chat-bubble-left-right';
 
-    protected static ?string $navigationGroup = 'Asistencia';
+    protected static string | \UnitEnum | null $navigationGroup = 'Asistencia';
 
     protected static ?string $navigationLabel = 'Asistencias pendientes';
 
@@ -31,7 +36,7 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
 
     protected static ?string $title = 'Asistencias pendientes';
 
-    protected static string $view = 'filament.pages.asistencias-pendientes';
+    protected string $view = 'filament.pages.asistencias-pendientes';
 
     public ?string $fecha = null;
 
@@ -57,10 +62,10 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
         return static::canAccess();
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\DatePicker::make('fecha')
+        return $schema->components([
+            DatePicker::make('fecha')
                 ->label('Fecha de referencia')
                 ->native(false)
                 ->displayFormat('d/m/Y')
@@ -149,7 +154,7 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
                 ->body((string) $metaMessage)
                 ->danger()
                 ->send();
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             Notification::make()
                 ->title('Error al preparar el recordatorio')
                 ->body($exception->getMessage())
@@ -194,10 +199,10 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
                     (string) $facilitador['nombre'],
                     (string) ($exception->response?->json('error.message') ?? $exception->getMessage()),
                 );
-            } catch (\RuntimeException $exception) {
+            } catch (RuntimeException $exception) {
                 $omitidos++;
                 $detalles[] = $this->buildErrorDetalle((string) $facilitador['nombre'], $exception->getMessage());
-            } catch (\Throwable $exception) {
+            } catch (Throwable $exception) {
                 $fallidos++;
                 $detalles[] = $this->buildErrorDetalle((string) $facilitador['nombre'], $exception->getMessage());
             }
@@ -282,7 +287,7 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
             return filled($this->fecha)
                 ? Carbon::parse((string) $this->fecha)->startOfDay()
                 : now()->startOfDay();
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return now()->startOfDay();
         }
     }
@@ -399,7 +404,7 @@ class AsistenciasPendientes extends Page implements Forms\Contracts\HasForms
         );
 
         if ($telefono === null) {
-            throw new \RuntimeException('Sin teléfono válido.');
+            throw new RuntimeException('Sin teléfono válido.');
         }
 
         $nombreFacilitador = $this->normalizarNombreFacilitador((string) $facilitador['nombre']);

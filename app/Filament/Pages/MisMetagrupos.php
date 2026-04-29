@@ -2,6 +2,8 @@
 
 namespace App\Filament\Pages;
 
+use Filament\Tables\Columns\TextColumn;
+use Filament\Actions\Action;
 use App\Filament\Resources\MetagrupoResource;
 use App\Models\Metagrupo;
 use Filament\Pages\Page;
@@ -15,9 +17,9 @@ class MisMetagrupos extends Page implements HasTable
 {
     use InteractsWithTable;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-group';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-group';
 
-    protected static ?string $navigationGroup = 'Liderazgo';
+    protected static string | \UnitEnum | null $navigationGroup = 'Liderazgo';
 
     protected static ?string $navigationLabel = 'Mis metagrupos';
 
@@ -27,7 +29,7 @@ class MisMetagrupos extends Page implements HasTable
 
     protected static ?string $slug = 'mis-metagrupos';
 
-    protected static string $view = 'filament.pages.mis-metagrupos';
+    protected string $view = 'filament.pages.mis-metagrupos';
 
     public static function canAccess(): bool
     {
@@ -53,28 +55,28 @@ class MisMetagrupos extends Page implements HasTable
             ->defaultSort('nombre')
             ->paginated(false)
             ->columns([
-                Tables\Columns\TextColumn::make('nombre')
+                TextColumn::make('nombre')
                     ->label('Metagrupo')
                     ->searchable()
                     ->sortable()
                     ->weight('medium'),
-                Tables\Columns\TextColumn::make('lider_nombre_completo')
+                TextColumn::make('lider_nombre_completo')
                     ->label('Líder')
                     ->state(fn (Metagrupo $record): string => $record->lider ? trim($record->lider->apellido.' '.$record->lider->nombre) : '-')
                     ->placeholder('-'),
-                Tables\Columns\TextColumn::make('grupos_count')
+                TextColumn::make('grupos_count')
                     ->label('Grupos')
                     ->badge()
                     ->color('gray')
                     ->alignCenter(),
-                Tables\Columns\TextColumn::make('personas_count')
+                TextColumn::make('personas_count')
                     ->label('Personas')
                     ->badge()
                     ->color('primary')
                     ->alignCenter(),
             ])
-            ->actions([
-                Tables\Actions\Action::make('verDetalle')
+            ->recordActions([
+                Action::make('verDetalle')
                     ->label('Ver detalle')
                     ->icon('heroicon-o-eye')
                     ->url(fn (Metagrupo $record): string => $this->getViewUrl($record)),

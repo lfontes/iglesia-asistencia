@@ -2,24 +2,28 @@
 
 namespace App\Filament\Resources\EventoFechaResource\Pages;
 
+use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\Select;
+use Illuminate\Support\Collection;
 use App\Filament\Resources\EventoFechaResource;
 use App\Models\Asistencia;
 use App\Models\EventoInscripcion;
 use App\Models\Persona;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
 
-class TomarAsistencia extends Page implements Forms\Contracts\HasForms
+class TomarAsistencia extends Page implements HasForms
 {
-    use Forms\Concerns\InteractsWithForms;
+    use InteractsWithForms;
     use InteractsWithRecord;
 
     protected static string $resource = EventoFechaResource::class;
 
-    protected static string $view = 'filament.resources.evento-fecha-resource.pages.tomar-asistencia';
+    protected string $view = 'filament.resources.evento-fecha-resource.pages.tomar-asistencia';
 
     /** @var array<int, int|string> */
     public array $presentes = [];
@@ -37,10 +41,10 @@ class TomarAsistencia extends Page implements Forms\Contracts\HasForms
             ->all();
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\Select::make('presentes')
+        return $schema->components([
+            Select::make('presentes')
                 ->label('Personas presentes')
                 ->multiple()
                 ->searchable()
@@ -140,9 +144,9 @@ class TomarAsistencia extends Page implements Forms\Contracts\HasForms
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, EventoInscripcion>
+     * @return Collection<int, EventoInscripcion>
      */
-    public function getInscriptos(): \Illuminate\Support\Collection
+    public function getInscriptos(): Collection
     {
         return EventoInscripcion::query()
             ->with('persona:id,nombre,apellido,telefono,email')

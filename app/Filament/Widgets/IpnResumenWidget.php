@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use Illuminate\Support\Carbon;
 use App\Models\IpnAsistencia;
 use App\Models\IpnAula;
 use App\Models\Persona;
@@ -71,7 +72,7 @@ class IpnResumenWidget extends BaseWidget
             Stat::make('Aulas activas', (string) $aulas)
                 ->icon('heroicon-o-home-modern'),
             Stat::make('Presentes última fecha', (string) $presentesUltimaFecha)
-                ->description($ultimaFecha ? \Illuminate\Support\Carbon::parse($ultimaFecha)->format('d/m/Y') : 'Sin registros')
+                ->description($ultimaFecha ? Carbon::parse($ultimaFecha)->format('d/m/Y') : 'Sin registros')
                 ->color('success')
                 ->icon('heroicon-o-check-circle'),
             Stat::make('Promedio 30 días', "{$this->promedio($presentes30Dias, $totalRegistros30Dias)}%")

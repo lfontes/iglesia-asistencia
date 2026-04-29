@@ -2,7 +2,8 @@
 
 namespace App\Filament\Resources\PersonaResource\RelationManagers;
 
-use Filament\Forms\Form;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -14,9 +15,9 @@ class AsistenciasRelationManager extends RelationManager
 
     protected static ?string $title = 'Eventos';
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([]);
+        return $schema->components([]);
     }
 
     public function table(Table $table): Table
@@ -24,18 +25,18 @@ class AsistenciasRelationManager extends RelationManager
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->where('presente', true))
             ->columns([
-                Tables\Columns\TextColumn::make('eventoFecha.evento.nombre')
+                TextColumn::make('eventoFecha.evento.nombre')
                     ->label('Evento')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('eventoFecha.fecha')
+                TextColumn::make('eventoFecha.fecha')
                     ->label('Fecha')
                     ->date()
                     ->sortable(),
             ])
             ->headerActions([])
-            ->actions([])
-            ->bulkActions([]);
+            ->recordActions([])
+            ->toolbarActions([]);
     }
 }

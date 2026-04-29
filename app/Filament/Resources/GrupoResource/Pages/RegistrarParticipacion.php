@@ -2,6 +2,15 @@
 
 namespace App\Filament\Resources\GrupoResource\Pages;
 
+use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Actions\Action;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Schema;
+use RuntimeException;
+use DateTimeInterface;
+use DateTime;
 use App\Filament\Resources\GrupoResource;
 use App\Models\ParticipacionGrupo;
 use App\Models\Persona;
@@ -10,7 +19,6 @@ use Carbon\Carbon;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
@@ -20,14 +28,14 @@ use Illuminate\Support\Str;
 use OpenSpout\Reader\XLSX\Reader as XlsxReader;
 use Throwable;
 
-class RegistrarParticipacion extends Page implements Forms\Contracts\HasForms
+class RegistrarParticipacion extends Page implements HasForms
 {
-    use Forms\Concerns\InteractsWithForms;
+    use InteractsWithForms;
     use InteractsWithRecord;
 
     protected static string $resource = GrupoResource::class;
 
-    protected static string $view = 'filament.resources.grupo-resource.pages.registrar-participacion';
+    protected string $view = 'filament.resources.grupo-resource.pages.registrar-participacion';
 
     /** @var array<int, int|string> */
     public array $personas = [];
@@ -51,11 +59,11 @@ class RegistrarParticipacion extends Page implements Forms\Contracts\HasForms
     protected function getHeaderActions(): array
     {
         return [
-            Actions\Action::make('importar_participantes')
+            Action::make('importar_participantes')
                 ->label('Importar participantes (Excel)')
                 ->icon('heroicon-o-arrow-up-tray')
-                ->form([
-                    Forms\Components\Select::make('rol_grupo_id')
+                ->schema([
+                    Select::make('rol_grupo_id')
                         ->label('Rol')
                         ->placeholder('Sin rol')
                         ->searchable()
@@ -65,7 +73,7 @@ class RegistrarParticipacion extends Page implements Forms\Contracts\HasForms
                             ->pluck('nombre', 'id')
                             ->all())
                         ->default($this->rol_grupo_id),
-                    Forms\Components\Toggle::make('reemplazar_actuales')
+                    Toggle::make('reemplazar_actuales')
                         ->label('Reemplazar participantes actuales del rol')
                         ->helperText('Si está activo, se eliminarán participantes actuales de este grupo/rol que no estén en el archivo.')
                         ->default(false),
@@ -148,10 +156,10 @@ class RegistrarParticipacion extends Page implements Forms\Contracts\HasForms
         ];
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\Select::make('rol_grupo_id')
+        return $schema->components([
+            Select::make('rol_grupo_id')
                 ->label('Rol')
                 ->placeholder('Sin rol')
                 ->searchable()
@@ -163,7 +171,7 @@ class RegistrarParticipacion extends Page implements Forms\Contracts\HasForms
                 ->live()
                 ->afterStateUpdated(fn () => $this->cargarParticipantes()),
 
-            Forms\Components\Select::make('personas')
+            Select::make('personas')
                 ->label('Personas')
                 ->multiple()
                 ->searchable()
@@ -204,7 +212,7 @@ class RegistrarParticipacion extends Page implements Forms\Contracts\HasForms
                     ])
                     ->all()),
 
-            Forms\Components\Select::make('persona_recordatorio_id')
+            Select::make('persona_recordatorio_id')
                 ->label('Recibe recordatorios')
                 ->placeholder('Nadie seleccionado')
                 ->helperText('Cuando el rol es facilitador, este participante será el destinatario principal del recordatorio del grupo.')
@@ -407,7 +415,7 @@ class RegistrarParticipacion extends Page implements Forms\Contracts\HasForms
                         $headerMap = $this->buildHeaderMap($values);
 
                         if (! isset($headerMap['nombre'], $headerMap['apellido'])) {
-                            throw new \RuntimeException('El Excel debe incluir encabezados "nombre" y "apellido".');
+                            throw new RuntimeException('El Excel debe incluir encabezados "nombre" y "apellido".');
                         }
 
                         continue;
@@ -521,7 +529,7 @@ class RegistrarParticipacion extends Page implements Forms\Contracts\HasForms
         }
 
         if (! $sheetFound) {
-            throw new \RuntimeException('El archivo no contiene hojas para importar.');
+            throw new RuntimeException('El archivo no contiene hojas para importar.');
         }
 
         return $summary;
@@ -596,7 +604,7 @@ class RegistrarParticipacion extends Page implements Forms\Contracts\HasForms
 
     protected function parseDate(mixed $value): ?string
     {
-        if ($value instanceof \DateTimeInterface) {
+        if ($value instanceof DateTimeInterface) {
             return $value->format('Y-m-d');
         }
 
@@ -613,9 +621,9 @@ class RegistrarParticipacion extends Page implements Forms\Contracts\HasForms
         $text = trim((string) $value);
 
         foreach (['d/m/Y', 'd-m-Y', 'Y-m-d', 'd/m/y', 'd-m-y'] as $format) {
-            $date = \DateTime::createFromFormat($format, $text);
+            $date = DateTime::createFromFormat($format, $text);
 
-            if ($date instanceof \DateTimeInterface) {
+            if ($date instanceof DateTimeInterface) {
                 return $date->format('Y-m-d');
             }
         }
@@ -826,7 +834,7 @@ class RegistrarParticipacion extends Page implements Forms\Contracts\HasForms
 
     protected function normalizeCandidateDate(mixed $value): ?string
     {
-        if ($value instanceof \DateTimeInterface) {
+        if ($value instanceof DateTimeInterface) {
             return $value->format('Y-m-d');
         }
 

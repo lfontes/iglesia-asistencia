@@ -2,10 +2,20 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Actions\EditAction;
+use App\Filament\Resources\IpnNinoResource\Pages\ListIpnNinos;
+use App\Filament\Resources\IpnNinoResource\Pages\CreateIpnNino;
+use App\Filament\Resources\IpnNinoResource\Pages\EditIpnNino;
 use App\Filament\Resources\IpnNinoResource\Pages;
 use App\Models\Persona;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -15,7 +25,7 @@ class IpnNinoResource extends Resource
 {
     protected static ?string $model = Persona::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-face-smile';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-face-smile';
 
     protected static ?string $navigationLabel = 'Niños';
 
@@ -23,47 +33,47 @@ class IpnNinoResource extends Resource
 
     protected static ?string $pluralModelLabel = 'niños IPN';
 
-    protected static ?string $navigationGroup = 'IPN';
+    protected static string | \UnitEnum | null $navigationGroup = 'IPN';
 
     protected static ?int $navigationSort = 2;
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Placeholder::make('id')
+        return $schema
+            ->components([
+                Placeholder::make('id')
                     ->label('Persona ID')
                     ->content(fn (?Persona $record): string => $record ? (string) $record->id : 'Se asigna al guardar')
                     ->visible(fn (?Persona $record): bool => $record !== null),
 
-                Forms\Components\TextInput::make('nombre')
+                TextInput::make('nombre')
                     ->required()
                     ->maxLength(255),
 
-                Forms\Components\TextInput::make('apellido')
+                TextInput::make('apellido')
                     ->required()
                     ->maxLength(255),
 
-                Forms\Components\DatePicker::make('fecha_nacimiento')
+                DatePicker::make('fecha_nacimiento')
                     ->label('Fecha de nacimiento')
                     ->native(false),
 
-                Forms\Components\TextInput::make('telefono')
+                TextInput::make('telefono')
                     ->label('Teléfono del niño')
                     ->tel()
                     ->maxLength(255),
 
-                Forms\Components\TextInput::make('email')
+                TextInput::make('email')
                     ->email()
                     ->maxLength(255),
 
-                Forms\Components\Select::make('departamento')
+                Select::make('departamento')
                     ->label('Departamento')
                     ->options(Persona::departamentosMendoza())
                     ->searchable()
                     ->placeholder('Selecciona un departamento'),
 
-                Forms\Components\Select::make('responsable_persona_id')
+                Select::make('responsable_persona_id')
                     ->label('Responsable / tutor')
                     ->searchable()
                     ->preload(false)
@@ -84,7 +94,7 @@ class IpnNinoResource extends Resource
                     })
                     ->helperText('Selecciona una persona existente de la base de datos.'),
 
-                Forms\Components\Textarea::make('observaciones_ipn')
+                Textarea::make('observaciones_ipn')
                     ->label('Observaciones importantes')
                     ->rows(4)
                     ->columnSpanFull(),
@@ -95,25 +105,25 @@ class IpnNinoResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                TextColumn::make('id')
                     ->label('Persona ID')
                     ->sortable()
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('apellido')
+                TextColumn::make('apellido')
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query->buscarPorNombreApellido($search))
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('nombre')
+                TextColumn::make('nombre')
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query->buscarPorNombreApellido($search))
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('edad')
+                TextColumn::make('edad')
                     ->label('Edad')
                     ->formatStateUsing(fn (?int $state): string => $state !== null ? "{$state} años" : '-')
                     ->sortable(false),
 
-                Tables\Columns\TextColumn::make('responsablePersona.apellido')
+                TextColumn::make('responsablePersona.apellido')
                     ->label('Responsable')
                     ->formatStateUsing(fn ($state, Persona $record): string => $record->responsableIpnLabel() ?: '-')
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query->whereHas(
@@ -122,22 +132,22 @@ class IpnNinoResource extends Resource
                     ))
                     ->placeholder('-'),
 
-                Tables\Columns\TextColumn::make('responsablePersona.telefono')
+                TextColumn::make('responsablePersona.telefono')
                     ->label('Tel. responsable')
                     ->formatStateUsing(fn ($state, Persona $record): string => $record->responsableIpnTelefono() ?: '-')
                     ->placeholder('-'),
 
-                Tables\Columns\TextColumn::make('ipnAulas.nombre')
+                TextColumn::make('ipnAulas.nombre')
                     ->label('Aulas')
                     ->badge()
                     ->separator(', ')
                     ->placeholder('-'),
             ])
             ->defaultSort('apellido')
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([]);
+            ->toolbarActions([]);
     }
 
     public static function getEloquentQuery(): Builder
@@ -150,9 +160,9 @@ class IpnNinoResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListIpnNinos::route('/'),
-            'create' => Pages\CreateIpnNino::route('/create'),
-            'edit' => Pages\EditIpnNino::route('/{record}/edit'),
+            'index' => ListIpnNinos::route('/'),
+            'create' => CreateIpnNino::route('/create'),
+            'edit' => EditIpnNino::route('/{record}/edit'),
         ];
     }
 

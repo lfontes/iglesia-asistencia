@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Persona;
 use App\Models\Asistencia;
 use App\Models\EventoFecha;
 use App\Models\Grupo;
@@ -20,27 +21,7 @@ class InvitationAudienceBuilder
      *   excluir_ya_asistieron_destino?:bool,
      *   excluir_ya_invitados_destino?:bool
      * }  $filters
-     * @return array{
-     *   rows:Collection<int, array{
-     *      persona_id:int,
-     *      nombre:string,
-     *      telefono:?string,
-     *      telefono_normalizado:?string,
-     *      sources:array<int, string>,
-     *      has_phone:bool,
-     *      already_attended_destination:bool,
-     *      already_invited_destination:bool,
-     *      eligible:bool
-     *   }>,
-     *   deliverable_people:Collection<int, \App\Models\Persona>,
-     *   stats:array{
-     *      total_unicos:int,
-     *      sin_telefono:int,
-     *      ya_asistieron_destino:int,
-     *      ya_invitados:int,
-     *      finales:int
-     *   }
-     * }
+     * @return array{rows: Collection<int, array{persona_id: int, nombre: string, telefono: ?string, telefono_normalizado: ?string, sources: array<int, string>, has_phone: bool, already_attended_destination: bool, already_invited_destination: bool, eligible: bool}>, deliverable_people: Collection<int, Persona>, stats: array{total_unicos: int, sin_telefono: int, ya_asistieron_destino: int, ya_invitados: int, finales: int}}
      */
     public function build(array $filters): array
     {
@@ -138,7 +119,7 @@ class InvitationAudienceBuilder
 
         return [
             'rows' => $rows,
-            'deliverable_people' => \App\Models\Persona::query()
+            'deliverable_people' => Persona::query()
                 ->whereIn('id', $deliverableIds)
                 ->get()
                 ->keyBy('id')

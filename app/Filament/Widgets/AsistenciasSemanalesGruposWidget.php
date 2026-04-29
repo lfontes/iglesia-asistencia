@@ -8,9 +8,9 @@ use Filament\Widgets\ChartWidget;
 
 class AsistenciasSemanalesGruposWidget extends ChartWidget
 {
-    protected static ?string $heading = 'Asistencias semanales a grupos de crecimiento';
+    protected ?string $heading = 'Asistencias semanales a grupos de crecimiento';
 
-    protected static ?string $description = 'Total de asistencias registradas por semana en los grupos de crecimiento.';
+    protected ?string $description = 'Total de asistencias registradas por semana en los grupos de crecimiento.';
 
     protected static ?int $sort = 2;
 

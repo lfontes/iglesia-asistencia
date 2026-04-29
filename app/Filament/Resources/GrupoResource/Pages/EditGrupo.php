@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\GrupoResource\Pages;
 
+use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
 use App\Filament\Resources\GrupoResource;
 use App\Models\Grupo;
 use App\Models\TipoGrupo;
@@ -36,11 +38,11 @@ class EditGrupo extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\Action::make('participacion')
+            Action::make('participacion')
                 ->label('Registrar participantes')
                 ->url(fn () => GrupoResource::getUrl('participacion', ['record' => $this->record]))
                 ->icon('heroicon-o-user-plus'),
-            Actions\DeleteAction::make(),
+            DeleteAction::make(),
         ];
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use Throwable;
 use App\Models\Grupo;
 use App\Services\AsistenciasPendientesService;
 use Carbon\Carbon;
@@ -57,7 +58,7 @@ class AsistenciasPendientesResumenWidget extends BaseWidget
             return filled($this->fecha)
                 ? Carbon::parse((string) $this->fecha)->startOfDay()
                 : now()->startOfDay();
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return now()->startOfDay();
         }
     }

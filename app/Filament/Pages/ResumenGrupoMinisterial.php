@@ -18,7 +18,7 @@ class ResumenGrupoMinisterial extends Page
 
     protected static ?string $slug = 'resumen-grupo-ministerial';
 
-    protected static string $view = 'filament.pages.resumen-grupo-ministerial';
+    protected string $view = 'filament.pages.resumen-grupo-ministerial';
 
     public ?int $grupo_id = null;
 

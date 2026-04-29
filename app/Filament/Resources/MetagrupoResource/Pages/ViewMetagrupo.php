@@ -2,6 +2,9 @@
 
 namespace App\Filament\Resources\MetagrupoResource\Pages;
 
+use Filament\Actions\EditAction;
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
 use App\Filament\Pages\ResumenAsistenciaGrupos;
 use App\Filament\Resources\MetagrupoResource;
 use App\Models\AsistenciaGrupo;
@@ -9,9 +12,7 @@ use App\Models\Persona;
 use App\Models\TipoGrupo;
 use Filament\Actions;
 use Filament\Infolists\Components\RepeatableEntry;
-use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
-use Filament\Infolists\Infolist;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Collection;
@@ -37,10 +38,10 @@ class ViewMetagrupo extends ViewRecord
             return [];
         }
 
-        return [Actions\EditAction::make()];
+        return [EditAction::make()];
     }
 
-    public function infolist(Infolist $infolist): Infolist
+    public function infolist(Schema $schema): Schema
     {
         return $infolist
             ->schema([

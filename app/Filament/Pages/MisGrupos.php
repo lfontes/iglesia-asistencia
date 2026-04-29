@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use Filament\Tables\Columns\TextColumn;
 use App\Filament\Resources\GrupoResource;
 use App\Models\Grupo;
 use Filament\Actions\Action;
@@ -17,9 +18,9 @@ class MisGrupos extends Page implements HasTable
 {
     use InteractsWithTable;
 
-    protected static ?string $navigationIcon = 'heroicon-o-user-group';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-user-group';
 
-    protected static ?string $navigationGroup = 'Liderazgo';
+    protected static string | \UnitEnum | null $navigationGroup = 'Liderazgo';
 
     protected static ?string $navigationLabel = 'Mis grupos';
 
@@ -29,7 +30,7 @@ class MisGrupos extends Page implements HasTable
 
     protected static ?string $slug = 'mis-grupos';
 
-    protected static string $view = 'filament.pages.mis-grupos';
+    protected string $view = 'filament.pages.mis-grupos';
 
     public static function canAccess(): bool
     {
@@ -65,36 +66,36 @@ class MisGrupos extends Page implements HasTable
             ->defaultSort('nombre')
             ->paginated(false)
             ->columns([
-                Tables\Columns\TextColumn::make('nombre')
+                TextColumn::make('nombre')
                     ->label('Grupo')
                     ->searchable()
                     ->sortable()
                     ->weight('medium'),
-                Tables\Columns\TextColumn::make('tipoGrupo.nombre')
+                TextColumn::make('tipoGrupo.nombre')
                     ->label('Tipo')
                     ->badge()
                     ->placeholder('-'),
-                Tables\Columns\TextColumn::make('lider_nombre_completo')
+                TextColumn::make('lider_nombre_completo')
                     ->label('Líder')
                     ->state(fn (Grupo $record): string => $record->lider ? trim($record->lider->apellido.' '.$record->lider->nombre) : '-')
                     ->placeholder('-'),
-                Tables\Columns\TextColumn::make('integrantes_activos')
+                TextColumn::make('integrantes_activos')
                     ->label('Integrantes activos')
                     ->badge()
                     ->color('gray')
                     ->alignCenter(),
-                Tables\Columns\TextColumn::make('anio')
+                TextColumn::make('anio')
                     ->label('Año')
                     ->badge()
                     ->color('primary')
                     ->alignCenter(),
             ])
-            ->actions([
-                Tables\Actions\Action::make('editar')
+            ->recordActions([
+                Action::make('editar')
                     ->label('Editar')
                     ->icon('heroicon-o-pencil-square')
                     ->url(fn (Grupo $record): string => $this->getEditUrl($record)),
-                Tables\Actions\Action::make('participantes')
+                Action::make('participantes')
                     ->label('Participantes')
                     ->icon('heroicon-o-user-plus')
                     ->color('warning')

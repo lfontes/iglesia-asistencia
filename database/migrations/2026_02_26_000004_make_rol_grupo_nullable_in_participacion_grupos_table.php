@@ -49,12 +49,24 @@ return new class extends Migration
             if ($this->mysqlIndexExists('participacion_grupos', 'persona_grupo_rol_anio_unique')) {
                 DB::statement('ALTER TABLE participacion_grupos DROP INDEX persona_grupo_rol_anio_unique');
             }
+            if ($this->mysqlConstraintExists('participacion_grupos', 'participacion_grupos_rol_grupo_id_foreign')) {
+                DB::statement('ALTER TABLE participacion_grupos DROP FOREIGN KEY participacion_grupos_rol_grupo_id_foreign');
+            }
             DB::statement('ALTER TABLE participacion_grupos MODIFY rol_grupo_id BIGINT UNSIGNED NULL');
-            if (! $this->mysqlColumnExists('participacion_grupos', 'rol_grupo_id_unique')) {
-                DB::statement('ALTER TABLE participacion_grupos ADD rol_grupo_id_unique BIGINT GENERATED ALWAYS AS (IFNULL(rol_grupo_id, 0)) STORED');
+            if ($this->mysqlIndexExists('participacion_grupos', 'participacion_grupos_unique_rol_anio')) {
+                DB::statement('DROP INDEX participacion_grupos_unique_rol_anio ON participacion_grupos');
+            }
+            if ($this->mysqlColumnExists('participacion_grupos', 'rol_grupo_id_unique')) {
+                DB::statement('ALTER TABLE participacion_grupos DROP COLUMN rol_grupo_id_unique');
             }
             if (! $this->mysqlIndexExists('participacion_grupos', 'participacion_grupos_unique_rol_anio')) {
-                DB::statement('CREATE UNIQUE INDEX participacion_grupos_unique_rol_anio ON participacion_grupos (persona_id, grupo_id, rol_grupo_id_unique, anio)');
+                DB::statement('CREATE UNIQUE INDEX participacion_grupos_unique_rol_anio ON participacion_grupos (persona_id, grupo_id, ((IFNULL(rol_grupo_id, 0))), anio)');
+            }
+            if (! $this->mysqlIndexExists('participacion_grupos', 'participacion_grupos_rol_grupo_id_foreign')) {
+                DB::statement('CREATE INDEX participacion_grupos_rol_grupo_id_foreign ON participacion_grupos (rol_grupo_id)');
+            }
+            if (! $this->mysqlConstraintExists('participacion_grupos', 'participacion_grupos_rol_grupo_id_foreign')) {
+                DB::statement('ALTER TABLE participacion_grupos ADD CONSTRAINT participacion_grupos_rol_grupo_id_foreign FOREIGN KEY (rol_grupo_id) REFERENCES rol_grupos(id) ON DELETE SET NULL');
             }
 
             return;
@@ -80,7 +92,11 @@ return new class extends Migration
             if ($this->mysqlColumnExists('participacion_grupos', 'rol_grupo_id_unique')) {
                 DB::statement('ALTER TABLE participacion_grupos DROP COLUMN rol_grupo_id_unique');
             }
+            if ($this->mysqlConstraintExists('participacion_grupos', 'participacion_grupos_rol_grupo_id_foreign')) {
+                DB::statement('ALTER TABLE participacion_grupos DROP FOREIGN KEY participacion_grupos_rol_grupo_id_foreign');
+            }
             DB::statement('ALTER TABLE participacion_grupos MODIFY rol_grupo_id BIGINT UNSIGNED NOT NULL');
+            DB::statement('ALTER TABLE participacion_grupos ADD CONSTRAINT participacion_grupos_rol_grupo_id_foreign FOREIGN KEY (rol_grupo_id) REFERENCES rol_grupos(id) ON DELETE CASCADE');
             DB::statement('ALTER TABLE participacion_grupos ADD CONSTRAINT persona_grupo_rol_anio_unique UNIQUE (persona_id, grupo_id, rol_grupo_id, anio)');
             if ($this->mysqlIndexExists('participacion_grupos', 'participacion_grupos_persona_id_index')) {
                 DB::statement('DROP INDEX participacion_grupos_persona_id_index ON participacion_grupos');

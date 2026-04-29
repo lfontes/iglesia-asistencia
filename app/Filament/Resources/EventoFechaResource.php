@@ -2,6 +2,18 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Textarea;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Actions\EditAction;
+use Filament\Actions\Action;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\EventoFechaResource\Pages\ListEventoFechas;
+use App\Filament\Resources\EventoFechaResource\Pages\CreateEventoFecha;
+use App\Filament\Resources\EventoFechaResource\Pages\EditEventoFecha;
+use App\Filament\Resources\EventoFechaResource\Pages\TomarAsistencia;
 use App\Filament\Resources\EventoFechaResource\Pages;
 use App\Filament\Resources\EventoFechaResource\RelationManagers\AsistenciasRelationManager;
 use App\Filament\Resources\EventoFechaResource\RelationManagers\InscripcionesRelationManager;
@@ -10,7 +22,6 @@ use App\Models\EventoFecha;
 use App\Models\EventoInscripcion;
 use App\Models\WhatsAppMessage;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -20,7 +31,7 @@ class EventoFechaResource extends Resource
 {
     protected static ?string $model = EventoFecha::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-stack';
 
     protected static ?string $navigationLabel = 'Fechas de evento';
 
@@ -30,19 +41,19 @@ class EventoFechaResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Select::make('evento_id')
+        return $schema
+            ->components([
+                Select::make('evento_id')
                     ->relationship('evento', 'nombre')
                     ->required()
                     ->searchable(),
 
-                Forms\Components\DatePicker::make('fecha')
+                DatePicker::make('fecha')
                     ->required(),
 
-                Forms\Components\Textarea::make('observaciones')
+                Textarea::make('observaciones')
                     ->columnSpanFull(),
             ]);
     }
@@ -51,33 +62,33 @@ class EventoFechaResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('evento.nombre')
+                TextColumn::make('evento.nombre')
                     ->label('Evento')
                     ->sortable()
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('fecha')
+                TextColumn::make('fecha')
                     ->date()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('asistencias_count')
+                TextColumn::make('asistencias_count')
                     ->counts('asistencias')
                     ->label('Asistentes'),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\Action::make('asistencia')
+            ->recordActions([
+                EditAction::make(),
+                Action::make('asistencia')
                     ->label('Tomar Asistencia')
                     ->url(fn ($record) => EventoFechaResource::getUrl('asistencia', [
                         'record' => $record,
                     ]))
                     ->icon('heroicon-o-check'),
-                Tables\Actions\Action::make('inscripcion_publica')
+                Action::make('inscripcion_publica')
                     ->label('Formulario público')
                     ->url(fn (EventoFecha $record): string => $record->publicInscriptionUrl())
                     ->openUrlInNewTab()
                     ->icon('heroicon-o-arrow-top-right-on-square'),
-                Tables\Actions\Action::make('recordatorio_whatsapp')
+                Action::make('recordatorio_whatsapp')
                     ->label('Recordatorio WhatsApp')
                     ->icon('heroicon-o-chat-bubble-left-right')
                     ->color('warning')
@@ -86,8 +97,8 @@ class EventoFechaResource extends Resource
                     ->modalDescription(fn (EventoFecha $record): string => static::buildRecordatorioDescription($record))
                     ->action(fn (EventoFecha $record) => static::enviarRecordatorioWhatsapp($record)),
             ])
-            ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                DeleteBulkAction::make(),
             ]);
 
     }
@@ -105,10 +116,10 @@ class EventoFechaResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListEventoFechas::route('/'),
-            'create' => Pages\CreateEventoFecha::route('/create'),
-            'edit' => Pages\EditEventoFecha::route('/{record}/edit'),
-            'asistencia' => Pages\TomarAsistencia::route('/{record}/asistencia'),
+            'index' => ListEventoFechas::route('/'),
+            'create' => CreateEventoFecha::route('/create'),
+            'edit' => EditEventoFecha::route('/{record}/edit'),
+            'asistencia' => TomarAsistencia::route('/{record}/asistencia'),
         ];
     }
 

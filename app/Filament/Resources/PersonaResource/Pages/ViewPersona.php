@@ -2,6 +2,11 @@
 
 namespace App\Filament\Resources\PersonaResource\Pages;
 
+use Filament\Actions\SelectAction;
+use Filament\Actions\EditAction;
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Illuminate\Support\Carbon;
 use App\Filament\Pages\ResumenAsistenciaGrupos;
 use App\Filament\Resources\PersonaResource;
 use App\Filament\Widgets\PersonaPerfilStatsWidget;
@@ -11,9 +16,7 @@ use App\Models\IpnAulaServidor;
 use App\Models\ParticipacionGrupo;
 use Filament\Actions;
 use Filament\Infolists\Components\RepeatableEntry;
-use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
-use Filament\Infolists\Infolist;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Support\Collection;
 use Illuminate\Support\HtmlString;
@@ -38,10 +41,10 @@ class ViewPersona extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\SelectAction::make('periodo')
+            SelectAction::make('periodo')
                 ->label('Periodo')
                 ->options(fn (): array => $this->getPeriodoOptions()),
-            Actions\EditAction::make(),
+            EditAction::make(),
         ];
     }
 
@@ -55,7 +58,7 @@ class ViewPersona extends ViewRecord
         ];
     }
 
-    public function infolist(Infolist $infolist): Infolist
+    public function infolist(Schema $schema): Schema
     {
         return $infolist
             ->schema([
@@ -366,7 +369,7 @@ class ViewPersona extends ViewRecord
             ->map(fn (Asistencia $row): array => [
                 'evento' => $row->eventoFecha?->evento?->nombre ?? '-',
                 'fecha' => $row->eventoFecha?->fecha
-                    ? \Illuminate\Support\Carbon::parse($row->eventoFecha->fecha)->format('d/m/Y')
+                    ? Carbon::parse($row->eventoFecha->fecha)->format('d/m/Y')
                     : '-',
             ])
             ->all();

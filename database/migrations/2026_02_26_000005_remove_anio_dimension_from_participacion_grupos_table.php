@@ -18,7 +18,7 @@ return new class extends Migration
         if ($this->isMysql()) {
             DB::statement('DROP INDEX participacion_grupos_unique_rol_anio ON participacion_grupos');
             DB::statement('ALTER TABLE participacion_grupos MODIFY anio SMALLINT UNSIGNED NULL');
-            DB::statement('CREATE UNIQUE INDEX participacion_grupos_unique_rol ON participacion_grupos (persona_id, grupo_id, rol_grupo_id_unique)');
+            DB::statement('CREATE UNIQUE INDEX participacion_grupos_unique_rol ON participacion_grupos (persona_id, grupo_id, ((IFNULL(rol_grupo_id, 0))))');
 
             return;
         }
@@ -39,7 +39,7 @@ return new class extends Migration
             DB::statement('DROP INDEX participacion_grupos_unique_rol ON participacion_grupos');
             DB::statement('UPDATE participacion_grupos SET anio = YEAR(CURDATE()) WHERE anio IS NULL');
             DB::statement('ALTER TABLE participacion_grupos MODIFY anio SMALLINT UNSIGNED NOT NULL');
-            DB::statement('CREATE UNIQUE INDEX participacion_grupos_unique_rol_anio ON participacion_grupos (persona_id, grupo_id, rol_grupo_id_unique, anio)');
+            DB::statement('CREATE UNIQUE INDEX participacion_grupos_unique_rol_anio ON participacion_grupos (persona_id, grupo_id, ((IFNULL(rol_grupo_id, 0))), anio)');
 
             return;
         }

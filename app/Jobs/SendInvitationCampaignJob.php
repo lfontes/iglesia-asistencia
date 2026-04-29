@@ -2,6 +2,8 @@
 
 namespace App\Jobs;
 
+use RuntimeException;
+use Throwable;
 use App\Models\EventoFecha;
 use App\Models\WhatsAppBulkDispatch;
 use App\Services\InvitationAudienceBuilder;
@@ -74,10 +76,10 @@ class SendInvitationCampaignJob implements ShouldQueue
             } catch (RequestException $exception) {
                 $fallidos++;
                 $detalles[] = $row['nombre'] . ': ' . (string) ($exception->response?->json('error.message') ?? $exception->getMessage());
-            } catch (\RuntimeException $exception) {
+            } catch (RuntimeException $exception) {
                 $omitidos++;
                 $detalles[] = $row['nombre'] . ': ' . $exception->getMessage();
-            } catch (\Throwable $exception) {
+            } catch (Throwable $exception) {
                 report($exception);
                 $fallidos++;
                 $detalles[] = $row['nombre'] . ': ' . $exception->getMessage();

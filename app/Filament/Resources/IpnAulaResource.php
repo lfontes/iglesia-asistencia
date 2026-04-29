@@ -2,12 +2,22 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Textarea;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Actions\EditAction;
+use App\Filament\Resources\IpnAulaResource\Pages\ListIpnAulas;
+use App\Filament\Resources\IpnAulaResource\Pages\CreateIpnAula;
+use App\Filament\Resources\IpnAulaResource\Pages\EditIpnAula;
 use App\Filament\Resources\IpnAulaResource\Pages;
 use App\Filament\Resources\IpnAulaResource\RelationManagers\NinosRelationManager;
 use App\Filament\Resources\IpnAulaResource\RelationManagers\ServidoresRelationManager;
 use App\Models\IpnAula;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -17,7 +27,7 @@ class IpnAulaResource extends Resource
 {
     protected static ?string $model = IpnAula::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-academic-cap';
 
     protected static ?string $navigationLabel = 'Aulas';
 
@@ -25,35 +35,35 @@ class IpnAulaResource extends Resource
 
     protected static ?string $pluralModelLabel = 'aulas IPN';
 
-    protected static ?string $navigationGroup = 'IPN';
+    protected static string | \UnitEnum | null $navigationGroup = 'IPN';
 
     protected static ?int $navigationSort = 3;
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\TextInput::make('nombre')
+        return $schema
+            ->components([
+                TextInput::make('nombre')
                     ->required()
                     ->maxLength(255),
 
-                Forms\Components\TextInput::make('edad_desde')
+                TextInput::make('edad_desde')
                     ->label('Edad desde')
                     ->numeric()
                     ->minValue(0)
                     ->maxValue(18),
 
-                Forms\Components\TextInput::make('edad_hasta')
+                TextInput::make('edad_hasta')
                     ->label('Edad hasta')
                     ->numeric()
                     ->minValue(0)
                     ->maxValue(18),
 
-                Forms\Components\Toggle::make('activo')
+                Toggle::make('activo')
                     ->default(true)
                     ->required(),
 
-                Forms\Components\Textarea::make('descripcion')
+                Textarea::make('descripcion')
                     ->rows(3)
                     ->columnSpanFull(),
             ]);
@@ -63,35 +73,35 @@ class IpnAulaResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('nombre')
+                TextColumn::make('nombre')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('rango_edad')
+                TextColumn::make('rango_edad')
                     ->label('Rango de edad')
                     ->state(fn (IpnAula $record): string => $record->rangoEdadLabel()),
 
-                Tables\Columns\TextColumn::make('participaciones_activas_count')
+                TextColumn::make('participaciones_activas_count')
                     ->label('Niños activos')
                     ->counts('participacionesActivas')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('servidores_activos_count')
+                TextColumn::make('servidores_activos_count')
                     ->label('Servidores')
                     ->counts('servidoresActivos')
                     ->sortable(),
 
-                Tables\Columns\IconColumn::make('activo')
+                IconColumn::make('activo')
                     ->boolean(),
             ])
             ->defaultSort('nombre')
             ->filters([
-                Tables\Filters\TernaryFilter::make('activo'),
+                TernaryFilter::make('activo'),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([]);
+            ->toolbarActions([]);
     }
 
     public static function getEloquentQuery(): Builder
@@ -121,9 +131,9 @@ class IpnAulaResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListIpnAulas::route('/'),
-            'create' => Pages\CreateIpnAula::route('/create'),
-            'edit' => Pages\EditIpnAula::route('/{record}/edit'),
+            'index' => ListIpnAulas::route('/'),
+            'create' => CreateIpnAula::route('/create'),
+            'edit' => EditIpnAula::route('/{record}/edit'),
         ];
     }
 

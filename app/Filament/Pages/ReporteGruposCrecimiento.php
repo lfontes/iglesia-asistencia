@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use Filament\Tables\Columns\TextColumn;
 use App\Models\AsistenciaGrupo;
 use App\Models\Grupo;
 use App\Models\ParticipacionGrupo;
@@ -16,9 +17,9 @@ class ReporteGruposCrecimiento extends Page implements HasTable
 {
     use InteractsWithTable;
 
-    protected static ?string $navigationIcon = 'heroicon-o-chart-bar-square';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-chart-bar-square';
 
-    protected static ?string $navigationGroup = 'Asistencia';
+    protected static string | \UnitEnum | null $navigationGroup = 'Asistencia';
 
     protected static ?string $navigationLabel = 'Reporte grupos de crecimiento';
 
@@ -26,7 +27,7 @@ class ReporteGruposCrecimiento extends Page implements HasTable
 
     protected static ?string $title = 'Reporte grupos de crecimiento';
 
-    protected static string $view = 'filament.pages.reporte-grupos-crecimiento';
+    protected string $view = 'filament.pages.reporte-grupos-crecimiento';
 
     public static function canAccess(): bool
     {
@@ -48,30 +49,30 @@ class ReporteGruposCrecimiento extends Page implements HasTable
             ->emptyStateIcon('heroicon-o-user-group')
             ->defaultSort('nombre')
             ->columns([
-                Tables\Columns\TextColumn::make('nombre')
+                TextColumn::make('nombre')
                     ->label('Grupo')
                     ->searchable()
                     ->sortable()
                     ->weight('medium'),
-                Tables\Columns\TextColumn::make('participantes_count')
+                TextColumn::make('participantes_count')
                     ->label('Participantes')
                     ->badge()
                     ->color('gray')
                     ->alignCenter()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('reuniones_registradas_count')
+                TextColumn::make('reuniones_registradas_count')
                     ->label('Reuniones registradas')
                     ->badge()
                     ->color('primary')
                     ->alignCenter()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('frecuencia_asistencia')
+                TextColumn::make('frecuencia_asistencia')
                     ->label('Frecuencia')
                     ->formatStateUsing(fn (?string $state): string => Grupo::frecuenciasAsistencia()[$state] ?? '-')
                     ->badge()
                     ->color('gray')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('promedio_asistencia')
+                TextColumn::make('promedio_asistencia')
                     ->label('% promedio de asistencia')
                     ->state(fn (Grupo $record): string => $this->formatPromedioAsistencia($record))
                     ->badge()

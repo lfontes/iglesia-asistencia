@@ -2,10 +2,19 @@
 
 namespace App\Filament\Resources\IpnAulaResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Textarea;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Actions\Action;
+use Filament\Forms\Components\Select;
+use Filament\Actions\EditAction;
 use App\Models\IpnAulaServidor;
 use App\Models\Persona;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
@@ -18,23 +27,23 @@ class ServidoresRelationManager extends RelationManager
 
     protected static ?string $title = 'Maestros / servidores';
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\TextInput::make('rol')
+        return $schema->components([
+            TextInput::make('rol')
                 ->label('Rol en el aula')
                 ->placeholder('Maestro, ayudante, servidor')
                 ->maxLength(100),
-            Forms\Components\DatePicker::make('fecha_inicio')
+            DatePicker::make('fecha_inicio')
                 ->label('Fecha de inicio')
                 ->native(false),
-            Forms\Components\DatePicker::make('fecha_fin')
+            DatePicker::make('fecha_fin')
                 ->label('Fecha de fin')
                 ->native(false),
-            Forms\Components\Toggle::make('activo')
+            Toggle::make('activo')
                 ->default(true)
                 ->required(),
-            Forms\Components\Textarea::make('observaciones')
+            Textarea::make('observaciones')
                 ->rows(3)
                 ->columnSpanFull(),
         ]);
@@ -45,42 +54,42 @@ class ServidoresRelationManager extends RelationManager
         return $table
             ->defaultSort('persona.apellido')
             ->columns([
-                Tables\Columns\TextColumn::make('persona.id')
+                TextColumn::make('persona.id')
                     ->label('Persona ID')
                     ->sortable()
                     ->searchable(),
-                Tables\Columns\TextColumn::make('persona.apellido')
+                TextColumn::make('persona.apellido')
                     ->label('Apellido')
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query->whereHas(
                         'persona',
                         fn (Builder $personaQuery) => $personaQuery->buscarPorNombreApellido($search)
                     ))
                     ->sortable(),
-                Tables\Columns\TextColumn::make('persona.nombre')
+                TextColumn::make('persona.nombre')
                     ->label('Nombre')
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query->whereHas(
                         'persona',
                         fn (Builder $personaQuery) => $personaQuery->buscarPorNombreApellido($search)
                     ))
                     ->sortable(),
-                Tables\Columns\TextColumn::make('rol')
+                TextColumn::make('rol')
                     ->label('Rol')
                     ->placeholder('-'),
-                Tables\Columns\IconColumn::make('activo')
+                IconColumn::make('activo')
                     ->boolean(),
-                Tables\Columns\TextColumn::make('fecha_inicio')
+                TextColumn::make('fecha_inicio')
                     ->label('Inicio')
                     ->date(),
-                Tables\Columns\TextColumn::make('fecha_fin')
+                TextColumn::make('fecha_fin')
                     ->label('Fin')
                     ->date(),
             ])
             ->headerActions([
-                Tables\Actions\Action::make('agregarServidor')
+                Action::make('agregarServidor')
                     ->label('Agregar maestro / servidor')
                     ->icon('heroicon-o-user-plus')
-                    ->form([
-                        Forms\Components\Select::make('persona_id')
+                    ->schema([
+                        Select::make('persona_id')
                             ->label('Persona')
                             ->searchable()
                             ->getSearchResultsUsing(fn (string $search): array => Persona::query()
@@ -99,20 +108,20 @@ class ServidoresRelationManager extends RelationManager
                                 return $persona ? $this->personaLabel($persona) : null;
                             })
                             ->required(),
-                        Forms\Components\TextInput::make('rol')
+                        TextInput::make('rol')
                             ->label('Rol en el aula')
                             ->placeholder('Maestro, ayudante, servidor')
                             ->maxLength(100),
-                        Forms\Components\DatePicker::make('fecha_inicio')
+                        DatePicker::make('fecha_inicio')
                             ->label('Fecha de inicio')
                             ->default(now()->toDateString())
                             ->native(false),
                     ])
                     ->action(fn (array $data): mixed => $this->agregarServidor($data)),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\Action::make('quitarServidor')
+            ->recordActions([
+                EditAction::make(),
+                Action::make('quitarServidor')
                     ->label('Quitar')
                     ->icon('heroicon-o-user-minus')
                     ->color('danger')
@@ -121,7 +130,7 @@ class ServidoresRelationManager extends RelationManager
                     ->modalDescription('La persona dejará de tener acceso operativo a esta aula como servidor IPN.')
                     ->action(fn (IpnAulaServidor $record): mixed => $this->quitarServidor($record)),
             ])
-            ->bulkActions([]);
+            ->toolbarActions([]);
     }
 
     protected function agregarServidor(array $data): void

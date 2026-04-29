@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Persona;
 use App\Models\User;
+use PHPUnit\Framework\Attributes\Test;
 use Spatie\Activitylog\Models\Activity;
 use Tests\TestCase;
 
@@ -20,7 +21,7 @@ class AuditingTest extends TestCase
         $this->actingAs($this->user);
     }
 
-    /** @test */
+    #[Test]
     public function it_logs_when_a_persona_is_created()
     {
         Activity::truncate();
@@ -35,7 +36,7 @@ class AuditingTest extends TestCase
         $this->assertEquals($this->user->id, $activity->causer_id);
     }
 
-    /** @test */
+    #[Test]
     public function it_logs_when_a_persona_is_updated()
     {
         Activity::truncate();
@@ -54,7 +55,7 @@ class AuditingTest extends TestCase
         $this->assertEquals('Nuevo Nombre', $activity->properties['new']['nombre']);
     }
 
-    /** @test */
+    #[Test]
     public function it_logs_when_a_persona_is_deleted()
     {
         Activity::truncate();
@@ -73,7 +74,7 @@ class AuditingTest extends TestCase
         $this->assertEquals($personaId, $activity->subject_id);
     }
 
-    /** @test */
+    #[Test]
     public function it_stores_user_information_in_activity_log()
     {
         Activity::truncate();
@@ -82,11 +83,11 @@ class AuditingTest extends TestCase
 
         $activity = Activity::first();
         $this->assertEquals($this->user->id, $activity->causer_id);
-        $this->assertIsNotNull($activity->causer);
+        $this->assertNotNull($activity->causer);
         $this->assertEquals($this->user->name, $activity->causer->name);
     }
 
-    /** @test */
+    #[Test]
     public function it_stores_original_values_in_activity_properties()
     {
         Activity::truncate();
@@ -113,7 +114,7 @@ class AuditingTest extends TestCase
         $this->assertEquals('Carlos', $properties['new']['nombre']);
     }
 
-    /** @test */
+    #[Test]
     public function it_retrieves_activities_for_a_specific_model()
     {
         Activity::truncate();
@@ -127,7 +128,7 @@ class AuditingTest extends TestCase
         $this->assertEquals($persona1->id, $activitiesForPersona1->first()->subject_id);
     }
 
-    /** @test */
+    #[Test]
     public function it_retrieves_activities_for_a_specific_user()
     {
         Activity::truncate();

@@ -2,6 +2,8 @@
 
 namespace App\Filament\Pages;
 
+use Filament\Tables\Columns\TextColumn;
+use Filament\Actions\Action;
 use App\Models\Grupo;
 use App\Models\TipoGrupo;
 use Filament\Pages\Page;
@@ -16,9 +18,9 @@ class MisGruposMinisteriales extends Page implements HasTable
 {
     use InteractsWithTable;
 
-    protected static ?string $navigationIcon = 'heroicon-o-users';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-users';
 
-    protected static ?string $navigationGroup = 'Liderazgo';
+    protected static string | \UnitEnum | null $navigationGroup = 'Liderazgo';
 
     protected static ?string $navigationLabel = 'Asistencia a grupos';
 
@@ -28,7 +30,7 @@ class MisGruposMinisteriales extends Page implements HasTable
 
     protected static ?string $slug = 'mis-grupos-ministeriales';
 
-    protected static string $view = 'filament.pages.mis-grupos-ministeriales';
+    protected string $view = 'filament.pages.mis-grupos-ministeriales';
 
     public static function canAccess(): bool
     {
@@ -54,34 +56,34 @@ class MisGruposMinisteriales extends Page implements HasTable
             ->defaultSort('nombre')
             ->paginated(false)
             ->columns([
-                Tables\Columns\TextColumn::make('nombre')
+                TextColumn::make('nombre')
                     ->label('Grupo')
                     ->searchable()
                     ->sortable()
                     ->weight('medium'),
-                Tables\Columns\TextColumn::make('tipoGrupo.nombre')
+                TextColumn::make('tipoGrupo.nombre')
                     ->label('Tipo')
                     ->badge()
                     ->placeholder('-'),
-                Tables\Columns\TextColumn::make('integrantes_activos')
+                TextColumn::make('integrantes_activos')
                     ->label('Integrantes activos')
                     ->badge()
                     ->color('gray')
                     ->alignCenter(),
-                Tables\Columns\TextColumn::make('en_crecimiento')
+                TextColumn::make('en_crecimiento')
                     ->label('En crecimiento')
                     ->badge()
                     ->color('success')
                     ->alignCenter(),
-                Tables\Columns\TextColumn::make('sin_crecimiento')
+                TextColumn::make('sin_crecimiento')
                     ->label('Sin crecimiento')
                     ->state(fn (Grupo $record): int => max(((int) $record->integrantes_activos) - ((int) $record->en_crecimiento), 0))
                     ->badge()
                     ->color('warning')
                     ->alignCenter(),
             ])
-            ->actions([
-                Tables\Actions\Action::make('verDetalle')
+            ->recordActions([
+                Action::make('verDetalle')
                     ->label('Ver detalle')
                     ->icon('heroicon-o-eye')
                     ->url(fn (Grupo $record): string => $this->getSummaryUrl($record)),

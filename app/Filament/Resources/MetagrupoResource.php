@@ -2,19 +2,34 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
+use Filament\Schemas\Components\Actions;
+use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Textarea;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Actions\ViewAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\MetagrupoResource\Pages\ListMetagrupos;
+use App\Filament\Resources\MetagrupoResource\Pages\CreateMetagrupo;
+use App\Filament\Resources\MetagrupoResource\Pages\ViewMetagrupo;
+use App\Filament\Resources\MetagrupoResource\Pages\EditMetagrupo;
+use App\Models\Grupo;
 use App\Filament\Resources\MetagrupoResource\Pages;
 use App\Models\Metagrupo;
 use App\Models\Persona;
 use App\Models\TipoGrupo;
 use Filament\Actions\Action as ModalAction;
 use Filament\Forms;
-use Filament\Forms\Components\Actions;
-use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Form;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -24,7 +39,7 @@ class MetagrupoResource extends Resource
 {
     protected static ?string $model = Metagrupo::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-group';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-group';
 
     protected static ?string $navigationLabel = 'Metagrupos';
 
@@ -32,19 +47,19 @@ class MetagrupoResource extends Resource
 
     protected static ?string $pluralModelLabel = 'metagrupos';
 
-    protected static ?string $navigationGroup = null;
+    protected static string | \UnitEnum | null $navigationGroup = null;
 
     protected static ?int $navigationSort = 4;
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\TextInput::make('nombre')
+        return $schema
+            ->components([
+                TextInput::make('nombre')
                     ->required()
                     ->maxLength(255),
 
-                Forms\Components\Select::make('lider_persona_id')
+                Select::make('lider_persona_id')
                     ->label('Líder')
                     ->relationship('lider', 'apellido')
                     ->searchable(['nombre', 'apellido', 'telefono'])
@@ -60,21 +75,21 @@ class MetagrupoResource extends Resource
                     ->default(null),
 
                 Actions::make([
-                    Action::make('abrirFiltros')
+                    ModalAction::make('abrirFiltros')
                         ->label('Filtros')
                         ->icon('heroicon-m-funnel')
                         ->modalHeading('Filtros')
                         ->modalSubmitActionLabel('Aplicar')
                         ->modalCancelActionLabel('Cerrar')
-                        ->form([
-                            Forms\Components\Select::make('tipo_grupo_filtro')
+                        ->schema([
+                            Select::make('tipo_grupo_filtro')
                                 ->label('Tipo de grupo')
                                 ->options(fn (): array => self::tiposGrupoOptions())
                                 ->searchable()
                                 ->preload()
                                 ->native(false)
                                 ->placeholder('Todos'),
-                            Forms\Components\Select::make('activo_filtro')
+                            Select::make('activo_filtro')
                                 ->label('Activo')
                                 ->options([
                                     '1' => 'Activos',
@@ -82,7 +97,7 @@ class MetagrupoResource extends Resource
                                 ])
                                 ->native(false)
                                 ->placeholder('Todos'),
-                            Forms\Components\Select::make('anio_filtro')
+                            Select::make('anio_filtro')
                                 ->label('Año')
                                 ->options(fn (): array => self::aniosGrupoOptions())
                                 ->native(false)
@@ -132,7 +147,7 @@ class MetagrupoResource extends Resource
                     })
                     ->columnSpanFull(),
 
-                Forms\Components\CheckboxList::make('grupos')
+                CheckboxList::make('grupos')
                     ->relationship(
                         'grupos',
                         'nombre',
@@ -157,11 +172,11 @@ class MetagrupoResource extends Resource
                     ->bulkToggleable()
                     ->required(),
 
-                Forms\Components\Toggle::make('activo')
+                Toggle::make('activo')
                     ->default(true)
                     ->required(),
 
-                Forms\Components\Textarea::make('descripcion')
+                Textarea::make('descripcion')
                     ->rows(3)
                     ->columnSpanFull(),
             ]);
@@ -171,41 +186,41 @@ class MetagrupoResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('nombre')
+                TextColumn::make('nombre')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('lider.apellido')
+                TextColumn::make('lider.apellido')
                     ->label('Líder')
                     ->formatStateUsing(fn ($state, Metagrupo $record): string => $record->lider ? trim($record->lider->apellido.' '.$record->lider->nombre) : '-')
                     ->searchable(['personas.apellido', 'personas.nombre'])
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('grupos_count')
+                TextColumn::make('grupos_count')
                     ->label('Grupos')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('personas_count')
+                TextColumn::make('personas_count')
                     ->label('Personas')
                     ->sortable(),
 
-                Tables\Columns\IconColumn::make('activo')
+                IconColumn::make('activo')
                     ->boolean(),
             ])
             ->defaultSort('nombre')
             ->filters([
-                Tables\Filters\TernaryFilter::make('activo'),
+                TernaryFilter::make('activo'),
             ])
-            ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                ViewAction::make(),
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                DeleteBulkAction::make(),
             ]);
     }
 
-    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
             ->with(['lider:id,nombre,apellido'])
@@ -215,10 +230,10 @@ class MetagrupoResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListMetagrupos::route('/'),
-            'create' => Pages\CreateMetagrupo::route('/create'),
-            'view' => Pages\ViewMetagrupo::route('/{record}'),
-            'edit' => Pages\EditMetagrupo::route('/{record}/edit'),
+            'index' => ListMetagrupos::route('/'),
+            'create' => CreateMetagrupo::route('/create'),
+            'view' => ViewMetagrupo::route('/{record}'),
+            'edit' => EditMetagrupo::route('/{record}/edit'),
         ];
     }
 
@@ -270,7 +285,7 @@ class MetagrupoResource extends Resource
      */
     protected static function aniosGrupoOptions(): array
     {
-        return \App\Models\Grupo::query()
+        return Grupo::query()
             ->whereNotNull('anio')
             ->distinct()
             ->orderByDesc('anio')

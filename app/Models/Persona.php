@@ -3,13 +3,19 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use Spatie\Activitylog\Models\Activity;
 
 class Persona extends Model
 {
+    /** @use HasFactory<\Database\Factories\PersonaFactory> */
+    use HasFactory;
+
     public const DEPARTAMENTOS_MENDOZA = [
         'Capital' => 'Capital',
         'General Alvear' => 'General Alvear',
@@ -100,6 +106,11 @@ class Persona extends Model
     public function asistencias()
     {
         return $this->hasMany(Asistencia::class);
+    }
+
+    public function activities(): MorphMany
+    {
+        return $this->morphMany(Activity::class, 'subject');
     }
 
     public function eventoInscripciones()

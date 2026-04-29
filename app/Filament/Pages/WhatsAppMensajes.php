@@ -8,9 +8,9 @@ use Illuminate\Database\Eloquent\Collection;
 
 class WhatsAppMensajes extends Page
 {
-    protected static ?string $navigationIcon = 'heroicon-o-chat-bubble-oval-left-ellipsis';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-chat-bubble-oval-left-ellipsis';
 
-    protected static ?string $navigationGroup = 'WhatsApp';
+    protected static string | \UnitEnum | null $navigationGroup = 'WhatsApp';
 
     protected static ?string $navigationLabel = 'Mensajes WhatsApp';
 
@@ -18,7 +18,7 @@ class WhatsAppMensajes extends Page
 
     protected static ?string $title = 'Mensajes WhatsApp';
 
-    protected static string $view = 'filament.pages.whatsapp-mensajes';
+    protected string $view = 'filament.pages.whatsapp-mensajes';
 
     public static function canAccess(): bool
     {

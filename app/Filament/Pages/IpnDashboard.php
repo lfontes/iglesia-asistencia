@@ -7,9 +7,9 @@ use Filament\Pages\Page;
 
 class IpnDashboard extends Page
 {
-    protected static ?string $navigationIcon = 'heroicon-o-home-modern';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-home-modern';
 
-    protected static ?string $navigationGroup = 'IPN';
+    protected static string | \UnitEnum | null $navigationGroup = 'IPN';
 
     protected static ?string $navigationLabel = 'Inicio IPN';
 
@@ -17,7 +17,7 @@ class IpnDashboard extends Page
 
     protected static ?string $title = 'Inicio IPN';
 
-    protected static string $view = 'filament.pages.ipn-dashboard';
+    protected string $view = 'filament.pages.ipn-dashboard';
 
     public static function canAccess(): bool
     {

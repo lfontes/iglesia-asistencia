@@ -2,22 +2,25 @@
 
 namespace App\Filament\Pages;
 
+use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\Select;
 use App\Models\AsistenciaGrupo;
 use App\Models\Grupo;
 use App\Models\ParticipacionGrupo;
 use Filament\Actions\Action;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Pages\Page;
 use Illuminate\Support\Collection;
 
-class ResumenAsistenciaGrupos extends Page implements Forms\Contracts\HasForms
+class ResumenAsistenciaGrupos extends Page implements HasForms
 {
-    use Forms\Concerns\InteractsWithForms;
+    use InteractsWithForms;
 
-    protected static ?string $navigationIcon = 'heroicon-o-chart-bar-square';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-chart-bar-square';
 
-    protected static ?string $navigationGroup = 'Asistencia';
+    protected static string | \UnitEnum | null $navigationGroup = 'Asistencia';
 
     protected static ?string $navigationLabel = 'Resumen de asistencias';
 
@@ -25,7 +28,7 @@ class ResumenAsistenciaGrupos extends Page implements Forms\Contracts\HasForms
 
     protected static ?string $title = 'Resumen de asistencias de grupos';
 
-    protected static string $view = 'filament.pages.resumen-asistencia-grupos';
+    protected string $view = 'filament.pages.resumen-asistencia-grupos';
 
     public ?int $grupo_id = null;
 
@@ -62,10 +65,10 @@ class ResumenAsistenciaGrupos extends Page implements Forms\Contracts\HasForms
         ]);
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\Select::make('grupo_id')
+        return $schema->components([
+            Select::make('grupo_id')
                 ->label('Grupo')
                 ->options(fn (): array => $this->getAvailableGroups())
                 ->searchable()

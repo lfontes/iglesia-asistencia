@@ -2,10 +2,17 @@
 
 namespace App\Filament\Resources\GrupoResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Toggle;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Actions\EditAction;
+use Filament\Actions\Action;
 use App\Models\AsistenciaGrupo;
 use App\Models\ParticipacionGrupo;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
@@ -18,16 +25,16 @@ class ParticipacionesGrupoRelationManager extends RelationManager
 
     protected static ?string $title = 'Personas Participantes';
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\Select::make('rol_grupo_id')
+        return $schema->components([
+            Select::make('rol_grupo_id')
                 ->label('Rol')
                 ->relationship('rolGrupo', 'nombre')
                 ->placeholder('Sin rol')
                 ->searchable()
                 ->preload(),
-            Forms\Components\Toggle::make('recibe_recordatorios')
+            Toggle::make('recibe_recordatorios')
                 ->label('Recibe recordatorios')
                 ->helperText('Usa esta marca para indicar qué facilitador debe recibir el recordatorio principal del grupo.'),
         ]);
@@ -38,7 +45,7 @@ class ParticipacionesGrupoRelationManager extends RelationManager
         return $table
             ->defaultSort('persona.apellido')
             ->columns([
-                Tables\Columns\TextColumn::make('persona.apellido')
+                TextColumn::make('persona.apellido')
                     ->label('Apellido')
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query->whereHas(
                         'persona',
@@ -46,7 +53,7 @@ class ParticipacionesGrupoRelationManager extends RelationManager
                     ))
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('persona.nombre')
+                TextColumn::make('persona.nombre')
                     ->label('Nombre')
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query->whereHas(
                         'persona',
@@ -54,35 +61,35 @@ class ParticipacionesGrupoRelationManager extends RelationManager
                     ))
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('rolGrupo.nombre')
+                TextColumn::make('rolGrupo.nombre')
                     ->label('Rol')
                     ->placeholder('-')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\IconColumn::make('recibe_recordatorios')
+                IconColumn::make('recibe_recordatorios')
                     ->label('Recordatorios')
                     ->boolean(),
 
-                Tables\Columns\TextColumn::make('fecha_inicio')
+                TextColumn::make('fecha_inicio')
                     ->label('Inicio')
                     ->date()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('fecha_fin')
+                TextColumn::make('fecha_fin')
                     ->label('Fin')
                     ->date()
                     ->sortable(),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('rol_grupo_id')
+                SelectFilter::make('rol_grupo_id')
                     ->label('Rol')
                     ->relationship('rolGrupo', 'nombre'),
             ])
             ->headerActions([])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\Action::make('eliminarDelGrupo')
+            ->recordActions([
+                EditAction::make(),
+                Action::make('eliminarDelGrupo')
                     ->label('Eliminar del grupo')
                     ->icon('heroicon-o-trash')
                     ->color('danger')
@@ -114,6 +121,6 @@ class ParticipacionesGrupoRelationManager extends RelationManager
                             ->send();
                     }),
             ])
-            ->bulkActions([]);
+            ->toolbarActions([]);
     }
 }

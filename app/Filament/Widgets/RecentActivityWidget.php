@@ -2,6 +2,8 @@
 
 namespace App\Filament\Widgets;
 
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
@@ -25,18 +27,18 @@ class RecentActivityWidget extends BaseWidget
                     ->limit(10)
             )
             ->columns([
-                Tables\Columns\TextColumn::make('description')
+                TextColumn::make('description')
                     ->label('Acción')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('subject_type')
+                TextColumn::make('subject_type')
                     ->label('Tipo')
                     ->formatStateUsing(fn ($state) => class_basename($state))
                     ->sortable(),
-                Tables\Columns\TextColumn::make('causer.name')
+                TextColumn::make('causer.name')
                     ->label('Usuario')
                     ->default('Sistema')
                     ->sortable(),
-                Tables\Columns\BadgeColumn::make('event')
+                BadgeColumn::make('event')
                     ->label('Evento')
                     ->colors([
                         'success' => 'created',
@@ -45,7 +47,7 @@ class RecentActivityWidget extends BaseWidget
                         'warning' => 'restored',
                     ])
                     ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Fecha')
                     ->dateTime('d/m/Y H:i')
                     ->sortable(),

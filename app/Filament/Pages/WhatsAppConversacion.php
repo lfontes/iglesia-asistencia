@@ -2,25 +2,32 @@
 
 namespace App\Filament\Pages;
 
+use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\Textarea;
+use Throwable;
+use App\Models\Persona;
+use App\Models\Grupo;
+use Illuminate\Support\Carbon;
 use App\Models\WhatsAppMessage;
 use App\Services\WhatsAppService;
 use Filament\Actions\Action;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
 
-class WhatsAppConversacion extends Page implements Forms\Contracts\HasForms
+class WhatsAppConversacion extends Page implements HasForms
 {
-    use Forms\Concerns\InteractsWithForms;
+    use InteractsWithForms;
 
     protected static bool $shouldRegisterNavigation = false;
 
     protected static ?string $title = 'Conversación WhatsApp';
 
-    protected static string $view = 'filament.pages.whatsapp-conversacion';
+    protected string $view = 'filament.pages.whatsapp-conversacion';
 
     public ?string $key = null;
 
@@ -42,10 +49,10 @@ class WhatsAppConversacion extends Page implements Forms\Contracts\HasForms
         return (bool) auth()->user()?->hasRole('admin');
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\Textarea::make('message')
+        return $schema->components([
+            Textarea::make('message')
                 ->label('Responder')
                 ->rows(4)
                 ->placeholder('Escribe una respuesta...')
@@ -86,13 +93,7 @@ class WhatsAppConversacion extends Page implements Forms\Contracts\HasForms
     }
 
     /**
-     * @return array{
-     *     persona: \App\Models\Persona|null,
-     *     grupo: \App\Models\Grupo|null,
-     *     telefono: string|null,
-     *     ultimo_momento: \Illuminate\Support\Carbon|null,
-     *     ventana_abierta: bool
-     * }|null
+     * @return array{persona: Persona|null, grupo: Grupo|null, telefono: string|null, ultimo_momento: Carbon|null, ventana_abierta: bool}|null
      */
     public function getConversationSummary(): ?array
     {
@@ -176,7 +177,7 @@ class WhatsAppConversacion extends Page implements Forms\Contracts\HasForms
                 ->body((string) ($exception->response?->json('error.message') ?? $exception->getMessage()))
                 ->danger()
                 ->send();
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             Notification::make()
                 ->title('Error al enviar la respuesta')
                 ->body($exception->getMessage())

@@ -2,9 +2,17 @@
 
 namespace App\Filament\Resources\EventoFechaResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Textarea;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Actions\CreateAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
 use App\Models\Persona;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -16,10 +24,10 @@ class AsistenciasRelationManager extends RelationManager
 
     protected static ?string $title = 'Asistencias';
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\Select::make('persona_id')
+        return $schema->components([
+            Select::make('persona_id')
                 ->label('Persona')
                 ->options(
                     Persona::query()
@@ -34,11 +42,11 @@ class AsistenciasRelationManager extends RelationManager
                 ->searchable()
                 ->required(),
 
-            Forms\Components\Toggle::make('presente')
+            Toggle::make('presente')
                 ->label('Presente')
                 ->default(true),
 
-            Forms\Components\Textarea::make('observaciones')
+            Textarea::make('observaciones')
                 ->columnSpanFull(),
         ]);
     }
@@ -47,7 +55,7 @@ class AsistenciasRelationManager extends RelationManager
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('persona.apellido')
+                TextColumn::make('persona.apellido')
                     ->label('Apellido')
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query->whereHas(
                         'persona',
@@ -55,7 +63,7 @@ class AsistenciasRelationManager extends RelationManager
                     ))
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('persona.nombre')
+                TextColumn::make('persona.nombre')
                     ->label('Nombre')
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query->whereHas(
                         'persona',
@@ -63,7 +71,7 @@ class AsistenciasRelationManager extends RelationManager
                     ))
                     ->sortable(),
 
-                Tables\Columns\IconColumn::make('presente')
+                IconColumn::make('presente')
                     ->boolean()
                     ->trueColor('success')
                     ->falseColor('danger')
@@ -71,15 +79,15 @@ class AsistenciasRelationManager extends RelationManager
                     ->falseIcon('heroicon-o-x-circle')
                     ->size('sm'),
 
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->dateTime(),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make(),
+                CreateAction::make(),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ]);
     }
 }

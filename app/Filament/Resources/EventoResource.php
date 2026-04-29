@@ -2,12 +2,23 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Textarea;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\EventoResource\Pages\ListEventos;
+use App\Filament\Resources\EventoResource\Pages\CreateEvento;
+use App\Filament\Resources\EventoResource\Pages\EditEvento;
 use App\Filament\Resources\EventoFechaResource\Pages\TomarAsistencia;
 use App\Filament\Resources\EventoResource\Pages;
 use App\Filament\Resources\EventoResource\RelationManagers\FechasRelationManager;
 use App\Models\Evento;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -17,7 +28,7 @@ class EventoResource extends Resource
 {
     protected static ?string $model = Evento::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-calendar-days';
 
     protected static ?string $navigationLabel = 'Eventos';
 
@@ -27,32 +38,32 @@ class EventoResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\TextInput::make('nombre')
+        return $schema
+            ->components([
+                TextInput::make('nombre')
                     ->required()
                     ->maxLength(255),
 
-                Forms\Components\Select::make('tipo_evento_id')
+                Select::make('tipo_evento_id')
                     ->label('Tipo de evento')
                     ->relationship('tipoEvento', 'nombre')
                     ->searchable()
                     ->preload()
                     ->createOptionForm([
-                        Forms\Components\TextInput::make('nombre')
+                        TextInput::make('nombre')
                             ->required()
                             ->maxLength(255),
-                        Forms\Components\Toggle::make('activo')
+                        Toggle::make('activo')
                             ->default(true)
                             ->required(),
-                        Forms\Components\Textarea::make('descripcion')
+                        Textarea::make('descripcion')
                             ->rows(3)
                             ->columnSpanFull(),
                     ]),
 
-                Forms\Components\Textarea::make('descripcion')
+                Textarea::make('descripcion')
                     ->rows(3)
                     ->columnSpanFull(),
             ]);
@@ -62,21 +73,21 @@ class EventoResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('nombre')
+                TextColumn::make('nombre')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('tipoEvento.nombre')
+                TextColumn::make('tipoEvento.nombre')
                     ->label('Tipo')
                     ->searchable()
                     ->sortable()
                     ->placeholder('-'),
 
-                Tables\Columns\TextColumn::make('fechas_count')
+                TextColumn::make('fechas_count')
                     ->counts('fechas')
                     ->label('Cantidad de Fechas'),
 
-                Tables\Columns\TextColumn::make('asistentes')
+                TextColumn::make('asistentes')
                     ->label('Asistentes')
                     ->state(function (Evento $record): string {
                         $fechas = $record->fechas;
@@ -95,20 +106,20 @@ class EventoResource extends Resource
                         return number_format($totalPresentes / $cantidadFechas, 2);
                     }),
 
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable(),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('tipo_evento_id')
+                SelectFilter::make('tipo_evento_id')
                     ->label('Tipo')
                     ->relationship('tipoEvento', 'nombre'),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                DeleteBulkAction::make(),
             ]);
     }
 
@@ -132,9 +143,9 @@ class EventoResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListEventos::route('/'),
-            'create' => Pages\CreateEvento::route('/create'),
-            'edit' => Pages\EditEvento::route('/{record}/edit'),
+            'index' => ListEventos::route('/'),
+            'create' => CreateEvento::route('/create'),
+            'edit' => EditEvento::route('/{record}/edit'),
             'asistencia' => TomarAsistencia::route('/{record}/asistencia'),
         ];
     }

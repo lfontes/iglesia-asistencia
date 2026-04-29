@@ -2,8 +2,18 @@
 
 namespace App\Filament\Resources\PersonaResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Textarea;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Actions\CreateAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -19,37 +29,37 @@ class ParticipacionesGrupoRelationManager extends RelationManager
         return false;
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Select::make('grupo_id')
+        return $schema
+            ->components([
+                Select::make('grupo_id')
                     ->label('Grupo')
                     ->relationship('grupo', 'nombre')
                     ->searchable()
                     ->preload()
                     ->required(),
 
-                Forms\Components\Select::make('rol_grupo_id')
+                Select::make('rol_grupo_id')
                     ->label('Rol')
                     ->relationship('rolGrupo', 'nombre')
                     ->placeholder('Sin rol')
                     ->searchable()
                     ->preload(),
 
-                Forms\Components\Toggle::make('recibe_recordatorios')
+                Toggle::make('recibe_recordatorios')
                     ->label('Recibe recordatorios')
                     ->helperText('Si esta persona facilita este grupo, esta marca la prioriza para recibir recordatorios.'),
 
-                Forms\Components\DatePicker::make('fecha_inicio')
+                DatePicker::make('fecha_inicio')
                     ->label('Fecha inicio')
                     ->native(false),
 
-                Forms\Components\DatePicker::make('fecha_fin')
+                DatePicker::make('fecha_fin')
                     ->label('Fecha fin')
                     ->native(false),
 
-                Forms\Components\Textarea::make('observaciones')
+                Textarea::make('observaciones')
                     ->columnSpanFull(),
             ]);
     }
@@ -59,52 +69,52 @@ class ParticipacionesGrupoRelationManager extends RelationManager
         return $table
             ->defaultSort('grupo.nombre')
             ->columns([
-                Tables\Columns\TextColumn::make('grupo.anio')
+                TextColumn::make('grupo.anio')
                     ->label('Anio')
                     ->placeholder('-')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('grupo.nombre')
+                TextColumn::make('grupo.nombre')
                     ->label('Grupo')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('grupo.tipoGrupo.nombre')
+                TextColumn::make('grupo.tipoGrupo.nombre')
                     ->label('Tipo de grupo')
                     ->placeholder('-')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('rolGrupo.nombre')
+                TextColumn::make('rolGrupo.nombre')
                     ->label('Rol')
                     ->placeholder('-')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\IconColumn::make('recibe_recordatorios')
+                IconColumn::make('recibe_recordatorios')
                     ->label('Recordatorios')
                     ->boolean(),
 
-                Tables\Columns\TextColumn::make('fecha_inicio')
+                TextColumn::make('fecha_inicio')
                     ->label('Inicio')
                     ->date()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('fecha_fin')
+                TextColumn::make('fecha_fin')
                     ->label('Fin')
                     ->date()
                     ->sortable(),
             ])
             ->filters([])
             ->headerActions([
-                Tables\Actions\CreateAction::make(),
+                CreateAction::make(),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                DeleteBulkAction::make(),
             ]);
     }
 }

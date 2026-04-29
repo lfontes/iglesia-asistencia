@@ -51,6 +51,7 @@ class AuditService
             ->performedOn($model)
             ->causedBy(auth()->user())
             ->withProperties($properties)
+            ->event($event)
             ->log($event);
     }
 

@@ -2,6 +2,11 @@
 
 namespace App\Filament\Resources\EventoFechaResource\Pages;
 
+use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
+use RuntimeException;
+use DateTimeInterface;
+use DateTime;
 use App\Filament\Resources\EventoFechaResource;
 use App\Models\Asistencia;
 use App\Models\EventoInscripcion;
@@ -24,10 +29,10 @@ class EditEventoFecha extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\Action::make('importar_inscriptos')
+            Action::make('importar_inscriptos')
                 ->label('Importar inscriptos (Excel)')
                 ->icon('heroicon-o-document-arrow-up')
-                ->form([
+                ->schema([
                     FileUpload::make('archivo_excel')
                         ->label('Archivo Excel')
                         ->acceptedFileTypes([
@@ -91,10 +96,10 @@ class EditEventoFecha extends EditRecord
                         ->success()
                         ->send();
                 }),
-            Actions\Action::make('importar_presentes')
+            Action::make('importar_presentes')
                 ->label('Importar presentes (Excel)')
                 ->icon('heroicon-o-arrow-up-tray')
-                ->form([
+                ->schema([
                     FileUpload::make('archivo_excel')
                         ->label('Archivo Excel')
                         ->acceptedFileTypes([
@@ -158,7 +163,7 @@ class EditEventoFecha extends EditRecord
                         ->success()
                         ->send();
                 }),
-            Actions\DeleteAction::make(),
+            DeleteAction::make(),
         ];
     }
 
@@ -219,7 +224,7 @@ class EditEventoFecha extends EditRecord
                         $headerMap = $this->buildHeaderMap($values);
 
                         if (! isset($headerMap['nombre'], $headerMap['apellido'])) {
-                            throw new \RuntimeException('El Excel debe incluir encabezados "nombre" y "apellido".');
+                            throw new RuntimeException('El Excel debe incluir encabezados "nombre" y "apellido".');
                         }
 
                         continue;
@@ -320,7 +325,7 @@ class EditEventoFecha extends EditRecord
         }
 
         if (! $sheetFound) {
-            throw new \RuntimeException('El archivo no contiene hojas para importar.');
+            throw new RuntimeException('El archivo no contiene hojas para importar.');
         }
 
         return $summary;
@@ -383,7 +388,7 @@ class EditEventoFecha extends EditRecord
                         $headerMap = $this->buildHeaderMap($values);
 
                         if (! isset($headerMap['nombre'], $headerMap['apellido'])) {
-                            throw new \RuntimeException('El Excel debe incluir encabezados "nombre" y "apellido".');
+                            throw new RuntimeException('El Excel debe incluir encabezados "nombre" y "apellido".');
                         }
 
                         continue;
@@ -472,7 +477,7 @@ class EditEventoFecha extends EditRecord
         }
 
         if (! $sheetFound) {
-            throw new \RuntimeException('El archivo no contiene hojas para importar.');
+            throw new RuntimeException('El archivo no contiene hojas para importar.');
         }
 
         return $summary;
@@ -555,7 +560,7 @@ class EditEventoFecha extends EditRecord
 
     protected function parseDate(mixed $value): ?string
     {
-        if ($value instanceof \DateTimeInterface) {
+        if ($value instanceof DateTimeInterface) {
             return $value->format('Y-m-d');
         }
 
@@ -572,9 +577,9 @@ class EditEventoFecha extends EditRecord
         $text = trim((string) $value);
 
         foreach (['d/m/Y', 'd-m-Y', 'Y-m-d', 'd/m/y', 'd-m-y'] as $format) {
-            $date = \DateTime::createFromFormat($format, $text);
+            $date = DateTime::createFromFormat($format, $text);
 
-            if ($date instanceof \DateTimeInterface) {
+            if ($date instanceof DateTimeInterface) {
                 return $date->format('Y-m-d');
             }
         }
@@ -792,7 +797,7 @@ class EditEventoFecha extends EditRecord
 
     protected function normalizeCandidateDate(mixed $value): ?string
     {
-        if ($value instanceof \DateTimeInterface) {
+        if ($value instanceof DateTimeInterface) {
             return $value->format('Y-m-d');
         }
 

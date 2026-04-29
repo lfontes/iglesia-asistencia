@@ -8,9 +8,9 @@ use Illuminate\Support\Collection;
 
 class WhatsAppConversaciones extends Page
 {
-    protected static ?string $navigationIcon = 'heroicon-o-chat-bubble-bottom-center-text';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-chat-bubble-bottom-center-text';
 
-    protected static ?string $navigationGroup = 'WhatsApp';
+    protected static string | \UnitEnum | null $navigationGroup = 'WhatsApp';
 
     protected static ?string $navigationLabel = 'Conversaciones';
 
@@ -18,7 +18,7 @@ class WhatsAppConversaciones extends Page
 
     protected static ?string $title = 'Conversaciones WhatsApp';
 
-    protected static string $view = 'filament.pages.whatsapp-conversaciones';
+    protected string $view = 'filament.pages.whatsapp-conversaciones';
 
     public static function canAccess(): bool
     {

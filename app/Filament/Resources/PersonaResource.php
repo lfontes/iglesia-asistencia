@@ -2,6 +2,13 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Actions\ViewAction;
+use Filament\Actions\EditAction;
+use App\Filament\Resources\PersonaResource\Pages\ListPersonas;
+use App\Filament\Resources\PersonaResource\Pages\CreatePersona;
+use App\Filament\Resources\PersonaResource\Pages\ViewPersona;
+use App\Filament\Resources\PersonaResource\Pages\EditPersona;
 use App\Filament\Resources\PersonaResource\Pages;
 use App\Filament\Resources\PersonaResource\RelationManagers\AsistenciasRelationManager;
 use App\Filament\Resources\PersonaResource\RelationManagers\IpnAulasServidorRelationManager;
@@ -10,7 +17,6 @@ use App\Models\Persona;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
@@ -21,7 +27,7 @@ class PersonaResource extends Resource
 {
     protected static ?string $model = Persona::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-user';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-user';
 
     protected static ?string $navigationLabel = 'Personas';
 
@@ -31,10 +37,10 @@ class PersonaResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 TextInput::make('nombre')
                     ->required()
                     ->maxLength(255),
@@ -95,9 +101,9 @@ class PersonaResource extends Resource
             ])
             ->recordClasses('persona-list-row-compact')
             ->defaultSort('apellido')
-            ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                ViewAction::make(),
+                EditAction::make(),
             ]);
     }
 
@@ -121,10 +127,10 @@ class PersonaResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListPersonas::route('/'),
-            'create' => Pages\CreatePersona::route('/create'),
-            'view' => Pages\ViewPersona::route('/{record}'),
-            'edit' => Pages\EditPersona::route('/{record}/edit'),
+            'index' => ListPersonas::route('/'),
+            'create' => CreatePersona::route('/create'),
+            'view' => ViewPersona::route('/{record}'),
+            'edit' => EditPersona::route('/{record}/edit'),
         ];
     }
 

@@ -2,23 +2,28 @@
 
 namespace App\Filament\Pages;
 
+use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\DatePicker;
 use App\Models\IpnAsistencia;
 use App\Models\IpnAula;
 use App\Models\IpnAulaPersona;
 use App\Models\Persona;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Pages\Page;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
-class IpnReporteAsistencia extends Page implements Forms\Contracts\HasForms
+class IpnReporteAsistencia extends Page implements HasForms
 {
-    use Forms\Concerns\InteractsWithForms;
+    use InteractsWithForms;
 
-    protected static ?string $navigationIcon = 'heroicon-o-chart-bar-square';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-chart-bar-square';
 
-    protected static ?string $navigationGroup = 'IPN';
+    protected static string | \UnitEnum | null $navigationGroup = 'IPN';
 
     protected static ?string $navigationLabel = 'Reporte de asistencia';
 
@@ -26,7 +31,7 @@ class IpnReporteAsistencia extends Page implements Forms\Contracts\HasForms
 
     protected static ?string $title = 'Reporte de asistencia IPN';
 
-    protected static string $view = 'filament.pages.ipn-reporte-asistencia';
+    protected string $view = 'filament.pages.ipn-reporte-asistencia';
 
     public ?int $ipn_aula_id = null;
 
@@ -63,28 +68,28 @@ class IpnReporteAsistencia extends Page implements Forms\Contracts\HasForms
         return static::canAccess();
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\Section::make('Filtro')
+        return $schema->components([
+            Section::make('Filtro')
                 ->schema([
-                    Forms\Components\Select::make('ipn_aula_id')
+                    Select::make('ipn_aula_id')
                         ->label('Aula')
                         ->placeholder('Selecciona un aula')
                         ->options(fn (): array => $this->aulasOptions())
                         ->searchable()
                         ->preload()
                         ->live(),
-                    Forms\Components\Select::make('persona_id')
+                    Select::make('persona_id')
                         ->label('Niño')
                         ->placeholder('Todos')
                         ->options(fn (): array => $this->ninosOptions())
                         ->searchable()
                         ->live(),
-                    Forms\Components\DatePicker::make('desde')
+                    DatePicker::make('desde')
                         ->label('Desde')
                         ->live(),
-                    Forms\Components\DatePicker::make('hasta')
+                    DatePicker::make('hasta')
                         ->label('Hasta')
                         ->live(),
                 ])

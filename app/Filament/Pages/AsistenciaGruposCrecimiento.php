@@ -2,6 +2,16 @@
 
 namespace App\Filament\Pages;
 
+use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\CheckboxList;
+use Filament\Actions\Action;
+use Filament\Forms\Components\TextInput;
+use Illuminate\Support\Collection;
 use App\Models\AsistenciaGrupo;
 use App\Models\Grupo;
 use App\Models\ParticipacionGrupo;
@@ -9,24 +19,23 @@ use App\Models\Persona;
 use App\Models\RolGrupo;
 use Filament\Actions;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Database\Eloquent\Builder;
 
-class AsistenciaGruposCrecimiento extends Page implements Forms\Contracts\HasForms
+class AsistenciaGruposCrecimiento extends Page implements HasForms
 {
-    use Forms\Concerns\InteractsWithForms;
+    use InteractsWithForms;
 
-    protected static ?string $navigationIcon = 'heroicon-o-check-badge';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-check-badge';
 
-    protected static ?string $navigationGroup = 'Asistencia';
+    protected static string | \UnitEnum | null $navigationGroup = 'Asistencia';
 
     protected static ?string $navigationLabel = 'Asistencia Gr. Crecimiento';
 
     protected static ?int $navigationSort = 17;
 
-    protected static string $view = 'filament.pages.asistencia-grupos-crecimiento';
+    protected string $view = 'filament.pages.asistencia-grupos-crecimiento';
 
     protected static ?string $title = 'Asistencia Grupos de Crecimiento';
 
@@ -56,12 +65,12 @@ class AsistenciaGruposCrecimiento extends Page implements Forms\Contracts\HasFor
         return static::canAccess();
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\Section::make('Filtro')
+        return $schema->components([
+            Section::make('Filtro')
                 ->schema([
-                    Forms\Components\Select::make('grupo_id')
+                    Select::make('grupo_id')
                         ->label('Grupo de crecimiento')
                         ->placeholder('Selecciona tu grupo')
                         ->required()
@@ -80,7 +89,7 @@ class AsistenciaGruposCrecimiento extends Page implements Forms\Contracts\HasFor
                             $this->refrescarAsistenciaCargada();
                         }),
 
-                    Forms\Components\DatePicker::make('fecha')
+                    DatePicker::make('fecha')
                         ->label('Fecha')
                         ->required()
                         ->default(now()->toDateString())
@@ -91,9 +100,9 @@ class AsistenciaGruposCrecimiento extends Page implements Forms\Contracts\HasFor
                 ])
                 ->columns(2),
 
-            Forms\Components\Section::make('Integrantes del grupo')
+            Section::make('Integrantes del grupo')
                 ->schema([
-                    Forms\Components\CheckboxList::make('presentes')
+                    CheckboxList::make('presentes')
                         ->label('Marcar presentes')
                         ->options(fn (): array => $this->integrantesOptions())
                         ->columns(2)
@@ -108,12 +117,12 @@ class AsistenciaGruposCrecimiento extends Page implements Forms\Contracts\HasFor
     protected function getHeaderActions(): array
     {
         return [
-            Actions\Action::make('agregarPersona')
+            Action::make('agregarPersona')
                 ->label('Agregar persona al grupo')
                 ->icon('heroicon-o-user-plus')
                 ->disabled(fn (): bool => blank($this->grupo_id))
-                ->form([
-                    Forms\Components\Select::make('persona_id')
+                ->schema([
+                    Select::make('persona_id')
                         ->label('Persona existente')
                         ->searchable()
                         ->preload(false)
@@ -138,23 +147,23 @@ class AsistenciaGruposCrecimiento extends Page implements Forms\Contracts\HasFor
                         })
                         ->helperText('Selecciona una persona existente o crea una nueva debajo.'),
 
-                    Forms\Components\TextInput::make('nombre')
+                    TextInput::make('nombre')
                         ->label('Nombre (nueva persona)')
                         ->maxLength(255),
 
-                    Forms\Components\TextInput::make('apellido')
+                    TextInput::make('apellido')
                         ->label('Apellido (nueva persona)')
                         ->maxLength(255),
 
-                    Forms\Components\TextInput::make('telefono')
+                    TextInput::make('telefono')
                         ->label('Telefono (opcional)')
                         ->maxLength(255),
 
-                    Forms\Components\DatePicker::make('fecha_nacimiento')
+                    DatePicker::make('fecha_nacimiento')
                         ->label('Fecha de nacimiento')
                         ->native(false),
 
-                    Forms\Components\Select::make('rol_grupo_id')
+                    Select::make('rol_grupo_id')
                         ->label('Rol en el grupo (opcional)')
                         ->placeholder('Sin rol')
                         ->searchable()
@@ -167,13 +176,13 @@ class AsistenciaGruposCrecimiento extends Page implements Forms\Contracts\HasFor
                 ->action(function (array $data): void {
                     $this->agregarPersonaAlGrupo($data);
                 }),
-            Actions\Action::make('quitarPersona')
+            Action::make('quitarPersona')
                 ->label('Quitar persona del grupo')
                 ->icon('heroicon-o-user-minus')
                 ->color('danger')
                 ->disabled(fn (): bool => blank($this->grupo_id))
-                ->form([
-                    Forms\Components\Select::make('persona_id')
+                ->schema([
+                    Select::make('persona_id')
                         ->label('Persona')
                         ->options(fn (): array => $this->integrantesOptions())
                         ->searchable()
@@ -372,9 +381,9 @@ class AsistenciaGruposCrecimiento extends Page implements Forms\Contracts\HasFor
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, array{id:int,label:string}>
+     * @return Collection<int, array{id: int, label: string}>
      */
-    public function integrantesActivos(): \Illuminate\Support\Collection
+    public function integrantesActivos(): Collection
     {
         $integrantesIds = $this->integrantesIds();
 

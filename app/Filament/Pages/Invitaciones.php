@@ -2,20 +2,26 @@
 
 namespace App\Filament\Pages;
 
+use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Toggle;
+use Illuminate\Support\Collection;
 use App\Jobs\SendInvitationCampaignJob;
 use App\Services\InvitationAudienceBuilder;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 
-class Invitaciones extends Page implements Forms\Contracts\HasForms
+class Invitaciones extends Page implements HasForms
 {
-    use Forms\Concerns\InteractsWithForms;
+    use InteractsWithForms;
 
-    protected static ?string $navigationIcon = 'heroicon-o-paper-airplane';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-paper-airplane';
 
-    protected static ?string $navigationGroup = 'WhatsApp';
+    protected static string | \UnitEnum | null $navigationGroup = 'WhatsApp';
 
     protected static ?string $navigationLabel = 'Invitaciones';
 
@@ -23,7 +29,7 @@ class Invitaciones extends Page implements Forms\Contracts\HasForms
 
     protected static ?string $title = 'Invitaciones';
 
-    protected static string $view = 'filament.pages.invitaciones';
+    protected string $view = 'filament.pages.invitaciones';
 
     /** @var array<int, int|string> */
     public array $evento_fecha_ids_origen = [];
@@ -61,21 +67,21 @@ class Invitaciones extends Page implements Forms\Contracts\HasForms
         return static::canAccess();
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
         $builder = app(InvitationAudienceBuilder::class);
 
-        return $form->schema([
-            Forms\Components\Section::make('Fuentes de audiencia')
+        return $schema->components([
+            Section::make('Fuentes de audiencia')
                 ->schema([
-                    Forms\Components\Select::make('evento_fecha_ids_origen')
+                    Select::make('evento_fecha_ids_origen')
                         ->label('Asistentes de eventos')
                         ->options($builder->getEventoFechaOptions())
                         ->multiple()
                         ->searchable()
                         ->preload()
                         ->live(),
-                    Forms\Components\Select::make('grupo_ids_origen')
+                    Select::make('grupo_ids_origen')
                         ->label('Miembros de grupos')
                         ->options($builder->getGrupoOptions())
                         ->multiple()
@@ -84,22 +90,22 @@ class Invitaciones extends Page implements Forms\Contracts\HasForms
                         ->live(),
                 ])
                 ->columns(2),
-            Forms\Components\Section::make('Destino y reglas')
+            Section::make('Destino y reglas')
                 ->schema([
-                    Forms\Components\Select::make('evento_fecha_id_destino')
+                    Select::make('evento_fecha_id_destino')
                         ->label('Evento destino')
                         ->options($builder->getEventoFechaOptions())
                         ->searchable()
                         ->preload()
                         ->required()
                         ->live(),
-                    Forms\Components\Toggle::make('excluir_sin_telefono')
+                    Toggle::make('excluir_sin_telefono')
                         ->label('Excluir sin telefono')
                         ->live(),
-                    Forms\Components\Toggle::make('excluir_ya_asistieron_destino')
+                    Toggle::make('excluir_ya_asistieron_destino')
                         ->label('Excluir quienes ya asistieron al destino')
                         ->live(),
-                    Forms\Components\Toggle::make('excluir_ya_invitados_destino')
+                    Toggle::make('excluir_ya_invitados_destino')
                         ->label('Excluir ya invitados al destino')
                         ->live(),
                 ])
@@ -108,11 +114,7 @@ class Invitaciones extends Page implements Forms\Contracts\HasForms
     }
 
     /**
-     * @return array{
-     *   rows:\Illuminate\Support\Collection,
-     *   deliverable_people:\Illuminate\Support\Collection,
-     *   stats:array<string, int>
-     * }
+     * @return array{rows: Collection, deliverable_people: Collection, stats: array<string, int>}
      */
     public function getAudiencePreview(): array
     {

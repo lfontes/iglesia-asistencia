@@ -2,11 +2,20 @@
 
 namespace App\Filament\Resources\IpnAulaResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Textarea;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Actions\Action;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Actions\EditAction;
 use App\Models\IpnAsistencia;
 use App\Models\IpnAulaPersona;
 use App\Models\Persona;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
@@ -19,19 +28,19 @@ class NinosRelationManager extends RelationManager
 
     protected static ?string $title = 'Niños del aula';
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\DatePicker::make('fecha_inicio')
+        return $schema->components([
+            DatePicker::make('fecha_inicio')
                 ->label('Fecha de inicio')
                 ->native(false),
-            Forms\Components\DatePicker::make('fecha_fin')
+            DatePicker::make('fecha_fin')
                 ->label('Fecha de fin')
                 ->native(false),
-            Forms\Components\Toggle::make('activo')
+            Toggle::make('activo')
                 ->default(true)
                 ->required(),
-            Forms\Components\Textarea::make('observaciones')
+            Textarea::make('observaciones')
                 ->rows(3)
                 ->columnSpanFull(),
         ]);
@@ -42,46 +51,46 @@ class NinosRelationManager extends RelationManager
         return $table
             ->defaultSort('persona.apellido')
             ->columns([
-                Tables\Columns\TextColumn::make('persona.id')
+                TextColumn::make('persona.id')
                     ->label('Persona ID')
                     ->sortable()
                     ->searchable(),
-                Tables\Columns\TextColumn::make('persona.apellido')
+                TextColumn::make('persona.apellido')
                     ->label('Apellido')
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query->whereHas(
                         'persona',
                         fn (Builder $personaQuery) => $personaQuery->buscarPorNombreApellido($search)
                     ))
                     ->sortable(),
-                Tables\Columns\TextColumn::make('persona.nombre')
+                TextColumn::make('persona.nombre')
                     ->label('Nombre')
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query->whereHas(
                         'persona',
                         fn (Builder $personaQuery) => $personaQuery->buscarPorNombreApellido($search)
                     ))
                     ->sortable(),
-                Tables\Columns\TextColumn::make('persona.edad')
+                TextColumn::make('persona.edad')
                     ->label('Edad')
                     ->formatStateUsing(fn (?int $state): string => $state !== null ? "{$state} años" : '-'),
-                Tables\Columns\TextColumn::make('persona.responsablePersona.apellido')
+                TextColumn::make('persona.responsablePersona.apellido')
                     ->label('Responsable')
                     ->formatStateUsing(fn ($state, IpnAulaPersona $record): string => $record->persona?->responsableIpnLabel() ?: '-')
                     ->placeholder('-'),
-                Tables\Columns\IconColumn::make('activo')
+                IconColumn::make('activo')
                     ->boolean(),
-                Tables\Columns\TextColumn::make('fecha_inicio')
+                TextColumn::make('fecha_inicio')
                     ->label('Inicio')
                     ->date(),
-                Tables\Columns\TextColumn::make('fecha_fin')
+                TextColumn::make('fecha_fin')
                     ->label('Fin')
                     ->date(),
             ])
             ->headerActions([
-                Tables\Actions\Action::make('agregarNino')
+                Action::make('agregarNino')
                     ->label('Agregar niño existente')
                     ->icon('heroicon-o-user-plus')
-                    ->form([
-                        Forms\Components\Select::make('persona_id')
+                    ->schema([
+                        Select::make('persona_id')
                             ->label('Niño')
                             ->searchable()
                             ->getSearchResultsUsing(fn (string $search): array => Persona::query()
@@ -101,29 +110,29 @@ class NinosRelationManager extends RelationManager
                                 return $persona ? $this->personaLabel($persona) : null;
                             })
                             ->required(),
-                        Forms\Components\DatePicker::make('fecha_inicio')
+                        DatePicker::make('fecha_inicio')
                             ->label('Fecha de inicio')
                             ->default(now()->toDateString())
                             ->native(false),
-                        Forms\Components\Textarea::make('observaciones')
+                        Textarea::make('observaciones')
                             ->rows(3),
                     ])
                     ->action(fn (array $data): mixed => $this->agregarNinoExistente($data)),
 
-                Tables\Actions\Action::make('crearNino')
+                Action::make('crearNino')
                     ->label('Crear niño')
                     ->icon('heroicon-o-face-smile')
-                    ->form([
-                        Forms\Components\TextInput::make('nombre')
+                    ->schema([
+                        TextInput::make('nombre')
                             ->required()
                             ->maxLength(255),
-                        Forms\Components\TextInput::make('apellido')
+                        TextInput::make('apellido')
                             ->required()
                             ->maxLength(255),
-                        Forms\Components\DatePicker::make('fecha_nacimiento')
+                        DatePicker::make('fecha_nacimiento')
                             ->label('Fecha de nacimiento')
                             ->native(false),
-                        Forms\Components\Select::make('responsable_persona_id')
+                        Select::make('responsable_persona_id')
                             ->label('Responsable / tutor')
                             ->searchable()
                             ->getSearchResultsUsing(fn (string $search): array => Persona::query()
@@ -144,9 +153,9 @@ class NinosRelationManager extends RelationManager
                     ])
                     ->action(fn (array $data): mixed => $this->crearNinoEnAula($data)),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\Action::make('quitarDelAula')
+            ->recordActions([
+                EditAction::make(),
+                Action::make('quitarDelAula')
                     ->label('Quitar del aula')
                     ->icon('heroicon-o-user-minus')
                     ->color('danger')
@@ -155,7 +164,7 @@ class NinosRelationManager extends RelationManager
                     ->modalDescription('Si no tiene asistencias en esta aula, se elimina la relación. Si tiene historial, se cierra la participación.')
                     ->action(fn (IpnAulaPersona $record): mixed => $this->quitarDelAula($record)),
             ])
-            ->bulkActions([]);
+            ->toolbarActions([]);
     }
 
     protected function agregarNinoExistente(array $data): void

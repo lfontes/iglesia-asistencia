@@ -2,11 +2,19 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\UserResource\Pages\ListUsers;
+use App\Filament\Resources\UserResource\Pages\CreateUser;
+use App\Filament\Resources\UserResource\Pages\EditUser;
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\Persona;
 use App\Models\User;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -16,7 +24,7 @@ class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-user-circle';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-user-circle';
 
     protected static ?string $navigationLabel = 'Usuarios';
 
@@ -24,26 +32,26 @@ class UserResource extends Resource
 
     protected static ?string $pluralModelLabel = 'usuarios';
 
-    protected static ?string $navigationGroup = 'Administración';
+    protected static string | \UnitEnum | null $navigationGroup = 'Administración';
 
     protected static ?int $navigationSort = 200;
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\TextInput::make('name')
+        return $schema
+            ->components([
+                TextInput::make('name')
                     ->label('Nombre')
                     ->required()
                     ->maxLength(255),
 
-                Forms\Components\TextInput::make('email')
+                TextInput::make('email')
                     ->label('Email de acceso')
                     ->email()
                     ->required()
                     ->maxLength(255),
 
-                Forms\Components\Select::make('persona_id')
+                Select::make('persona_id')
                     ->label('Persona vinculada')
                     ->relationship('persona', 'apellido')
                     ->searchable(['nombre', 'apellido', 'telefono', 'email'])
@@ -51,7 +59,7 @@ class UserResource extends Resource
                     ->getOptionLabelFromRecordUsing(fn (Persona $record): string => trim($record->apellido.' '.$record->nombre).($record->email ? " ({$record->email})" : ''))
                     ->placeholder('Sin vincular'),
 
-                Forms\Components\Select::make('role_names')
+                Select::make('role_names')
                     ->label('Roles de acceso')
                     ->options(fn (): array => Role::query()
                         ->orderBy('name')
@@ -62,7 +70,7 @@ class UserResource extends Resource
                     ->required()
                     ->dehydrated(false),
 
-                Forms\Components\TextInput::make('password')
+                TextInput::make('password')
                     ->label('Contraseña')
                     ->password()
                     ->required(fn (string $operation): bool => $operation === 'create')
@@ -75,42 +83,42 @@ class UserResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')
+                TextColumn::make('name')
                     ->label('Nombre')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('email')
+                TextColumn::make('email')
                     ->label('Email')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('persona.apellido')
+                TextColumn::make('persona.apellido')
                     ->label('Persona vinculada')
                     ->formatStateUsing(fn ($state, User $record): string => $record->persona ? trim($record->persona->apellido.' '.$record->persona->nombre) : '-')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('roles.name')
+                TextColumn::make('roles.name')
                     ->label('Roles')
                     ->badge()
                     ->separator(', ')
                     ->sortable(false),
             ])
             ->defaultSort('name')
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                DeleteBulkAction::make(),
             ]);
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListUsers::route('/'),
-            'create' => Pages\CreateUser::route('/create'),
-            'edit' => Pages\EditUser::route('/{record}/edit'),
+            'index' => ListUsers::route('/'),
+            'create' => CreateUser::route('/create'),
+            'edit' => EditUser::route('/{record}/edit'),
         ];
     }
 
