@@ -8,6 +8,14 @@ use Illuminate\Support\Str;
 
 class Grupo extends Model
 {
+    public const SEGMENTO_NINOS = 'ninos';
+
+    public const SEGMENTO_ADOLESCENTES = 'adolescentes';
+
+    public const SEGMENTO_JOVENES = 'jovenes';
+
+    public const SEGMENTO_ADULTOS = 'adultos';
+
     public const FRECUENCIA_SEMANAL = 'semanal';
 
     public const FRECUENCIA_QUINCENAL = 'quincenal';
@@ -20,12 +28,31 @@ class Grupo extends Model
         'nombre',
         'anio',
         'tipo_grupo_id',
+        'segmento_etario',
+        'edad_min',
+        'edad_max',
         'frecuencia_asistencia',
         'descripcion',
         'activo',
         'created_by',
         'lider_persona_id',
     ];
+
+    protected $casts = [
+        'edad_min' => 'integer',
+        'edad_max' => 'integer',
+        'activo' => 'boolean',
+    ];
+
+    public static function segmentosEtarios(): array
+    {
+        return [
+            self::SEGMENTO_NINOS => 'Ninos',
+            self::SEGMENTO_ADOLESCENTES => 'Adolescentes',
+            self::SEGMENTO_JOVENES => 'Jovenes',
+            self::SEGMENTO_ADULTOS => 'Adultos',
+        ];
+    }
 
     public static function frecuenciasAsistencia(): array
     {
@@ -118,5 +145,27 @@ class Grupo extends Model
                 $managedQuery->orWhere('lider_persona_id', $user->persona_id);
             }
         });
+    }
+
+    public function getSegmentoEtarioLabelAttribute(): ?string
+    {
+        return static::segmentosEtarios()[$this->segmento_etario] ?? null;
+    }
+
+    public function getRangoEdadLabelAttribute(): ?string
+    {
+        if ($this->edad_min !== null && $this->edad_max !== null) {
+            return "{$this->edad_min} a {$this->edad_max} anos";
+        }
+
+        if ($this->edad_min !== null) {
+            return "Desde {$this->edad_min} anos";
+        }
+
+        if ($this->edad_max !== null) {
+            return "Hasta {$this->edad_max} anos";
+        }
+
+        return null;
     }
 }

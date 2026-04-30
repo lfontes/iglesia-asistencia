@@ -13,6 +13,14 @@ use Spatie\Activitylog\Models\Activity;
 
 class Persona extends Model
 {
+    public const SEGMENTO_NINOS = 'ninos';
+
+    public const SEGMENTO_ADOLESCENTES = 'adolescentes';
+
+    public const SEGMENTO_JOVENES = 'jovenes';
+
+    public const SEGMENTO_ADULTOS = 'adultos';
+
     /** @use HasFactory<\Database\Factories\PersonaFactory> */
     use HasFactory;
 
@@ -225,6 +233,42 @@ class Persona extends Model
         }
 
         return Carbon::parse($this->fecha_nacimiento)->age;
+    }
+
+    public static function segmentosEtarios(): array
+    {
+        return [
+            self::SEGMENTO_NINOS => 'Ninos',
+            self::SEGMENTO_ADOLESCENTES => 'Adolescentes',
+            self::SEGMENTO_JOVENES => 'Jovenes',
+            self::SEGMENTO_ADULTOS => 'Adultos',
+        ];
+    }
+
+    public static function segmentoEtarioParaEdad(?int $edad): ?string
+    {
+        if ($edad === null || $edad < 0) {
+            return null;
+        }
+
+        return match (true) {
+            $edad <= 11 => self::SEGMENTO_NINOS,
+            $edad <= 17 => self::SEGMENTO_ADOLESCENTES,
+            $edad <= 29 => self::SEGMENTO_JOVENES,
+            default => self::SEGMENTO_ADULTOS,
+        };
+    }
+
+    public function getSegmentoEtarioAttribute(): ?string
+    {
+        return static::segmentoEtarioParaEdad($this->edad);
+    }
+
+    public function getSegmentoEtarioLabelAttribute(): ?string
+    {
+        $segmento = $this->segmento_etario;
+
+        return $segmento ? (static::segmentosEtarios()[$segmento] ?? null) : null;
     }
 
     public function responsableIpnLabel(): ?string

@@ -76,6 +76,27 @@ class GrupoResource extends Resource
                         }
                     }),
 
+                Select::make('segmento_etario')
+                    ->label('Segmento etario')
+                    ->options(Grupo::segmentosEtarios())
+                    ->placeholder('Sin segmentacion')
+                    ->live(),
+
+                TextInput::make('edad_min')
+                    ->label('Edad minima')
+                    ->numeric()
+                    ->minValue(0)
+                    ->maxValue(120)
+                    ->nullable(),
+
+                TextInput::make('edad_max')
+                    ->label('Edad maxima')
+                    ->numeric()
+                    ->minValue(0)
+                    ->maxValue(120)
+                    ->nullable()
+                    ->rule('gte:edad_min'),
+
                 Select::make('frecuencia_asistencia')
                     ->label('Frecuencia de asistencia')
                     ->options(Grupo::frecuenciasAsistencia())
@@ -119,6 +140,17 @@ class GrupoResource extends Resource
                     ->placeholder('-')
                     ->searchable()
                     ->sortable(),
+
+                TextColumn::make('segmento_etario')
+                    ->label('Segmento')
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state): string => Grupo::segmentosEtarios()[$state] ?? '-')
+                    ->sortable(),
+
+                TextColumn::make('rango_edad_label')
+                    ->label('Rango de edad')
+                    ->placeholder('-')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('lider.apellido')
                     ->label('Líder')
@@ -167,6 +199,9 @@ class GrupoResource extends Resource
                     ->default(fn (): ?int => auth()->user()?->hasRole('coordinador_grupos')
                         ? static::tipoCrecimientoId()
                         : null),
+                SelectFilter::make('segmento_etario')
+                    ->label('Segmento etario')
+                    ->options(Grupo::segmentosEtarios()),
                 SelectFilter::make('frecuencia_asistencia')
                     ->label('Frecuencia')
                     ->options(Grupo::frecuenciasAsistencia()),
