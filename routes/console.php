@@ -9,6 +9,7 @@ use App\Models\Grupo;
 use App\Models\ParticipacionGrupo;
 use App\Models\WhatsAppMessage;
 use App\Services\AsistenciasPendientesService;
+use App\Services\ImportarGruposCsvService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -616,3 +617,80 @@ Artisan::command('personas:import {file : Ruta al archivo .xlsx} {--sheet=1 : Ho
 
     return self::SUCCESS;
 })->purpose('Importa personas desde un archivo Excel (.xlsx)');
+
+Artisan::command('grupos:importar-csv {path : Ruta absoluta o relativa al CSV} {--anio= : Anio de los grupos a crear o reutilizar} {--segmento=jovenes : Segmento etario a asignar a los grupos creados} {--dry-run : Simula la importacion sin guardar cambios}', function (ImportarGruposCsvService $service) {
+    $path = (string) $this->argument('path');
+    $anio = (int) ($this->option('anio') ?: now()->year);
+    $segmento = (string) $this->option('segmento');
+    $dryRun = (bool) $this->option('dry-run');
+
+    $segmentosPermitidos = ['ninos', 'adolescentes', 'jovenes', 'adultos'];
+
+    if (! in_array($segmento, $segmentosPermitidos, true)) {
+        $this->error('El segmento debe ser uno de: '.implode(', ', $segmentosPermitidos));
+
+        return self::FAILURE;
+    }
+
+    $absolutePath = str_starts_with($path, DIRECTORY_SEPARATOR)
+        ? $path
+        : base_path($path);
+
+    try {
+        $summary = $service->importar($absolutePath, $anio, $segmento, $dryRun);
+    } catch (Throwable $exception) {
+        report($exception);
+        $this->error($exception->getMessage());
+
+        return self::FAILURE;
+    }
+
+    if ($dryRun) {
+        $this->warn('Ejecucion en modo dry-run. No se guardaron cambios.');
+    }
+
+    $this->newLine();
+    $this->info('Importacion completada.');
+    $this->line("Filas procesadas: {$summary['filas_procesadas']}");
+    $this->line("Filas invalidas: {$summary['filas_invalidas']}");
+    $this->line("Grupos creados: {$summary['grupos_creados']}");
+    $this->line("Grupos existentes reutilizados: {$summary['grupos_existentes']}");
+    $this->line("Personas nuevas: {$summary['personas_nuevas']}");
+    $this->line("Personas existentes: {$summary['personas_existentes']}");
+    $this->line("Coincidencias por telefono: {$summary['coincidencias_telefono']}");
+    $this->line("Coincidencias por nombre: {$summary['coincidencias_nombre']}");
+    $this->line("Coincidencias ambiguas: {$summary['ambiguas']}");
+    $this->line("Conflictos por telefono: {$summary['conflictos_telefono']}");
+    $this->line("Participaciones creadas: {$summary['participaciones_creadas']}");
+    $this->line("Ya registradas: {$summary['ya_registradas']}");
+
+    if (! empty($summary['detalles_conflictos_telefono'])) {
+        $this->newLine();
+        $this->warn('Detalle de conflictos por telefono:');
+
+        foreach ($summary['detalles_conflictos_telefono'] as $index => $detalle) {
+            $csv = $detalle['csv'];
+            $this->line(($index + 1).". CSV: {$csv['apellido']}, {$csv['nombre']} | Tel: ".($csv['telefono'] ?: '-')." | FN: ".($csv['fecha_nacimiento'] ?: '-')." | Grupo: {$csv['grupo']}");
+
+            foreach ($detalle['existentes'] as $existente) {
+                $this->line("   BD: #{$existente['id']} {$existente['apellido']}, {$existente['nombre']} | Tel: ".($existente['telefono'] ?: '-')." | FN: ".($existente['fecha_nacimiento'] ?: '-'));
+            }
+        }
+    }
+
+    if (! empty($summary['detalles_ambiguas'])) {
+        $this->newLine();
+        $this->warn('Detalle de coincidencias ambiguas:');
+
+        foreach ($summary['detalles_ambiguas'] as $index => $detalle) {
+            $csv = $detalle['csv'];
+            $this->line(($index + 1).". CSV: {$csv['apellido']}, {$csv['nombre']} | Tel: ".($csv['telefono'] ?: '-')." | FN: ".($csv['fecha_nacimiento'] ?: '-')." | Grupo: {$csv['grupo']}");
+
+            foreach ($detalle['existentes'] as $existente) {
+                $this->line("   BD: #{$existente['id']} {$existente['apellido']}, {$existente['nombre']} | Tel: ".($existente['telefono'] ?: '-')." | FN: ".($existente['fecha_nacimiento'] ?: '-'));
+            }
+        }
+    }
+
+    return self::SUCCESS;
+})->purpose('Importa personas y crea grupos de crecimiento desde un CSV');
