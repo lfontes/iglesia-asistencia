@@ -43,7 +43,7 @@ class ViewMetagrupo extends ViewRecord
 
     public function infolist(Schema $schema): Schema
     {
-        return $infolist
+        return $schema
             ->schema([
                 Section::make('Resumen')
                     ->icon('heroicon-o-chart-bar')
