@@ -75,6 +75,7 @@ class EventoFechaResource extends Resource
                     ->counts('asistencias')
                     ->label('Asistentes'),
             ])
+            ->defaultSort('fecha', 'desc')
             ->recordActions([
                 EditAction::make(),
                 Action::make('asistencia')

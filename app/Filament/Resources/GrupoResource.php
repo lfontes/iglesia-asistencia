@@ -133,19 +133,22 @@ class GrupoResource extends Resource
             ->columns([
                 TextColumn::make('nombre')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
 
                 TextColumn::make('tipoGrupo.nombre')
                     ->label('Tipo')
                     ->placeholder('-')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
 
                 TextColumn::make('segmento_etario')
                     ->label('Segmento')
                     ->badge()
                     ->formatStateUsing(fn (?string $state): string => Grupo::segmentosEtarios()[$state] ?? '-')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
 
                 TextColumn::make('rango_edad_label')
                     ->label('Rango de edad')
@@ -156,25 +159,30 @@ class GrupoResource extends Resource
                     ->label('Líder')
                     ->formatStateUsing(fn ($state, Grupo $record): string => $record->lider ? trim($record->lider->apellido.' '.$record->lider->nombre) : '-')
                     ->searchable(['personas.apellido', 'personas.nombre'])
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
 
                 TextColumn::make('anio')
                     ->label('Anio')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
 
                 TextColumn::make('frecuencia_asistencia')
                     ->label('Frecuencia')
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => Grupo::frecuenciasAsistencia()[$state] ?? ucfirst($state))
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
 
                 TextColumn::make('participantes_count')
                     ->label('Participantes')
                     ->sortable()
-                    ->placeholder('0'),
+                    ->placeholder('0')
+                    ->toggleable(),
 
                 IconColumn::make('activo')
-                    ->boolean(),
+                    ->boolean()
+                    ->toggleable(),
 
                 TextColumn::make('creator.name')
                     ->label('Creado por')

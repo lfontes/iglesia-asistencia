@@ -75,17 +75,26 @@ class PersonaResource extends Resource
             ->columns([
                 TextColumn::make('apellido')
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query->buscarPorNombreApellido($search))
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
 
                 TextColumn::make('nombre')
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query->buscarPorNombreApellido($search))
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
 
                 TextColumn::make('fecha_nacimiento')
                     ->date()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
 
-                TextColumn::make('telefono'),
+                TextColumn::make('edad')
+                    ->label('Edad')
+                    ->formatStateUsing(fn (?int $state): string => $state !== null ? (string) $state : '')
+                    ->toggleable(),
+
+                TextColumn::make('telefono')
+                    ->toggleable(),
 
                 TextColumn::make('email')
                     ->label('Email')
@@ -97,7 +106,8 @@ class PersonaResource extends Resource
 
                 TextColumn::make('presentes_count')
                     ->label('Presentes')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
             ])
             ->recordClasses('persona-list-row-compact')
             ->defaultSort('apellido')

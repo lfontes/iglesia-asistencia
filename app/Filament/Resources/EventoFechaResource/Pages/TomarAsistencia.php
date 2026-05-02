@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\EventoFechaResource\Pages;
 
+use Filament\Actions\Action;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Schemas\Schema;
@@ -15,11 +16,17 @@ use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
-class TomarAsistencia extends Page implements HasForms
+class TomarAsistencia extends Page implements HasForms, HasTable
 {
     use InteractsWithForms;
     use InteractsWithRecord;
+    use InteractsWithTable;
 
     protected static string $resource = EventoFechaResource::class;
 
@@ -69,6 +76,69 @@ class TomarAsistencia extends Page implements HasForms
                     ])
                     ->all()),
         ]);
+    }
+
+    public function table(Table $table): Table
+    {
+        return $table
+            ->query($this->getInscriptosQuery())
+            ->heading('Inscriptos')
+            ->description('Personas registradas previamente para esta fecha de evento.')
+            ->defaultSort('created_at')
+            ->emptyStateHeading('Todavía no hay inscripciones para esta fecha')
+            ->emptyStateDescription('Cuando lleguen inscripciones desde el formulario público, aparecerán aquí.')
+            ->emptyStateIcon('heroicon-o-ticket')
+            ->headerActions([
+                Action::make('abrir_formulario_publico')
+                    ->label('Abrir formulario público')
+                    ->icon('heroicon-o-arrow-top-right-on-square')
+                    ->url($this->getFormularioInscripcionUrl())
+                    ->openUrlInNewTab(),
+            ])
+            ->columns([
+                TextColumn::make('persona.apellido')
+                    ->label('Persona')
+                    ->state(fn (EventoInscripcion $record): string => trim(($record->persona->apellido ?? '').' '.($record->persona->nombre ?? '')))
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->whereHas(
+                            'persona',
+                            fn (Builder $personaQuery): Builder => $personaQuery->buscarPorNombreApellido($search)
+                        );
+                    })
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query
+                            ->select('evento_inscripciones.*')
+                            ->leftJoin('personas', 'personas.id', '=', 'evento_inscripciones.persona_id')
+                            ->orderBy('personas.apellido', $direction)
+                            ->orderBy('personas.nombre', $direction);
+                    })
+                    ->weight('medium'),
+                TextColumn::make('persona.telefono')
+                    ->label('Teléfono')
+                    ->placeholder('-'),
+                TextColumn::make('persona.email')
+                    ->label('Email')
+                    ->placeholder('-'),
+                TextColumn::make('asistencia_estado')
+                    ->label('Estado')
+                    ->state(fn (EventoInscripcion $record): string => $this->isInscriptoPresente((int) $record->persona_id) ? 'Presente' : 'Ausente')
+                    ->badge()
+                    ->color(fn (string $state): string => $state === 'Presente' ? 'success' : 'danger'),
+            ])
+            ->recordActions([
+                Action::make('marcar_presente')
+                    ->label('Marcar presente')
+                    ->icon('heroicon-o-check')
+                    ->color('success')
+                    ->visible(fn (EventoInscripcion $record): bool => ! $this->isInscriptoPresente((int) $record->persona_id))
+                    ->action(fn (EventoInscripcion $record): mixed => $this->marcarInscriptoPresente((int) $record->persona_id)),
+                Action::make('quitar_presente')
+                    ->label('Quitar presente')
+                    ->icon('heroicon-o-x-mark')
+                    ->color('gray')
+                    ->visible(fn (EventoInscripcion $record): bool => $this->isInscriptoPresente((int) $record->persona_id))
+                    ->action(fn (EventoInscripcion $record): mixed => $this->quitarInscriptoPresente((int) $record->persona_id)),
+            ]);
     }
 
     public function guardar(): void
@@ -148,10 +218,7 @@ class TomarAsistencia extends Page implements HasForms
      */
     public function getInscriptos(): Collection
     {
-        return EventoInscripcion::query()
-            ->with('persona:id,nombre,apellido,telefono,email')
-            ->where('evento_fecha_id', $this->getRecord()->id)
-            ->where('estado', 'inscripto')
+        return $this->getInscriptosQuery()
             ->orderBy('created_at')
             ->get();
     }
@@ -204,5 +271,13 @@ class TomarAsistencia extends Page implements HasForms
     protected function personaLabel(Persona $persona): string
     {
         return trim("{$persona->apellido} {$persona->nombre}");
+    }
+
+    protected function getInscriptosQuery(): Builder
+    {
+        return EventoInscripcion::query()
+            ->with('persona:id,nombre,apellido,telefono,email')
+            ->where('evento_fecha_id', $this->getRecord()->id)
+            ->where('estado', 'inscripto');
     }
 }
