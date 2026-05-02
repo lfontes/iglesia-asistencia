@@ -47,6 +47,7 @@ class ViewMetagrupo extends ViewRecord
             ->schema([
                 Section::make('Resumen')
                     ->icon('heroicon-o-chart-bar')
+                    ->columnSpanFull()
                     ->schema([
                         TextEntry::make('total_grupos')
                             ->label('Grupos')
@@ -71,6 +72,7 @@ class ViewMetagrupo extends ViewRecord
 
                 Section::make('Datos del metagrupo')
                     ->icon('heroicon-o-rectangle-group')
+                    ->columnSpanFull()
                     ->schema([
                         TextEntry::make('nombre')
                             ->label('Metagrupo')
@@ -100,6 +102,7 @@ class ViewMetagrupo extends ViewRecord
 
                 Section::make('Personas del metagrupo')
                     ->icon('heroicon-o-users')
+                    ->columnSpanFull()
                     ->visible(fn (): bool => $this->getPeopleRows()->isNotEmpty())
                     ->schema([
                         RepeatableEntry::make('personas')
@@ -147,6 +150,7 @@ class ViewMetagrupo extends ViewRecord
 
                 Section::make('Personas del metagrupo')
                     ->icon('heroicon-o-users')
+                    ->columnSpanFull()
                     ->visible(fn (): bool => $this->getPeopleRows()->isEmpty())
                     ->schema([
                         TextEntry::make('sin_personas')
@@ -154,7 +158,8 @@ class ViewMetagrupo extends ViewRecord
                             ->state('Este metagrupo todavía no tiene personas activas en sus grupos.')
                             ->color('gray'),
                     ]),
-            ]);
+            ])
+            ->columns(1);
     }
 
     /**
@@ -258,13 +263,17 @@ class ViewMetagrupo extends ViewRecord
 
     public function getGrowthAttendanceUrl(array $row): ?string
     {
-        if (! $row['en_crecimiento'] || ! $row['primer_grupo_crecimiento_id']) {
+        $enCrecimiento = (bool) data_get($row, 'en_crecimiento', false);
+        $primerGrupoCrecimientoId = data_get($row, 'primer_grupo_crecimiento_id');
+        $personaId = data_get($row, 'persona_id');
+
+        if (! $enCrecimiento || ! $primerGrupoCrecimientoId || ! $personaId) {
             return null;
         }
 
         return ResumenAsistenciaGrupos::getUrl([
-            'grupo_id' => $row['primer_grupo_crecimiento_id'],
-            'persona_id' => $row['persona_id'],
+            'grupo_id' => $primerGrupoCrecimientoId,
+            'persona_id' => $personaId,
         ]);
     }
 
