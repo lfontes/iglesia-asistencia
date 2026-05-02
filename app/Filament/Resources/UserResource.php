@@ -6,6 +6,7 @@ use Filament\Schemas\Schema;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Select;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Actions\EditAction;
 use Filament\Actions\DeleteBulkAction;
 use App\Filament\Resources\UserResource\Pages\ListUsers;
@@ -105,6 +106,13 @@ class UserResource extends Resource
                     ->sortable(false),
             ])
             ->defaultSort('name')
+            ->filters([
+                SelectFilter::make('roles')
+                    ->label('Rol')
+                    ->relationship('roles', 'name')
+                    ->searchable()
+                    ->preload(),
+            ])
             ->recordActions([
                 EditAction::make(),
             ])

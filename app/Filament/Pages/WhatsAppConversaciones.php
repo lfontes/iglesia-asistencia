@@ -3,11 +3,20 @@
 namespace App\Filament\Pages;
 
 use App\Models\WhatsAppMessage;
+use Filament\Actions\Action;
 use Filament\Pages\Page;
-use Illuminate\Support\Collection;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Support\Carbon;
 
-class WhatsAppConversaciones extends Page
+class WhatsAppConversaciones extends Page implements HasTable
 {
+    use InteractsWithTable;
+
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-chat-bubble-bottom-center-text';
 
     protected static string | \UnitEnum | null $navigationGroup = 'WhatsApp';
@@ -30,39 +39,92 @@ class WhatsAppConversaciones extends Page
         return static::canAccess();
     }
 
-    /**
-     * @return Collection<int, array<string, mixed>>
-     */
-    public function getConversations(): Collection
+    public function table(Table $table): Table
+    {
+        return $table
+            ->query($this->getTableQuery())
+            ->heading('Conversaciones')
+            ->description('Mensajes entrantes y salientes agrupados por contacto.')
+            ->defaultSort('created_at', 'desc')
+            ->emptyStateHeading('Aún no hay conversaciones registradas')
+            ->emptyStateDescription('Cuando lleguen o envíes mensajes, aparecerán aquí.')
+            ->emptyStateIcon('heroicon-o-chat-bubble-bottom-center-text')
+            ->columns([
+                TextColumn::make('contacto')
+                    ->label('Contacto')
+                    ->state(fn (WhatsAppMessage $record): string => $record->persona ? trim($record->persona->apellido.' '.$record->persona->nombre) : ($record->from_phone ?: $record->to_phone ?: (string) $record->conversation_key))
+                    ->searchable(['from_phone', 'to_phone', 'conversation_key'])
+                    ->weight('medium'),
+                TextColumn::make('telefono')
+                    ->label('Teléfono')
+                    ->state(fn (WhatsAppMessage $record): string => $record->from_phone ?: $record->to_phone ?: (string) $record->conversation_key)
+                    ->searchable(['from_phone', 'to_phone']),
+                TextColumn::make('grupo.nombre')
+                    ->label('Grupo')
+                    ->placeholder('-'),
+                TextColumn::make('body')
+                    ->label('Último mensaje')
+                    ->limit(80)
+                    ->placeholder('Sin contenido de texto'),
+                TextColumn::make('no_leidos_count')
+                    ->label('Sin leer')
+                    ->badge()
+                    ->color(fn (int|string|null $state): string => ((int) $state) > 0 ? 'warning' : 'gray')
+                    ->alignCenter(),
+                TextColumn::make('ventana_estado')
+                    ->label('Ventana')
+                    ->state(function (WhatsAppMessage $record): string {
+                        $lastInboundAt = $record->last_inbound_at;
+
+                        if (! $lastInboundAt) {
+                            return 'Requiere plantilla';
+                        }
+
+                        return now()->diffInHours(Carbon::parse($lastInboundAt)) < 24
+                            ? 'Ventana abierta'
+                            : 'Requiere plantilla';
+                    })
+                    ->badge()
+                    ->color(fn (string $state): string => $state === 'Ventana abierta' ? 'success' : 'gray'),
+                TextColumn::make('created_at')
+                    ->label('Último momento')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable(),
+            ])
+            ->recordActions([
+                Action::make('abrir')
+                    ->label('Abrir conversación')
+                    ->icon('heroicon-o-eye')
+                    ->url(fn (WhatsAppMessage $record): string => WhatsAppConversacion::getUrl(['key' => $record->conversation_key])),
+            ]);
+    }
+
+    protected function getTableQuery(): Builder
     {
         return WhatsAppMessage::query()
+            ->select('whatsapp_messages.*')
             ->with(['persona:id,nombre,apellido', 'grupo:id,nombre'])
             ->whereNotNull('conversation_key')
-            ->latest('created_at')
-            ->get()
-            ->groupBy('conversation_key')
-            ->map(function (Collection $messages, string $conversationKey): array {
-                /** @var WhatsAppMessage $latest */
-                $latest = $messages->first();
-
-                $personaMessage = $messages->first(fn (WhatsAppMessage $message) => $message->persona);
-                $grupoMessage = $messages->first(fn (WhatsAppMessage $message) => $message->grupo);
-                $lastInboundAt = $messages
-                    ->filter(fn (WhatsAppMessage $message): bool => $message->isInbound())
-                    ->max('created_at');
-
-                return [
-                    'conversation_key' => $conversationKey,
-                    'persona' => $personaMessage?->persona,
-                    'grupo' => $grupoMessage?->grupo,
-                    'telefono' => $latest->from_phone ?: $latest->to_phone ?: $conversationKey,
-                    'ultimo_texto' => $latest->body,
-                    'ultimo_momento' => $latest->created_at,
-                    'no_leidos' => $messages->filter(fn (WhatsAppMessage $message): bool => $message->isUnreadInApp())->count(),
-                    'ventana_abierta' => $lastInboundAt !== null && now()->diffInHours($lastInboundAt) < 24,
-                ];
+            ->whereIn('id', function (QueryBuilder $query): void {
+                $query->from('whatsapp_messages')
+                    ->selectRaw('MAX(id)')
+                    ->whereNotNull('conversation_key')
+                    ->groupBy('conversation_key');
             })
-            ->sortByDesc(fn (array $conversation) => $conversation['ultimo_momento'])
-            ->values();
+            ->selectSub(
+                WhatsAppMessage::query()
+                    ->selectRaw('COUNT(*)')
+                    ->whereColumn('conversation_key', 'whatsapp_messages.conversation_key')
+                    ->where('direction', 'inbound')
+                    ->whereNull('read_in_app_at'),
+                'no_leidos_count'
+            )
+            ->selectSub(
+                WhatsAppMessage::query()
+                    ->selectRaw('MAX(created_at)')
+                    ->whereColumn('conversation_key', 'whatsapp_messages.conversation_key')
+                    ->where('direction', 'inbound'),
+                'last_inbound_at'
+            );
     }
 }
