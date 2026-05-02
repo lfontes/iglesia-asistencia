@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Clusters\Ipn;
 use Filament\Schemas\Schema;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -27,6 +28,8 @@ class IpnAulaResource extends Resource
 {
     protected static ?string $model = IpnAula::class;
 
+    protected static ?string $cluster = Ipn::class;
+
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-academic-cap';
 
     protected static ?string $navigationLabel = 'Aulas';
@@ -34,8 +37,6 @@ class IpnAulaResource extends Resource
     protected static ?string $modelLabel = 'aula IPN';
 
     protected static ?string $pluralModelLabel = 'aulas IPN';
-
-    protected static string | \UnitEnum | null $navigationGroup = 'IPN';
 
     protected static ?int $navigationSort = 3;
 

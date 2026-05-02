@@ -2,14 +2,15 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Clusters\Ipn;
 use App\Filament\Widgets\IpnResumenWidget;
 use Filament\Pages\Page;
 
 class IpnDashboard extends Page
 {
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-home-modern';
+    protected static ?string $cluster = Ipn::class;
 
-    protected static string | \UnitEnum | null $navigationGroup = 'IPN';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-home-modern';
 
     protected static ?string $navigationLabel = 'Inicio IPN';
 
@@ -34,15 +35,5 @@ class IpnDashboard extends Page
         return [
             IpnResumenWidget::class,
         ];
-    }
-
-    public function getTomarAsistenciaUrl(): string
-    {
-        return IpnTomarAsistencia::getUrl();
-    }
-
-    public function getReporteUrl(): string
-    {
-        return IpnReporteAsistencia::getUrl();
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Clusters\Ipn;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Schemas\Schema;
@@ -24,9 +25,9 @@ class IpnTomarAsistencia extends Page implements HasForms
 {
     use InteractsWithForms;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-check-badge';
+    protected static ?string $cluster = Ipn::class;
 
-    protected static string | \UnitEnum | null $navigationGroup = 'IPN';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-check-badge';
 
     protected static ?string $navigationLabel = 'Tomar asistencia';
 

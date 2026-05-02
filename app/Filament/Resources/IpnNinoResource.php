@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Clusters\Ipn;
 use Filament\Schemas\Schema;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\TextInput;
@@ -25,6 +26,8 @@ class IpnNinoResource extends Resource
 {
     protected static ?string $model = Persona::class;
 
+    protected static ?string $cluster = Ipn::class;
+
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-face-smile';
 
     protected static ?string $navigationLabel = 'Niños';
@@ -32,8 +35,6 @@ class IpnNinoResource extends Resource
     protected static ?string $modelLabel = 'niño IPN';
 
     protected static ?string $pluralModelLabel = 'niños IPN';
-
-    protected static string | \UnitEnum | null $navigationGroup = 'IPN';
 
     protected static ?int $navigationSort = 2;
 
