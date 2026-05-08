@@ -2,21 +2,28 @@
 
 namespace App\Filament\Pages;
 
-use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Schemas\Schema;
-use Filament\Forms\Components\Select;
 use App\Models\AsistenciaGrupo;
 use App\Models\Grupo;
 use App\Models\ParticipacionGrupo;
+use App\Models\Persona;
 use Filament\Actions\Action;
-use Filament\Forms;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
 use Filament\Pages\Page;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
-class ResumenAsistenciaGrupos extends Page implements HasForms
+class ResumenAsistenciaGrupos extends Page implements HasForms, HasTable
 {
     use InteractsWithForms;
+    use InteractsWithTable;
 
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-chart-bar-square';
 
@@ -33,6 +40,14 @@ class ResumenAsistenciaGrupos extends Page implements HasForms
     public ?int $grupo_id = null;
 
     public ?int $persona_id = null;
+
+    protected ?Collection $attendanceRowsCache = null;
+
+    protected ?Collection $attendanceDatesCache = null;
+
+    protected ?int $attendanceRowsCacheGroupId = null;
+
+    protected ?int $attendanceRowsCachePersonaId = null;
 
     public static function canAccess(): bool
     {
@@ -78,6 +93,53 @@ class ResumenAsistenciaGrupos extends Page implements HasForms
         ]);
     }
 
+    public function table(Table $table): Table
+    {
+        return $table
+            ->query($this->getTableQuery())
+            ->emptyStateHeading('Sin datos de asistencia')
+            ->emptyStateDescription('Aun no hay participantes o asistencias registradas para este grupo.')
+            ->emptyStateIcon('heroicon-o-clipboard-document-list')
+            ->defaultSort('nombre')
+            ->paginated(false)
+            ->columns([
+                TextColumn::make('nombre')
+                    ->label('Persona')
+                    ->state(function (Persona $record): string {
+                        $row = $this->getAttendanceRowForPersona((int) $record->id);
+                        $nombreCompleto = trim("{$record->nombre} {$record->apellido}");
+
+                        if (! $row) {
+                            return $nombreCompleto;
+                        }
+
+                        return "{$nombreCompleto} {$row['presentes']}/{$row['ausencias']}";
+                    })
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query->buscarPorNombreApellido($search))
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query
+                            ->orderBy('personas.nombre', $direction)
+                            ->orderBy('personas.apellido', $direction);
+                    })
+                    ->weight('medium'),
+                TextColumn::make('porcentaje')
+                    ->label('%')
+                    ->state(function (Persona $record): string {
+                        $row = $this->getAttendanceRowForPersona((int) $record->id);
+
+                        return (($row['porcentaje'] ?? 0)).'%';
+                    })
+                    ->badge()
+                    ->color(function (Persona $record): string {
+                        $row = $this->getAttendanceRowForPersona((int) $record->id);
+
+                        return $this->getPercentageColor((int) ($row['porcentaje'] ?? 0));
+                    })
+                    ->alignCenter(),
+                ...$this->getAttendanceDateColumns(),
+            ]);
+    }
+
     protected function getHeaderActions(): array
     {
         return [
@@ -87,6 +149,18 @@ class ResumenAsistenciaGrupos extends Page implements HasForms
                 ->color('gray')
                 ->url(AsistenciaGruposCrecimiento::getUrl()),
         ];
+    }
+
+    public function updatedGrupoId(): void
+    {
+        $this->resetAttendanceCache();
+        $this->resetTable();
+    }
+
+    public function updatedPersonaId(): void
+    {
+        $this->resetAttendanceCache();
+        $this->resetTable();
     }
 
     /**
@@ -132,8 +206,134 @@ class ResumenAsistenciaGrupos extends Page implements HasForms
      */
     public function getAttendanceRows(): Collection
     {
+        $this->primeAttendanceCache();
+
+        return $this->attendanceRowsCache ?? collect();
+    }
+
+    public function getFocusedPersonaName(): ?string
+    {
+        if (! $this->persona_id) {
+            return null;
+        }
+
+        $row = $this->getAttendanceRows()->firstWhere('persona_id', $this->persona_id);
+
+        return $row['nombre_completo'] ?? null;
+    }
+
+    public function getAttendanceDates(): Collection
+    {
         if (! $this->grupo_id) {
             return collect();
+        }
+
+        if ($this->attendanceDatesCache !== null && $this->attendanceRowsCacheGroupId === $this->grupo_id) {
+            return $this->attendanceDatesCache;
+        }
+
+        $this->attendanceDatesCache = AsistenciaGrupo::query()
+            ->where('grupo_id', $this->grupo_id)
+            ->distinct()
+            ->orderBy('fecha')
+            ->pluck('fecha');
+
+        return $this->attendanceDatesCache;
+    }
+
+    public function getTotalFechas(): int
+    {
+        return $this->getAttendanceDates()->count();
+    }
+
+    public function getSelectedGroup(): ?Grupo
+    {
+        if (! $this->grupo_id) {
+            return null;
+        }
+
+        return Grupo::query()->find($this->grupo_id);
+    }
+
+    protected function getTableQuery(): Builder
+    {
+        if (! $this->grupo_id) {
+            return Persona::query()->whereRaw('1 = 0');
+        }
+
+        return Persona::query()
+            ->select('personas.*')
+            ->join('participacion_grupos', 'participacion_grupos.persona_id', '=', 'personas.id')
+            ->where('participacion_grupos.grupo_id', $this->grupo_id)
+            ->when($this->persona_id, fn (Builder $query): Builder => $query->where('personas.id', $this->persona_id))
+            ->distinct();
+    }
+
+    /**
+     * @return array<int, IconColumn>
+     */
+    protected function getAttendanceDateColumns(): array
+    {
+        return $this->getAttendanceDates()
+            ->map(function (string $fecha): IconColumn {
+                return IconColumn::make('asistencia_' . str_replace('-', '_', $fecha))
+                    ->label(\Illuminate\Support\Carbon::parse($fecha)->format('d/m'))
+                    ->state(fn (Persona $record): ?bool => $this->getAttendanceStateForPersona((int) $record->id, $fecha))
+                    ->icon(fn (?bool $state): string => match ($state) {
+                        true => 'heroicon-o-check-circle',
+                        false => 'heroicon-o-x-circle',
+                        default => 'heroicon-o-minus-circle',
+                    })
+                    ->color(fn (?bool $state): string => match ($state) {
+                        true => 'success',
+                        false => 'danger',
+                        default => 'gray',
+                    })
+                    ->alignCenter();
+            })
+            ->all();
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    protected function getAttendanceRowForPersona(int $personaId): ?array
+    {
+        return $this->getAttendanceRows()->firstWhere('persona_id', $personaId);
+    }
+
+    protected function getAttendanceStateForPersona(int $personaId, string $fecha): ?bool
+    {
+        $row = $this->getAttendanceRowForPersona($personaId);
+
+        return $row['attendance_by_date'][$fecha] ?? null;
+    }
+
+    protected function getPercentageColor(int $percentage): string
+    {
+        return match (true) {
+            $percentage >= 80 => 'success',
+            $percentage >= 50 => 'warning',
+            default => 'danger',
+        };
+    }
+
+    protected function primeAttendanceCache(): void
+    {
+        if (
+            $this->attendanceRowsCache !== null
+            && $this->attendanceRowsCacheGroupId === $this->grupo_id
+            && $this->attendanceRowsCachePersonaId === $this->persona_id
+        ) {
+            return;
+        }
+
+        if (! $this->grupo_id) {
+            $this->attendanceRowsCache = collect();
+            $this->attendanceRowsCacheGroupId = $this->grupo_id;
+            $this->attendanceRowsCachePersonaId = $this->persona_id;
+
+            return;
         }
 
         $fechas = $this->getAttendanceDates();
@@ -163,7 +363,7 @@ class ResumenAsistenciaGrupos extends Page implements HasForms
             ->get()
             ->groupBy('persona_id');
 
-        return $participantes
+        $this->attendanceRowsCache = $participantes
             ->map(function (ParticipacionGrupo $participacion) use ($agregados, $asistenciasPorPersona, $fechas, $totalFechas): array {
                 $persona = $participacion->persona;
                 $agregado = $agregados->get($participacion->persona_id);
@@ -194,43 +394,16 @@ class ResumenAsistenciaGrupos extends Page implements HasForms
             })
             ->sortByDesc(fn (array $row) => [$row['porcentaje'], $row['presentes'], $row['nombre_completo']])
             ->values();
+
+        $this->attendanceRowsCacheGroupId = $this->grupo_id;
+        $this->attendanceRowsCachePersonaId = $this->persona_id;
     }
 
-    public function getFocusedPersonaName(): ?string
+    protected function resetAttendanceCache(): void
     {
-        if (! $this->persona_id) {
-            return null;
-        }
-
-        $row = $this->getAttendanceRows()->firstWhere('persona_id', $this->persona_id);
-
-        return $row['nombre_completo'] ?? null;
-    }
-
-    public function getAttendanceDates(): Collection
-    {
-        if (! $this->grupo_id) {
-            return collect();
-        }
-
-        return AsistenciaGrupo::query()
-            ->where('grupo_id', $this->grupo_id)
-            ->distinct()
-            ->orderBy('fecha')
-            ->pluck('fecha');
-    }
-
-    public function getTotalFechas(): int
-    {
-        return $this->getAttendanceDates()->count();
-    }
-
-    public function getSelectedGroup(): ?Grupo
-    {
-        if (! $this->grupo_id) {
-            return null;
-        }
-
-        return Grupo::query()->find($this->grupo_id);
+        $this->attendanceRowsCache = null;
+        $this->attendanceDatesCache = null;
+        $this->attendanceRowsCacheGroupId = null;
+        $this->attendanceRowsCachePersonaId = null;
     }
 }

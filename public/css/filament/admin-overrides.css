@@ -58,3 +58,9 @@
     width: 1rem !important;
     height: 1rem !important;
 }
+
+/* Tarjetas de resumen mas proporcionadas en todo Filament. */
+.fi-wi-stats-overview-stat-value {
+    font-size: 1rem !important;
+    line-height: 1.25rem !important;
+}
