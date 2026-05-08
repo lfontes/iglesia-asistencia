@@ -2,12 +2,6 @@
 
 namespace App\Filament\Pages;
 
-use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Schemas\Schema;
-use Filament\Forms\Components\DatePicker;
-use Throwable;
-use RuntimeException;
 use App\Models\Grupo;
 use App\Models\WhatsAppBulkDispatch;
 use App\Models\WhatsAppMessage;
@@ -15,16 +9,28 @@ use App\Services\AsistenciasPendientesService;
 use App\Services\WhatsAppService;
 use Carbon\Carbon;
 use Filament\Actions\Action;
-use Filament\Forms;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ViewColumn;
+use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use RuntimeException;
+use Throwable;
 
-class AsistenciasPendientes extends Page implements HasForms
+class AsistenciasPendientes extends Page implements HasForms, HasTable
 {
     use InteractsWithForms;
+    use InteractsWithTable;
 
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-chat-bubble-left-right';
 
@@ -44,6 +50,10 @@ class AsistenciasPendientes extends Page implements HasForms
     protected array $lastReminderStatuses = [];
 
     protected ?WhatsAppBulkDispatch $bulkDispatchStatus = null;
+
+    protected ?Collection $pendientesCache = null;
+
+    protected ?string $pendientesCacheKey = null;
 
     public function mount(): void
     {
@@ -74,6 +84,58 @@ class AsistenciasPendientes extends Page implements HasForms
         ]);
     }
 
+    public function table(Table $table): Table
+    {
+        return $table
+            ->query($this->getTableQuery())
+            ->emptyStateHeading('Sin asistencias pendientes')
+            ->emptyStateDescription('No hay grupos con asistencia pendiente para la fecha de referencia seleccionada.')
+            ->emptyStateIcon('heroicon-o-check-circle')
+            ->defaultSort('nombre')
+            ->paginated(false)
+            ->columns([
+                TextColumn::make('nombre')
+                    ->label('Grupo')
+                    ->state(fn (Grupo $record): string => (string) ($this->getPendienteDataForGrupo((int) $record->id)['grupo'] ?? $record->nombre))
+                    ->url(fn (Grupo $record): string => ResumenAsistenciaGrupos::getUrl(['grupo_id' => $record->id]))
+                    ->color('primary')
+                    ->weight('medium')
+                    ->searchable(),
+                TextColumn::make('frecuencia')
+                    ->label('Frecuencia')
+                    ->state(fn (Grupo $record): string => $this->formatFrecuencia(
+                        (string) ($this->getPendienteDataForGrupo((int) $record->id)['frecuencia'] ?? '')
+                    ))
+                    ->badge()
+                    ->color('gray'),
+                TextColumn::make('periodo')
+                    ->label('Período evaluado')
+                    ->state(function (Grupo $record): string {
+                        $item = $this->getPendienteDataForGrupo((int) $record->id);
+
+                        if (! $item) {
+                            return '-';
+                        }
+
+                        return Carbon::parse((string) $item['periodo_inicio'])->format('d/m/Y')
+                            .' - '.
+                            Carbon::parse((string) $item['periodo_fin'])->format('d/m/Y');
+                    }),
+                TextColumn::make('ultima_asistencia')
+                    ->label('Última asistencia')
+                    ->state(function (Grupo $record): string {
+                        $ultimaAsistencia = $this->getPendienteDataForGrupo((int) $record->id)['ultima_asistencia'] ?? null;
+
+                        return $ultimaAsistencia
+                            ? Carbon::parse((string) $ultimaAsistencia)->format('d/m/Y')
+                            : 'Sin asistencias registradas';
+                    }),
+                ViewColumn::make('facilitadores')
+                    ->label('Facilitadores')
+                    ->view('filament.tables.columns.asistencias-pendientes-facilitadores'),
+            ]);
+    }
+
     protected function getHeaderActions(): array
     {
         return [
@@ -82,14 +144,18 @@ class AsistenciasPendientes extends Page implements HasForms
                 ->color('gray')
                 ->action(function (): void {
                     $this->fecha = now()->toDateString();
+                    $this->resetPendientesState();
                     $this->form->fill(['fecha' => $this->fecha]);
+                    $this->resetTable();
                 }),
             Action::make('semanaAnterior')
                 ->label('Semana anterior')
                 ->color('gray')
                 ->action(function (): void {
                     $this->fecha = now()->endOfWeek(Carbon::SUNDAY)->toDateString();
+                    $this->resetPendientesState();
                     $this->form->fill(['fecha' => $this->fecha]);
+                    $this->resetTable();
                 }),
             Action::make('enviarRecordatoriosTodos')
                 ->label('Enviar recordatorios por WhatsApp')
@@ -103,13 +169,28 @@ class AsistenciasPendientes extends Page implements HasForms
         ];
     }
 
+    public function updatedFecha(): void
+    {
+        $this->resetPendientesState();
+        $this->resetTable();
+    }
+
     /**
      * @return Collection<int, array<string, mixed>>
      */
     public function getPendientes(): Collection
     {
-        return app(AsistenciasPendientesService::class)
+        $cacheKey = $this->makePendientesCacheKey();
+
+        if ($this->pendientesCache !== null && $this->pendientesCacheKey === $cacheKey) {
+            return $this->pendientesCache;
+        }
+
+        $this->pendientesCache = app(AsistenciasPendientesService::class)
             ->obtener($this->getFechaReferencia());
+        $this->pendientesCacheKey = $cacheKey;
+
+        return $this->pendientesCache;
     }
 
     public function enviarRecordatorioPlantilla(int $grupoId, int $personaId): void
@@ -263,6 +344,32 @@ class AsistenciasPendientes extends Page implements HasForms
     }
 
     /**
+     * @return array<string, mixed>|null
+     */
+    public function getPendienteDataForGrupo(int $grupoId): ?array
+    {
+        return $this->getPendientes()->firstWhere('grupo_id', $grupoId);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function getFacilitadoresPendientesParaGrupo(int $grupoId): array
+    {
+        return (array) ($this->getPendienteDataForGrupo($grupoId)['facilitadores'] ?? []);
+    }
+
+    public function formatFrecuencia(string $frecuencia): string
+    {
+        return match ($frecuencia) {
+            Grupo::FRECUENCIA_SEMANAL => 'Semanal',
+            Grupo::FRECUENCIA_QUINCENAL => 'Quincenal',
+            Grupo::FRECUENCIA_MENSUAL => 'Mensual',
+            default => Str::title($frecuencia),
+        };
+    }
+
+    /**
      * @return array{total_grupos:int,total_facilitadores:int,sin_telefono:int,semanales:int,quincenales:int,mensuales:int}
      */
     public function getSummary(): array
@@ -290,6 +397,23 @@ class AsistenciasPendientes extends Page implements HasForms
         } catch (Throwable) {
             return now()->startOfDay();
         }
+    }
+
+    protected function getTableQuery(): Builder
+    {
+        $ids = $this->getPendientes()
+            ->pluck('grupo_id')
+            ->filter()
+            ->map(fn (mixed $id): int => (int) $id)
+            ->all();
+
+        if ($ids === []) {
+            return Grupo::query()->whereRaw('1 = 0');
+        }
+
+        return Grupo::query()
+            ->whereKey($ids)
+            ->orderBy('nombre');
     }
 
     protected function estaBloqueadoEnvioMasivo(): bool
@@ -494,5 +618,18 @@ class AsistenciasPendientes extends Page implements HasForms
 
         return $facilitadores
             ->first(fn (array $facilitador): bool => $this->facilitadorTieneTelefonoWhatsappValido($facilitador));
+    }
+
+    protected function resetPendientesState(): void
+    {
+        $this->pendientesCache = null;
+        $this->pendientesCacheKey = null;
+        $this->lastReminderStatuses = [];
+        $this->bulkDispatchStatus = null;
+    }
+
+    protected function makePendientesCacheKey(): string
+    {
+        return (string) ($this->fecha ?? '');
     }
 }
