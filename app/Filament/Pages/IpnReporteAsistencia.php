@@ -3,24 +3,30 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Clusters\Ipn;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Schemas\Schema;
-use Filament\Schemas\Components\Section;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\DatePicker;
 use App\Models\IpnAsistencia;
 use App\Models\IpnAula;
 use App\Models\IpnAulaPersona;
 use App\Models\Persona;
-use Filament\Forms;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
-class IpnReporteAsistencia extends Page implements HasForms
+class IpnReporteAsistencia extends Page implements HasForms, HasTable
 {
     use InteractsWithForms;
+    use InteractsWithTable;
 
     protected static ?string $cluster = Ipn::class;
 
@@ -41,6 +47,12 @@ class IpnReporteAsistencia extends Page implements HasForms
     public ?string $desde = null;
 
     public ?string $hasta = null;
+
+    protected ?Collection $reportRowsCache = null;
+
+    protected ?Collection $reportDatesCache = null;
+
+    protected ?string $reportCacheKey = null;
 
     public function mount(): void
     {
@@ -98,6 +110,91 @@ class IpnReporteAsistencia extends Page implements HasForms
         ]);
     }
 
+    public function table(Table $table): Table
+    {
+        return $table
+            ->query($this->getTableQuery())
+            ->emptyStateHeading('Sin datos de asistencia')
+            ->emptyStateDescription('Selecciona un aula o registra asistencia IPN para ver el reporte.')
+            ->emptyStateIcon('heroicon-o-clipboard-document-list')
+            ->defaultSort('nombre')
+            ->paginated(false)
+            ->columns([
+                TextColumn::make('nombre')
+                    ->label('Niño')
+                    ->state(function (Persona $record): string {
+                        $row = $this->getRowForPersona((int) $record->id);
+                        $nombreCompleto = trim("{$record->apellido} {$record->nombre}");
+
+                        if (! $row) {
+                            return $nombreCompleto;
+                        }
+
+                        return $nombreCompleto;
+                    })
+                    ->description(function (Persona $record): string {
+                        $row = $this->getRowForPersona((int) $record->id);
+
+                        if (! $row) {
+                            return 'Sin detalles';
+                        }
+
+                        $edad = $row['edad'] !== null ? $row['edad'].' años' : 'Edad sin cargar';
+
+                        return $edad.' · '.($row['responsable'] ?: 'Sin responsable');
+                    })
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query->buscarPorNombreApellido($search))
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query
+                            ->orderBy('personas.apellido', $direction)
+                            ->orderBy('personas.nombre', $direction);
+                    })
+                    ->weight('medium'),
+                TextColumn::make('id')
+                    ->label('ID')
+                    ->alignCenter(),
+                TextColumn::make('porcentaje')
+                    ->label('%')
+                    ->state(function (Persona $record): string {
+                        $row = $this->getRowForPersona((int) $record->id);
+
+                        return (($row['porcentaje'] ?? 0)).'%';
+                    })
+                    ->badge()
+                    ->color(function (Persona $record): string {
+                        $row = $this->getRowForPersona((int) $record->id);
+
+                        return $this->getPercentageColor((int) ($row['porcentaje'] ?? 0));
+                    })
+                    ->alignCenter(),
+                ...$this->getAttendanceDateColumns(),
+            ]);
+    }
+
+    public function updatedIpnAulaId(): void
+    {
+        $this->resetReportCache();
+        $this->resetTable();
+    }
+
+    public function updatedPersonaId(): void
+    {
+        $this->resetReportCache();
+        $this->resetTable();
+    }
+
+    public function updatedDesde(): void
+    {
+        $this->resetReportCache();
+        $this->resetTable();
+    }
+
+    public function updatedHasta(): void
+    {
+        $this->resetReportCache();
+        $this->resetTable();
+    }
+
     /**
      * @return array<int, string>
      */
@@ -127,15 +224,15 @@ class IpnReporteAsistencia extends Page implements HasForms
      */
     public function getDates(): Collection
     {
-        if (! $this->ipn_aula_id) {
+        if ($this->reportDatesCache !== null && $this->reportCacheKey === $this->makeReportCacheKey()) {
+            return $this->reportDatesCache;
+        }
+
+        if (! $this->ipn_aula_id || ! array_key_exists($this->ipn_aula_id, $this->aulasOptions())) {
             return collect();
         }
 
-        if (! array_key_exists($this->ipn_aula_id, $this->aulasOptions())) {
-            return collect();
-        }
-
-        return IpnAsistencia::query()
+        $this->reportDatesCache = IpnAsistencia::query()
             ->where('ipn_aula_id', $this->ipn_aula_id)
             ->when($this->desde, fn ($query) => $query->whereDate('fecha', '>=', $this->desde))
             ->when($this->hasta, fn ($query) => $query->whereDate('fecha', '<=', $this->hasta))
@@ -145,6 +242,8 @@ class IpnReporteAsistencia extends Page implements HasForms
             ->pluck('fecha')
             ->map(fn ($date): string => (string) Carbon::parse($date)->toDateString())
             ->values();
+
+        return $this->reportDatesCache;
     }
 
     public function getSummary(): array
@@ -167,12 +266,105 @@ class IpnReporteAsistencia extends Page implements HasForms
 
     public function getRows(): Collection
     {
-        if (! $this->ipn_aula_id) {
-            return collect();
+        $this->primeReportCache();
+
+        return $this->reportRowsCache ?? collect();
+    }
+
+    protected function getTableQuery(): Builder
+    {
+        if (! $this->ipn_aula_id || ! array_key_exists($this->ipn_aula_id, $this->aulasOptions())) {
+            return Persona::query()->whereRaw('1 = 0');
         }
 
-        if (! array_key_exists($this->ipn_aula_id, $this->aulasOptions())) {
-            return collect();
+        return Persona::query()
+            ->select('personas.*')
+            ->join('ipn_aula_persona', 'ipn_aula_persona.persona_id', '=', 'personas.id')
+            ->where('ipn_aula_id', $this->ipn_aula_id)
+            ->when($this->persona_id, fn (Builder $query): Builder => $query->where('personas.id', $this->persona_id))
+            ->distinct();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function aulasOptions(): array
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return [];
+        }
+
+        return $user->ipnAulasDisponibles()
+            ->orderBy('nombre')
+            ->pluck('nombre', 'id')
+            ->all();
+    }
+
+    /**
+     * @return array<int, IconColumn>
+     */
+    protected function getAttendanceDateColumns(): array
+    {
+        return $this->getDates()
+            ->map(function (string $date): IconColumn {
+                return IconColumn::make('asistencia_' . str_replace('-', '_', $date))
+                    ->label(Carbon::parse($date)->format('d/m'))
+                    ->state(fn (Persona $record): ?bool => $this->getAttendanceStateForPersona((int) $record->id, $date))
+                    ->icon(fn (?bool $state): string => match ($state) {
+                        true => 'heroicon-o-check-circle',
+                        false => 'heroicon-o-x-circle',
+                        default => 'heroicon-o-minus-circle',
+                    })
+                    ->color(fn (?bool $state): string => match ($state) {
+                        true => 'success',
+                        false => 'danger',
+                        default => 'gray',
+                    })
+                    ->alignCenter();
+            })
+            ->all();
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    protected function getRowForPersona(int $personaId): ?array
+    {
+        return $this->getRows()->firstWhere('persona_id', $personaId);
+    }
+
+    protected function getAttendanceStateForPersona(int $personaId, string $date): ?bool
+    {
+        $row = $this->getRowForPersona($personaId);
+
+        return $row['attendance_by_date'][$date] ?? null;
+    }
+
+    protected function getPercentageColor(int $percentage): string
+    {
+        return match (true) {
+            $percentage >= 80 => 'success',
+            $percentage >= 50 => 'warning',
+            default => 'danger',
+        };
+    }
+
+    protected function primeReportCache(): void
+    {
+        $cacheKey = $this->makeReportCacheKey();
+
+        if ($this->reportRowsCache !== null && $this->reportCacheKey === $cacheKey) {
+            return;
+        }
+
+        if (! $this->ipn_aula_id || ! array_key_exists($this->ipn_aula_id, $this->aulasOptions())) {
+            $this->reportRowsCache = collect();
+            $this->reportDatesCache = collect();
+            $this->reportCacheKey = $cacheKey;
+
+            return;
         }
 
         $dates = $this->getDates();
@@ -183,7 +375,7 @@ class IpnReporteAsistencia extends Page implements HasForms
             ->get()
             ->groupBy('persona_id');
 
-        return IpnAulaPersona::query()
+        $this->reportRowsCache = IpnAulaPersona::query()
             ->with('persona.responsablePersona:id,nombre,apellido,telefono')
             ->where('ipn_aula_id', $this->ipn_aula_id)
             ->when($this->persona_id, fn ($query) => $query->where('persona_id', $this->persona_id))
@@ -215,22 +407,24 @@ class IpnReporteAsistencia extends Page implements HasForms
             })
             ->sortBy('nombre_completo')
             ->values();
+
+        $this->reportCacheKey = $cacheKey;
     }
 
-    /**
-     * @return array<int, string>
-     */
-    protected function aulasOptions(): array
+    protected function resetReportCache(): void
     {
-        $user = auth()->user();
+        $this->reportRowsCache = null;
+        $this->reportDatesCache = null;
+        $this->reportCacheKey = null;
+    }
 
-        if (! $user) {
-            return [];
-        }
-
-        return $user->ipnAulasDisponibles()
-            ->orderBy('nombre')
-            ->pluck('nombre', 'id')
-            ->all();
+    protected function makeReportCacheKey(): string
+    {
+        return implode('|', [
+            (string) ($this->ipn_aula_id ?? ''),
+            (string) ($this->persona_id ?? ''),
+            (string) ($this->desde ?? ''),
+            (string) ($this->hasta ?? ''),
+        ]);
     }
 }
