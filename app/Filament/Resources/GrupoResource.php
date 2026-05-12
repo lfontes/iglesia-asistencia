@@ -158,7 +158,9 @@ class GrupoResource extends Resource
                 TextColumn::make('lider.apellido')
                     ->label('Líder')
                     ->formatStateUsing(fn ($state, Grupo $record): string => $record->lider ? trim($record->lider->apellido.' '.$record->lider->nombre) : '-')
-                    ->searchable(['personas.apellido', 'personas.nombre'])
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->whereHas('lider', fn (Builder $leaderQuery): Builder => $leaderQuery->buscarPorNombreApellido($search));
+                    })
                     ->sortable()
                     ->toggleable(),
 

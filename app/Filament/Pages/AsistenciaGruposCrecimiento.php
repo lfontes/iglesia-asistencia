@@ -75,6 +75,7 @@ class AsistenciaGruposCrecimiento extends Page implements HasForms
                         ->placeholder('Selecciona tu grupo')
                         ->required()
                         ->searchable()
+                        ->optionsLimit(1000)
                         ->preload()
                         ->options(fn (): array => $this->gruposDeCrecimientoQuery()
                             ->where('activo', true)
