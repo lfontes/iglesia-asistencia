@@ -84,7 +84,7 @@ class TomarAsistencia extends Page implements HasForms, HasTable
             ->query($this->getInscriptosQuery())
             ->heading('Inscriptos')
             ->description('Personas registradas previamente para esta fecha de evento.')
-            ->defaultSort('created_at')
+            ->defaultSort('persona.apellido')
             ->emptyStateHeading('Todavía no hay inscripciones para esta fecha')
             ->emptyStateDescription('Cuando lleguen inscripciones desde el formulario público, aparecerán aquí.')
             ->emptyStateIcon('heroicon-o-ticket')
@@ -219,7 +219,10 @@ class TomarAsistencia extends Page implements HasForms, HasTable
     public function getInscriptos(): Collection
     {
         return $this->getInscriptosQuery()
-            ->orderBy('created_at')
+            ->select('evento_inscripciones.*')
+            ->leftJoin('personas', 'personas.id', '=', 'evento_inscripciones.persona_id')
+            ->orderBy('personas.apellido')
+            ->orderBy('personas.nombre')
             ->get();
     }
 
