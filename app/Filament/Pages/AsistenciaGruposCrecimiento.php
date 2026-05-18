@@ -50,7 +50,12 @@ class AsistenciaGruposCrecimiento extends Page implements HasForms
     {
         $this->fecha = now()->toDateString();
         $grupoIdDesdeUrl = request()->integer('grupo_id');
+        $fechaDesdeUrl = request()->string('fecha')->toString();
         $this->grupo_id = $grupoIdDesdeUrl ?: null;
+
+        if (filled($fechaDesdeUrl)) {
+            $this->fecha = $fechaDesdeUrl;
+        }
 
         $this->refrescarAsistenciaCargada();
     }

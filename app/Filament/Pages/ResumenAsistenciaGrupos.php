@@ -18,7 +18,9 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\HtmlString;
 
 class ResumenAsistenciaGrupos extends Page implements HasForms, HasTable
 {
@@ -276,8 +278,15 @@ class ResumenAsistenciaGrupos extends Page implements HasForms, HasTable
     {
         return $this->getAttendanceDates()
             ->map(function (string $fecha): IconColumn {
+                $url = AsistenciaGruposCrecimiento::getUrl(['grupo_id' => $this->grupo_id, 'fecha' => $fecha]);
+                $label = new HtmlString(
+                    '<a href="' . e($url) . '" class="hover:underline hover:text-primary-600">'
+                    . e(Carbon::parse($fecha)->format('d/m'))
+                    . '</a>'
+                );
+
                 return IconColumn::make('asistencia_' . str_replace('-', '_', $fecha))
-                    ->label(\Illuminate\Support\Carbon::parse($fecha)->format('d/m'))
+                    ->label($label)
                     ->state(fn (Persona $record): ?bool => $this->getAttendanceStateForPersona((int) $record->id, $fecha))
                     ->icon(fn (?bool $state): string => match ($state) {
                         true => 'heroicon-o-check-circle',
