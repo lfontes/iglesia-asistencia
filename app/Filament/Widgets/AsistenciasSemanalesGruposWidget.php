@@ -33,7 +33,7 @@ class AsistenciasSemanalesGruposWidget extends ChartWidget
 
     protected function getData(): array
     {
-        $weeks = collect(range(7, 0))
+        $weeks = collect(range(11, 0))
             ->map(function (int $offset): array {
                 $start = CarbonImmutable::now()->startOfWeek()->subWeeks($offset);
                 $end = $start->endOfWeek();
