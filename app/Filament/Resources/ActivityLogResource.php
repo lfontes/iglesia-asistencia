@@ -135,7 +135,7 @@ class ActivityLogResource extends Resource
                     }),
             ])
             ->defaultSort('created_at', 'desc')
-            ->paginated([25, 50, 100])
+            ->paginated([25, 50, 100, 'all'])
             ->striped();
     }
 
