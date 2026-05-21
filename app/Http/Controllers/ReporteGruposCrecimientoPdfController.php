@@ -20,9 +20,15 @@ class ReporteGruposCrecimientoPdfController extends Controller
 
         $grupos = $this->getGrupos();
 
+        $logoPath = public_path('images/logo-iglesia-libres.png');
+        $logoBase64 = is_file($logoPath)
+            ? 'data:image/png;base64,'.base64_encode(file_get_contents($logoPath))
+            : null;
+
         $pdf = Pdf::loadView('pdf.reporte-grupos-crecimiento', [
             'grupos' => $grupos,
             'generadoEn' => now()->format('d/m/Y H:i'),
+            'logoBase64' => $logoBase64,
         ])->setPaper('a4', 'landscape');
 
         return $pdf->download('reporte-grupos-crecimiento.pdf');

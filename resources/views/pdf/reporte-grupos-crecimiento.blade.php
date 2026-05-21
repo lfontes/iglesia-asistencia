@@ -7,7 +7,7 @@
 
         body {
             font-family: DejaVu Sans, sans-serif;
-            font-size: 11px;
+            font-size: 13px;
             color: #1a1a1a;
         }
 
@@ -17,6 +17,16 @@
             padding-bottom: 10px;
         }
 
+        .header-inner {
+            width: 100%;
+        }
+
+        .header-inner td {
+            border: none;
+            padding: 0;
+            vertical-align: middle;
+        }
+
         .header h1 {
             font-size: 18px;
             font-weight: bold;
@@ -24,9 +34,18 @@
         }
 
         .header .meta {
-            font-size: 10px;
+            font-size: 12px;
             color: #6b7280;
             margin-top: 4px;
+        }
+
+        .header-logo {
+            text-align: right;
+        }
+
+        .header-logo img {
+            width: 52px;
+            height: 52px;
         }
 
         table {
@@ -42,19 +61,11 @@
         thead th {
             padding: 8px 10px;
             text-align: left;
-            font-size: 11px;
+            font-size: 13px;
             font-weight: bold;
         }
 
         thead th.center { text-align: center; }
-
-        tbody tr:nth-child(even) {
-            background-color: #fef3c7;
-        }
-
-        tbody tr:nth-child(odd) {
-            background-color: #ffffff;
-        }
 
         tbody td {
             padding: 7px 10px;
@@ -67,7 +78,7 @@
             display: inline-block;
             padding: 2px 8px;
             border-radius: 9999px;
-            font-size: 10px;
+            font-size: 12px;
             font-weight: bold;
         }
 
@@ -78,7 +89,7 @@
 
         .footer {
             margin-top: 16px;
-            font-size: 9px;
+            font-size: 11px;
             color: #9ca3af;
             text-align: right;
         }
@@ -86,8 +97,19 @@
 </head>
 <body>
     <div class="header">
-        <h1>Reporte de grupos de crecimiento</h1>
-        <div class="meta">Generado el {{ $generadoEn }} &mdash; Iglesia de los Libres</div>
+        <table class="header-inner">
+            <tr>
+                <td>
+                    <h1>Reporte de grupos de crecimiento</h1>
+                    <div class="meta">Generado el {{ $generadoEn }} &mdash; Iglesia de los Libres</div>
+                </td>
+                @if ($logoBase64)
+                    <td class="header-logo">
+                        <img src="{{ $logoBase64 }}" alt="Logo">
+                    </td>
+                @endif
+            </tr>
+        </table>
     </div>
 
     <table>
