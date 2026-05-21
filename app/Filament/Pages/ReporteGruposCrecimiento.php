@@ -2,14 +2,14 @@
 
 namespace App\Filament\Pages;
 
-use Filament\Tables\Columns\TextColumn;
 use App\Models\AsistenciaGrupo;
 use App\Models\Grupo;
 use App\Models\ParticipacionGrupo;
+use Filament\Actions\Action;
 use Filament\Pages\Page;
-use Filament\Tables;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -37,6 +37,18 @@ class ReporteGruposCrecimiento extends Page implements HasTable
     public static function shouldRegisterNavigation(): bool
     {
         return static::canAccess();
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('descargarPdf')
+                ->label('Descargar PDF')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('gray')
+                ->url(route('reporte-grupos-crecimiento.pdf'))
+                ->openUrlInNewTab(),
+        ];
     }
 
     public function table(Table $table): Table

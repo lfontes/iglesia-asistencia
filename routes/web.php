@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\EventoInscripcionController;
+use App\Http\Controllers\ReporteGruposCrecimientoPdfController;
 use App\Http\Controllers\WhatsAppWebhookController;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Support\Facades\Route;
@@ -22,6 +23,10 @@ Route::get('/images/logo-iglesia-libres.png', function () {
 Route::get('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'verify']);
 Route::post('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'receive'])
     ->withoutMiddleware([VerifyCsrfToken::class]);
+
+Route::get('/admin/reporte-grupos-crecimiento/pdf', ReporteGruposCrecimientoPdfController::class)
+    ->middleware(['web', 'auth'])
+    ->name('reporte-grupos-crecimiento.pdf');
 
 Route::get('/eventos/{eventoFecha}/inscripcion', [EventoInscripcionController::class, 'create'])
     ->name('eventos.inscripcion.create');
