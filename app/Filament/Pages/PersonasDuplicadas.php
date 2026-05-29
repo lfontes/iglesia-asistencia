@@ -8,18 +8,22 @@ use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Forms\Components\Radio;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Support\Enums\Width;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 
-class PersonasDuplicadas extends Page implements HasActions
+class PersonasDuplicadas extends Page implements HasActions, HasForms
 {
     use InteractsWithActions;
+    use InteractsWithForms;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-user-group';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Personas';
+    protected static string|\UnitEnum|null $navigationGroup = 'Administración';
 
     protected static ?string $navigationLabel = 'Posibles duplicados';
 
@@ -43,7 +47,15 @@ class PersonasDuplicadas extends Page implements HasActions
 
     public function mount(): void
     {
-        $this->cargarPares();
+        try {
+            $this->cargarPares();
+        } catch (\Throwable $e) {
+            Notification::make()->danger()
+                ->title('Error al cargar duplicados')
+                ->body($e->getMessage())
+                ->persistent()
+                ->send();
+        }
     }
 
     public function cargarPares(): void
@@ -102,6 +114,22 @@ class PersonasDuplicadas extends Page implements HasActions
             ->all();
     }
 
+    public function ignorarPar(int $idA, int $idB): void
+    {
+        $this->mountAction('ignorar', ['id_a' => $idA, 'id_b' => $idB]);
+    }
+
+    public function abrirFusionar(int $idA, int $idB): void
+    {
+        $par = collect($this->pares)->first(
+            fn ($p) => $p['id_a'] === $idA && $p['id_b'] === $idB
+        );
+
+        if ($par) {
+            $this->mountAction('fusionar', $par);
+        }
+    }
+
     public function ignorarAction(): Action
     {
         return Action::make('ignorar')
@@ -138,6 +166,7 @@ class PersonasDuplicadas extends Page implements HasActions
                         $arguments['id_a'] => "{$arguments['nombre_a']} {$arguments['apellido_a']}" . ($arguments['telefono_a'] ? " — {$arguments['telefono_a']}" : '') . "  (ID {$arguments['id_a']})",
                         $arguments['id_b'] => "{$arguments['nombre_b']} {$arguments['apellido_b']}" . ($arguments['telefono_b'] ? " — {$arguments['telefono_b']}" : '') . "  (ID {$arguments['id_b']})",
                     ])
+                    ->default($arguments['id_a'])
                     ->required(),
             ])
             ->action(function (array $data, array $arguments): void {
@@ -169,6 +198,11 @@ class PersonasDuplicadas extends Page implements HasActions
                 ->color('gray')
                 ->action(fn () => $this->cargarPares()),
         ];
+    }
+
+    public function getMaxContentWidth(): Width
+    {
+        return Width::Full;
     }
 
     public function getEditUrl(int $personaId): string

@@ -217,6 +217,21 @@ Artisan::command('personas:merge {keep_id : ID de la persona a conservar} {dupli
         $this->line("- {$persona->id}: {$persona->apellido} {$persona->nombre} | Tel: ".($persona->telefono ?: 'sin telefono').' | Nac: '.($persona->fecha_nacimiento ?: 'sin fecha'));
     }
 
+    // Campos del perfil que se completan desde el duplicado si están vacíos en el registro a conservar
+    $camposCompletar = ['fecha_nacimiento', 'telefono', 'email', 'departamento', 'responsable_persona_id', 'responsable_nombre', 'responsable_telefono', 'observaciones_ipn'];
+    $completaciones = [];
+    foreach ($camposCompletar as $campo) {
+        if (blank($personaKeep->$campo)) {
+            foreach ($duplicateIds as $dupId) {
+                $valor = $people->get($dupId)->$campo;
+                if (filled($valor)) {
+                    $completaciones[$campo] = $valor;
+                    break;
+                }
+            }
+        }
+    }
+
     $this->newLine();
     $this->line('Resumen del plan:');
     $this->line('- Participaciones de grupo a consolidar: '.$participacionesPlan->count());
@@ -224,6 +239,9 @@ Artisan::command('personas:merge {keep_id : ID de la persona a conservar} {dupli
     $this->line('- Asistencias a eventos a consolidar: '.$asistenciasEventoPlan->count());
     $this->line('- Mensajes WhatsApp a reasignar: '.$whatsAppMessages->count());
     $this->line('- Personas a eliminar al final: '.$duplicateIds->count());
+    if ($completaciones !== []) {
+        $this->line('- Campos a completar en el registro conservado: '.implode(', ', array_keys($completaciones)));
+    }
 
     if ($dryRun) {
         $this->warn('Dry run: no se realizaron cambios.');
@@ -236,8 +254,13 @@ Artisan::command('personas:merge {keep_id : ID de la persona a conservar} {dupli
         $duplicateIds,
         $participacionesPlan,
         $asistenciasGrupoPlan,
-        $asistenciasEventoPlan
+        $asistenciasEventoPlan,
+        $personaKeep,
+        $completaciones
     ): void {
+        if ($completaciones !== []) {
+            $personaKeep->fill($completaciones)->save();
+        }
         foreach ($participacionesPlan as $plan) {
             ParticipacionGrupo::query()
                 ->whereKey($plan['target_id'])
