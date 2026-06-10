@@ -94,15 +94,16 @@ class RestrictFacilitadorPanelAccess
 
             if ($isIpn) {
                 $allowedRoutes = array_merge($allowedRoutes, [
-                    'filament.admin.pages.ipn-dashboard',
-                    'filament.admin.pages.ipn-tomar-asistencia',
-                    'filament.admin.pages.ipn-reporte-asistencia',
-                    'filament.admin.resources.ipn-ninos.index',
-                    'filament.admin.resources.ipn-ninos.create',
-                    'filament.admin.resources.ipn-ninos.edit',
-                    'filament.admin.resources.ipn-aulas.index',
-                    'filament.admin.resources.ipn-aulas.create',
-                    'filament.admin.resources.ipn-aulas.edit',
+                    'filament.admin.ipn',
+                    'filament.admin.ipn.pages.ipn-dashboard',
+                    'filament.admin.ipn.pages.ipn-tomar-asistencia',
+                    'filament.admin.ipn.pages.ipn-reporte-asistencia',
+                    'filament.admin.ipn.resources.ipn-ninos.index',
+                    'filament.admin.ipn.resources.ipn-ninos.create',
+                    'filament.admin.ipn.resources.ipn-ninos.edit',
+                    'filament.admin.ipn.resources.ipn-aulas.index',
+                    'filament.admin.ipn.resources.ipn-aulas.create',
+                    'filament.admin.ipn.resources.ipn-aulas.edit',
                 ]);
             }
 

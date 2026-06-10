@@ -61,6 +61,7 @@ class NinosRelationManager extends RelationManager
                         'persona',
                         fn (Builder $personaQuery) => $personaQuery->buscarPorNombreApellido($search)
                     ))
+                    ->action($this->editarNinoAction())
                     ->sortable(),
                 TextColumn::make('persona.nombre')
                     ->label('Nombre')
@@ -68,6 +69,7 @@ class NinosRelationManager extends RelationManager
                         'persona',
                         fn (Builder $personaQuery) => $personaQuery->buscarPorNombreApellido($search)
                     ))
+                    ->action($this->editarNinoAction())
                     ->sortable(),
                 TextColumn::make('persona.edad')
                     ->label('Edad')
@@ -248,6 +250,69 @@ class NinosRelationManager extends RelationManager
             ->title($tieneAsistencias ? 'Participación cerrada' : 'Niño quitado del aula')
             ->success()
             ->send();
+    }
+
+    protected function editarNinoAction(): Action
+    {
+        return Action::make('editarNino')
+            ->modalHeading(fn (IpnAulaPersona $record): string => "{$record->persona?->apellido}, {$record->persona?->nombre}")
+            ->fillForm(fn (IpnAulaPersona $record): array => [
+                'nombre' => $record->persona?->nombre ?? '',
+                'apellido' => $record->persona?->apellido ?? '',
+                'fecha_nacimiento' => $record->persona?->fecha_nacimiento?->format('Y-m-d'),
+                'telefono' => $record->persona?->telefono,
+                'email' => $record->persona?->email,
+                'departamento' => $record->persona?->departamento,
+                'responsable_persona_id' => $record->persona?->responsable_persona_id,
+                'observaciones_ipn' => $record->persona?->observaciones_ipn,
+            ])
+            ->schema([
+                TextInput::make('nombre')->required()->maxLength(255),
+                TextInput::make('apellido')->required()->maxLength(255),
+                DatePicker::make('fecha_nacimiento')
+                    ->label('Fecha de nacimiento')
+                    ->native(false),
+                TextInput::make('telefono')
+                    ->label('Teléfono del niño')
+                    ->tel()
+                    ->maxLength(255),
+                TextInput::make('email')
+                    ->email()
+                    ->maxLength(255),
+                Select::make('departamento')
+                    ->label('Departamento')
+                    ->options(Persona::departamentosMendoza())
+                    ->searchable()
+                    ->placeholder('Selecciona un departamento'),
+                Select::make('responsable_persona_id')
+                    ->label('Responsable / tutor')
+                    ->searchable()
+                    ->preload(false)
+                    ->getSearchResultsUsing(fn (string $search): array => Persona::query()
+                        ->buscarPorNombreApellido($search)
+                        ->orderBy('apellido')
+                        ->orderBy('nombre')
+                        ->limit(50)
+                        ->get()
+                        ->mapWithKeys(fn (Persona $persona): array => [
+                            $persona->id => $this->personaLabel($persona),
+                        ])
+                        ->all())
+                    ->getOptionLabelUsing(function ($value): ?string {
+                        $persona = $value ? Persona::query()->find($value) : null;
+
+                        return $persona ? $this->personaLabel($persona) : null;
+                    })
+                    ->helperText('Selecciona una persona existente de la base de datos.'),
+                Textarea::make('observaciones_ipn')
+                    ->label('Observaciones importantes')
+                    ->rows(4)
+                    ->columnSpanFull(),
+            ])
+            ->action(function (IpnAulaPersona $record, array $data): void {
+                $record->persona?->update($data);
+                Notification::make()->title('Datos del niño actualizados')->success()->send();
+            });
     }
 
     protected function personaLabel(Persona $persona): string

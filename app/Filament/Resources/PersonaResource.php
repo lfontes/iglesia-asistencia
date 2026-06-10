@@ -20,6 +20,8 @@ use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -109,6 +111,58 @@ class PersonaResource extends Resource
                     ->sortable()
                     ->toggleable(),
             ])
+            ->filters([
+                SelectFilter::make('departamento')
+                    ->label('Departamento')
+                    ->options(Persona::departamentosMendoza())
+                    ->multiple()
+                    ->searchable()
+                    ->query(fn (Builder $query, array $data): Builder => filled($data['values'] ?? null)
+                        ? $query->whereIn('departamento', $data['values'])
+                        : $query),
+
+                SelectFilter::make('segmento_etario')
+                    ->label('Segmento etario')
+                    ->options([
+                        Persona::SEGMENTO_NINOS => 'Niños (0–11)',
+                        Persona::SEGMENTO_ADOLESCENTES => 'Adolescentes (12–17)',
+                        Persona::SEGMENTO_JOVENES => 'Jóvenes (18–29)',
+                        Persona::SEGMENTO_ADULTOS => 'Adultos (30+)',
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return match ($data['value'] ?? null) {
+                            Persona::SEGMENTO_NINOS => $query
+                                ->whereNotNull('fecha_nacimiento')
+                                ->where('fecha_nacimiento', '>', now()->subYears(12)),
+                            Persona::SEGMENTO_ADOLESCENTES => $query
+                                ->whereNotNull('fecha_nacimiento')
+                                ->where('fecha_nacimiento', '>', now()->subYears(18))
+                                ->where('fecha_nacimiento', '<=', now()->subYears(12)),
+                            Persona::SEGMENTO_JOVENES => $query
+                                ->whereNotNull('fecha_nacimiento')
+                                ->where('fecha_nacimiento', '>', now()->subYears(30))
+                                ->where('fecha_nacimiento', '<=', now()->subYears(18)),
+                            Persona::SEGMENTO_ADULTOS => $query
+                                ->whereNotNull('fecha_nacimiento')
+                                ->where('fecha_nacimiento', '<=', now()->subYears(30)),
+                            default => $query,
+                        };
+                    }),
+
+                TernaryFilter::make('es_menor')
+                    ->label('Tipo')
+                    ->trueLabel('Solo menores')
+                    ->falseLabel('Solo adultos')
+                    ->boolean(),
+
+                TernaryFilter::make('con_telefono')
+                    ->label('Teléfono')
+                    ->attribute('telefono')
+                    ->trueLabel('Con teléfono')
+                    ->falseLabel('Sin teléfono')
+                    ->nullable(),
+            ])
+            ->filtersFormColumns(2)
             ->recordClasses('persona-list-row-compact')
             ->defaultSort('apellido')
             ->recordActions([

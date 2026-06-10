@@ -174,12 +174,12 @@ class IpnNinoResource extends Resource
 
     public static function canCreate(): bool
     {
-        return (bool) auth()->user()?->canManageIpn();
+        return (bool) auth()->user()?->canAccessIpn();
     }
 
     public static function canEdit($record): bool
     {
-        return (bool) auth()->user()?->canManageIpn();
+        return (bool) auth()->user()?->canAccessIpn();
     }
 
     public static function shouldRegisterNavigation(): bool
