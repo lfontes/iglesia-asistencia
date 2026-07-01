@@ -32,3 +32,7 @@ Route::get('/eventos/{eventoFecha}/inscripcion', [EventoInscripcionController::c
     ->name('eventos.inscripcion.create');
 Route::post('/eventos/{eventoFecha}/inscripcion', [EventoInscripcionController::class, 'store'])
     ->name('eventos.inscripcion.store');
+Route::post('/eventos/{eventoFecha}/inscripcion/cancelar/buscar', [EventoInscripcionController::class, 'cancelarBuscar'])
+    ->name('eventos.inscripcion.cancelar.buscar');
+Route::post('/eventos/{eventoFecha}/inscripcion/cancelar', [EventoInscripcionController::class, 'cancelar'])
+    ->name('eventos.inscripcion.cancelar');

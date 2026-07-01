@@ -80,6 +80,70 @@ class EventoInscripcionController extends Controller
             ->with('success', $message);
     }
 
+    public function cancelarBuscar(Request $request, EventoFecha $eventoFecha): View
+    {
+        $this->ensureCaptchaChallenge($eventoFecha);
+
+        $telefono = (string) $request->input('telefono', '');
+        $normalized = $this->normalizePhone($telefono);
+
+        $inscripcion = null;
+
+        if ($normalized !== null) {
+            $inscripcion = EventoInscripcion::query()
+                ->where('evento_fecha_id', $eventoFecha->id)
+                ->where('estado', 'inscripto')
+                ->whereHas('persona', fn ($query) => $query->where('telefono_normalizado', $normalized))
+                ->with('persona:id,nombre,apellido')
+                ->first();
+        }
+
+        return view('eventos.inscripcion', [
+            'eventoFecha' => $eventoFecha->load('evento'),
+            'candidates' => collect(),
+            'departamentos' => Persona::departamentosMendoza(),
+            'input' => old(),
+            'captchaQuestion' => session($this->captchaQuestionKey($eventoFecha)),
+            'cancelacion' => $inscripcion,
+            'cancelacionTelefono' => $telefono,
+            'cancelacionError' => $inscripcion === null
+                ? 'No encontramos ninguna inscripción activa con ese teléfono para este evento.'
+                : null,
+        ]);
+    }
+
+    public function cancelar(Request $request, EventoFecha $eventoFecha): RedirectResponse
+    {
+        $validated = $request->validate([
+            'inscripcion_id' => ['required', 'integer'],
+        ]);
+
+        $inscripcion = EventoInscripcion::query()
+            ->where('id', $validated['inscripcion_id'])
+            ->where('evento_fecha_id', $eventoFecha->id)
+            ->where('estado', 'inscripto')
+            ->first();
+
+        if ($inscripcion === null) {
+            return redirect()
+                ->route('eventos.inscripcion.create', $eventoFecha)
+                ->with('cancelacion_error', 'No pudimos cancelar la inscripción. Es posible que ya estuviera cancelada.');
+        }
+
+        $inscripcion->update(['estado' => 'cancelado']);
+
+        return redirect()
+            ->route('eventos.inscripcion.create', $eventoFecha)
+            ->with('success', 'Tu inscripción fue cancelada. ¡Esperamos verte en otra oportunidad!');
+    }
+
+    protected function normalizePhone(?string $value): ?string
+    {
+        $digits = preg_replace('/\D+/', '', (string) $value);
+
+        return $digits !== '' && $digits !== null ? $digits : null;
+    }
+
     /**
      * @param  array<string, mixed>  $validated
      * @return array{0: EventoInscripcion, 1: bool}

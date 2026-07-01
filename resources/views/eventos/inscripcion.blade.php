@@ -37,8 +37,26 @@
                     </div>
                 @endif
 
+                @php
+                    $cancelacion = $cancelacion ?? null;
+                    $cancelacionError = ($cancelacionError ?? null) ?: session('cancelacion_error');
+                    $cancelacionTelefono = $cancelacionTelefono ?? '';
+                    $abrirCancelacion = $cancelacion || filled($cancelacionError);
+                @endphp
+
                 <div class="mb-8 rounded-2xl border border-stone-200 bg-stone-50 px-5 py-4 text-sm text-stone-600 dark:border-white/10 dark:bg-white/5 dark:text-gray-300">
                     Completa tus datos para inscribirte. Si encontramos una persona parecida en la base, te la vamos a mostrar para que confirmes si eres tú.
+                   
+                </div>
+                <div class="mb-8 rounded-2xl border border-stone-200 bg-stone-50 px-5 py-4 text-sm text-stone-600 dark:border-white/10 dark:bg-white/5 dark:text-gray-300">
+                     ¿Ya no podés asistir?
+                    <button
+                        type="button"
+                        onclick="document.getElementById('cancelacion-modal')?.classList.remove('hidden')"
+                        class="font-semibold text-amber-700 underline underline-offset-2 hover:text-amber-800 dark:text-amber-400"
+                    >
+                        Cancelá tu inscripción
+                    </button>.
                 </div>
 
                 <form method="POST" action="{{ route('eventos.inscripcion.store', $eventoFecha) }}" class="space-y-6">
@@ -139,6 +157,86 @@
                     </div>
                 </form>
             </div>
+        </div>
+    </div>
+
+    <div
+        id="cancelacion-modal"
+        class="{{ $abrirCancelacion ? '' : 'hidden' }} fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-8"
+    >
+        <div class="max-h-full w-full max-w-lg overflow-y-auto rounded-[2rem] bg-white p-8 shadow-2xl dark:bg-slate-900">
+            <div class="flex items-start justify-between gap-4">
+                <h2 class="text-xl font-semibold text-stone-950 dark:text-white">¿Ya no podés asistir?</h2>
+                <button
+                    type="button"
+                    onclick="document.getElementById('cancelacion-modal')?.classList.add('hidden')"
+                    class="text-stone-400 hover:text-stone-600 dark:hover:text-gray-200"
+                    aria-label="Cerrar"
+                >
+                    &times;
+                </button>
+            </div>
+            <p class="mt-2 text-sm text-stone-600 dark:text-gray-300">
+                Ingresá el teléfono con el que te inscribiste para cancelar tu inscripción a este evento.
+            </p>
+
+            @if (filled($cancelacionError))
+                <div class="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
+                    {{ $cancelacionError }}
+                </div>
+            @endif
+
+            @if ($cancelacion)
+                <div class="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 dark:border-amber-500/30 dark:bg-amber-500/10">
+                    <p class="text-sm text-amber-900 dark:text-amber-200">Encontramos esta inscripción a tu nombre:</p>
+                    <p class="mt-1 text-lg font-semibold text-stone-950 dark:text-white">
+                        {{ trim($cancelacion->persona->nombre . ' ' . $cancelacion->persona->apellido) }}
+                    </p>
+                    <p class="mt-1 text-sm text-stone-600 dark:text-gray-300">¿Querés cancelar tu participación en este evento?</p>
+
+                    <div class="mt-4 flex flex-wrap gap-3">
+                        <form method="POST" action="{{ route('eventos.inscripcion.cancelar', $eventoFecha) }}">
+                            @csrf
+                            <input type="hidden" name="inscripcion_id" value="{{ $cancelacion->id }}">
+                            <button class="rounded-full bg-rose-700 px-5 py-3 text-sm font-medium text-white dark:bg-rose-600">
+                                Sí, cancelar mi inscripción
+                            </button>
+                        </form>
+
+                        <a
+                            href="{{ route('eventos.inscripcion.create', $eventoFecha) }}"
+                            class="rounded-full border border-stone-300 px-5 py-3 text-sm font-medium text-stone-800 dark:border-white/15 dark:text-white"
+                        >
+                            No, mantener mi inscripción
+                        </a>
+                    </div>
+                </div>
+            @else
+                <form method="POST" action="{{ route('eventos.inscripcion.cancelar.buscar', $eventoFecha) }}" class="mt-5 space-y-4">
+                    @csrf
+                    <label class="block">
+                        <span class="mb-2 block text-sm font-medium text-stone-700 dark:text-gray-200">Teléfono</span>
+                        <input
+                            name="telefono"
+                            value="{{ $cancelacionTelefono }}"
+                            class="w-full rounded-2xl border border-stone-300 px-4 py-3 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                            required
+                        >
+                    </label>
+                    <div class="flex flex-wrap gap-3">
+                        <button class="rounded-full bg-stone-950 px-6 py-3 text-sm font-medium text-white dark:bg-white dark:text-slate-900">
+                            Buscar mi inscripción
+                        </button>
+                        <button
+                            type="button"
+                            onclick="document.getElementById('cancelacion-modal')?.classList.add('hidden')"
+                            class="rounded-full border border-transparent px-5 py-3 text-sm font-medium text-stone-500 dark:text-gray-300"
+                        >
+                            Cancelar
+                        </button>
+                    </div>
+                </form>
+            @endif
         </div>
     </div>
 
