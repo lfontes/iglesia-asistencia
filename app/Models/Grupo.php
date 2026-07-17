@@ -124,6 +124,16 @@ class Grupo extends Model
             return false;
         }
 
+        if ($this->isOwnedBy($user)) {
+            return true;
+        }
+
+        return $user->persona_id !== null
+            && $this->metagrupos()->where('lider_persona_id', $user->persona_id)->exists();
+    }
+
+    public function isOwnedBy(User $user): bool
+    {
         if ((int) $this->created_by === (int) $user->id) {
             return true;
         }
@@ -142,7 +152,10 @@ class Grupo extends Model
             $managedQuery->where('created_by', $user->id);
 
             if ($user->persona_id) {
-                $managedQuery->orWhere('lider_persona_id', $user->persona_id);
+                $managedQuery->orWhere('lider_persona_id', $user->persona_id)
+                    ->orWhereHas('metagrupos', function (Builder $metagrupoQuery) use ($user): void {
+                        $metagrupoQuery->where('lider_persona_id', $user->persona_id);
+                    });
             }
         });
     }

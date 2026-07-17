@@ -2,18 +2,17 @@
 
 namespace App\Filament\Resources\MetagrupoResource\Pages;
 
-use Filament\Actions\EditAction;
-use Filament\Schemas\Schema;
-use Filament\Schemas\Components\Section;
 use App\Filament\Pages\ResumenAsistenciaGrupos;
 use App\Filament\Resources\MetagrupoResource;
 use App\Models\AsistenciaGrupo;
 use App\Models\Persona;
 use App\Models\TipoGrupo;
-use Filament\Actions;
+use Filament\Actions\EditAction;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Pages\ViewRecord;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\HtmlString;
@@ -34,7 +33,7 @@ class ViewMetagrupo extends ViewRecord
 
     protected function getHeaderActions(): array
     {
-        if (! auth()->user()?->hasRole('admin')) {
+        if (! MetagrupoResource::canEdit($this->record)) {
             return [];
         }
 

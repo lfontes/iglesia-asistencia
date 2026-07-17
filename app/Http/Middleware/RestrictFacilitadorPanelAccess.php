@@ -86,6 +86,7 @@ class RestrictFacilitadorPanelAccess
                     'filament.admin.pages.resumen-grupo-ministerial',
                     'filament.admin.pages.resumen-asistencia-grupos',
                     'filament.admin.resources.metagrupos.view',
+                    'filament.admin.resources.metagrupos.edit',
                     'filament.admin.resources.grupos.create',
                     'filament.admin.resources.grupos.edit',
                     'filament.admin.resources.grupos.participacion',
