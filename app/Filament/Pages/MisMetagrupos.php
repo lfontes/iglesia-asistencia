@@ -2,12 +2,11 @@
 
 namespace App\Filament\Pages;
 
-use Filament\Tables\Columns\TextColumn;
-use Filament\Actions\Action;
 use App\Filament\Resources\MetagrupoResource;
 use App\Models\Metagrupo;
+use Filament\Actions\Action;
 use Filament\Pages\Page;
-use Filament\Tables;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
@@ -17,9 +16,9 @@ class MisMetagrupos extends Page implements HasTable
 {
     use InteractsWithTable;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-group';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-rectangle-group';
 
-    protected static string | \UnitEnum | null $navigationGroup = 'Liderazgo';
+    protected static string|\UnitEnum|null $navigationGroup = 'Liderazgo';
 
     protected static ?string $navigationLabel = 'Mis metagrupos';
 
@@ -80,6 +79,11 @@ class MisMetagrupos extends Page implements HasTable
                     ->label('Ver detalle')
                     ->icon('heroicon-o-eye')
                     ->url(fn (Metagrupo $record): string => $this->getViewUrl($record)),
+                Action::make('editar')
+                    ->label('Editar')
+                    ->icon('heroicon-o-pencil-square')
+                    ->url(fn (Metagrupo $record): string => MetagrupoResource::getUrl('edit', ['record' => $record]))
+                    ->visible(fn (Metagrupo $record): bool => MetagrupoResource::canEdit($record)),
             ]);
     }
 

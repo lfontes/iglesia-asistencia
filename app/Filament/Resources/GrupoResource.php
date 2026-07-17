@@ -2,32 +2,29 @@
 
 namespace App\Filament\Resources;
 
-use Filament\Schemas\Schema;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
-use Filament\Schemas\Components\Utilities\Set;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\Textarea;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\IconColumn;
-use Filament\Tables\Filters\TernaryFilter;
-use Filament\Tables\Filters\SelectFilter;
-use Filament\Actions\Action;
-use Filament\Actions\EditAction;
-use Filament\Actions\DeleteBulkAction;
-use App\Filament\Resources\GrupoResource\Pages\ListGrupos;
 use App\Filament\Resources\GrupoResource\Pages\CreateGrupo;
 use App\Filament\Resources\GrupoResource\Pages\EditGrupo;
+use App\Filament\Resources\GrupoResource\Pages\ListGrupos;
 use App\Filament\Resources\GrupoResource\Pages\RegistrarParticipacion;
-use App\Filament\Resources\GrupoResource\Pages;
 use App\Filament\Resources\GrupoResource\RelationManagers\ParticipacionesGrupoRelationManager;
 use App\Models\Grupo;
 use App\Models\Persona;
 use App\Models\TipoGrupo;
-use Filament\Forms;
+use Filament\Actions\Action;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -36,7 +33,7 @@ class GrupoResource extends Resource
 {
     protected static ?string $model = Grupo::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-user-group';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-user-group';
 
     protected static ?string $navigationLabel = 'Grupos';
 
@@ -44,7 +41,7 @@ class GrupoResource extends Resource
 
     protected static ?string $pluralModelLabel = 'grupos';
 
-    protected static string | \UnitEnum | null $navigationGroup = null;
+    protected static string|\UnitEnum|null $navigationGroup = null;
 
     protected static ?int $navigationSort = 3;
 
@@ -286,7 +283,17 @@ class GrupoResource extends Resource
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->canManageGrupo($record) ?? false;
+        $user = auth()->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->canManageGrupos()) {
+            return true;
+        }
+
+        return $user->hasRole('lider') && $record->isOwnedBy($user);
     }
 
     public static function canDeleteAny(): bool

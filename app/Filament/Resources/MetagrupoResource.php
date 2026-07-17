@@ -2,36 +2,33 @@
 
 namespace App\Filament\Resources;
 
-use Filament\Schemas\Schema;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
-use Filament\Schemas\Components\Actions;
-use Filament\Schemas\Components\Utilities\Set;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Forms\Components\CheckboxList;
-use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\Textarea;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\IconColumn;
-use Filament\Tables\Filters\TernaryFilter;
-use Filament\Actions\ViewAction;
-use Filament\Actions\EditAction;
-use Filament\Actions\DeleteBulkAction;
-use App\Filament\Resources\MetagrupoResource\Pages\ListMetagrupos;
 use App\Filament\Resources\MetagrupoResource\Pages\CreateMetagrupo;
-use App\Filament\Resources\MetagrupoResource\Pages\ViewMetagrupo;
 use App\Filament\Resources\MetagrupoResource\Pages\EditMetagrupo;
+use App\Filament\Resources\MetagrupoResource\Pages\ListMetagrupos;
+use App\Filament\Resources\MetagrupoResource\Pages\ViewMetagrupo;
 use App\Models\Grupo;
-use App\Filament\Resources\MetagrupoResource\Pages;
 use App\Models\Metagrupo;
 use App\Models\Persona;
 use App\Models\TipoGrupo;
 use Filament\Actions\Action as ModalAction;
-use Filament\Forms;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Components\Actions;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -39,7 +36,7 @@ class MetagrupoResource extends Resource
 {
     protected static ?string $model = Metagrupo::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-group';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-rectangle-group';
 
     protected static ?string $navigationLabel = 'Metagrupos';
 
@@ -47,7 +44,7 @@ class MetagrupoResource extends Resource
 
     protected static ?string $pluralModelLabel = 'metagrupos';
 
-    protected static string | \UnitEnum | null $navigationGroup = null;
+    protected static string|\UnitEnum|null $navigationGroup = null;
 
     protected static ?int $navigationSort = 4;
 
@@ -65,7 +62,9 @@ class MetagrupoResource extends Resource
                     ->searchable(['nombre', 'apellido', 'telefono'])
                     ->preload()
                     ->getOptionLabelFromRecordUsing(fn (Persona $record): string => trim($record->apellido.' '.$record->nombre))
-                    ->placeholder('Sin líder asignado'),
+                    ->placeholder('Sin líder asignado')
+                    ->disabled(fn (): bool => ! auth()->user()?->hasRole('admin'))
+                    ->dehydrated(fn (): bool => (bool) auth()->user()?->hasRole('admin')),
 
                 Hidden::make('tipo_grupo_filtro')
                     ->default(null),
@@ -152,6 +151,10 @@ class MetagrupoResource extends Resource
                         'grupos',
                         'nombre',
                         fn (Builder $query, Get $get): Builder => $query
+                            ->when(
+                                ! auth()->user()?->hasRole('admin'),
+                                fn (Builder $subQuery): Builder => $subQuery->managedBy(auth()->user())
+                            )
                             ->when(
                                 $get('tipo_grupo_filtro'),
                                 fn (Builder $subQuery, $tipoId): Builder => $subQuery->where('tipo_grupo_id', $tipoId)
@@ -261,7 +264,7 @@ class MetagrupoResource extends Resource
 
     public static function canEdit($record): bool
     {
-        return (bool) auth()->user()?->hasRole('admin');
+        return static::canView($record);
     }
 
     public static function shouldRegisterNavigation(): bool
