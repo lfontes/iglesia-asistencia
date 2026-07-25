@@ -128,7 +128,7 @@ class WhatsAppConversacion extends Page implements HasForms
         return (bool) ($this->getConversationSummary()['ventana_abierta'] ?? false);
     }
 
-    protected function sendReply(): void
+    public function sendReply(): void
     {
         $summary = $this->getConversationSummary();
 

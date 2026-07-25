@@ -95,6 +95,19 @@
             >
                 {{ $this->form }}
 
+                <div class="mt-4 flex justify-end">
+                    <x-filament::button
+                        icon="heroicon-o-paper-airplane"
+                        color="success"
+                        wire:click="sendReply"
+                        wire:loading.attr="disabled"
+                        wire:target="sendReply"
+                        :disabled="! $summary['ventana_abierta']"
+                    >
+                        Enviar respuesta
+                    </x-filament::button>
+                </div>
+
                 @if (! $summary['ventana_abierta'])
                     <p class="mt-3 text-xs text-amber-700 dark:text-amber-300">
                         La persona no escribió en las últimas 24 horas. Para reanudar la conversación necesitarás una plantilla aprobada.
