@@ -717,3 +717,26 @@ Artisan::command('grupos:importar-csv {path : Ruta absoluta o relativa al CSV} {
 
     return self::SUCCESS;
 })->purpose('Importa personas y crea grupos de crecimiento desde un CSV');
+
+Artisan::command('reporte:grupos-pdf {--path=public/informe_asistencia_grupos_crecimiento.pdf : Ruta donde guardar el archivo PDF}', function (App\Services\ReporteGruposCrecimientoService $service) {
+    $this->info('Generando informe PDF de grupos de crecimiento...');
+
+    $datos = $service->obtenerDatosReporte();
+    $pdf = Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.reporte-grupos-crecimiento', $datos)
+        ->setPaper('a4', 'landscape');
+
+    $relativePath = (string) $this->option('path');
+    $destination = str_starts_with($relativePath, DIRECTORY_SEPARATOR)
+        ? $relativePath
+        : base_path($relativePath);
+
+    file_put_contents($destination, $pdf->output());
+
+    $this->info("Informe PDF generado con éxito en: {$destination}");
+    $this->line("Total personas padrón: {$datos['resumen']['total_personas_bd']}");
+    $this->line("Personas con >= 2 asistencias: {$datos['resumen']['personas_2_o_mas']}");
+    $this->line("Grupos evaluados: {$datos['grupos']->count()}");
+
+    return self::SUCCESS;
+})->purpose('Genera el informe PDF de asistencia y cumplimiento de reuniones de grupos de crecimiento');
+

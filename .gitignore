@@ -11,10 +11,15 @@
 /.phpunit.cache
 /.vscode
 /.zed
+/.claude
 /auth.json
 /node_modules
 /public/hot
 /public/storage
+/public/*.pdf
+/public/*.docx
+/public/*.csv
+*.docx
 /storage/*.key
 /storage/pail
 /vendor

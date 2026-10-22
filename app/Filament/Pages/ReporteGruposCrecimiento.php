@@ -72,18 +72,46 @@ class ReporteGruposCrecimiento extends Page implements HasTable
                     ->color('gray')
                     ->alignCenter()
                     ->sortable(),
-                TextColumn::make('reuniones_registradas_count')
-                    ->label('Reuniones registradas')
-                    ->badge()
-                    ->color('primary')
-                    ->alignCenter()
-                    ->sortable(),
                 TextColumn::make('frecuencia_asistencia')
                     ->label('Frecuencia')
                     ->formatStateUsing(fn (?string $state): string => Grupo::frecuenciasAsistencia()[$state] ?? '-')
                     ->badge()
                     ->color('gray')
                     ->sortable(),
+                TextColumn::make('reuniones_registradas_count')
+                    ->label('Reuniones realizadas')
+                    ->badge()
+                    ->color('primary')
+                    ->alignCenter()
+                    ->sortable(),
+                TextColumn::make('reuniones_esperadas')
+                    ->label('Reuniones esperadas')
+                    ->state(fn (Grupo $record): int => $record->frecuencia_asistencia === Grupo::FRECUENCIA_QUINCENAL ? 16 : 32)
+                    ->badge()
+                    ->color('gray')
+                    ->alignCenter(),
+                TextColumn::make('cumplimiento_reuniones')
+                    ->label('% Cumplimiento reuniones')
+                    ->state(function (Grupo $record): string {
+                        $esperadas = $record->frecuencia_asistencia === Grupo::FRECUENCIA_QUINCENAL ? 16 : 32;
+                        $reuniones = (int) ($record->reuniones_registradas_count ?? 0);
+                        $pct = $esperadas > 0 ? (int) round(($reuniones / $esperadas) * 100) : 0;
+
+                        return $pct.'%';
+                    })
+                    ->badge()
+                    ->color(function (Grupo $record): string {
+                        $esperadas = $record->frecuencia_asistencia === Grupo::FRECUENCIA_QUINCENAL ? 16 : 32;
+                        $reuniones = (int) ($record->reuniones_registradas_count ?? 0);
+                        $pct = $esperadas > 0 ? (int) round(($reuniones / $esperadas) * 100) : 0;
+
+                        return match (true) {
+                            $pct >= 80 => 'success',
+                            $pct >= 50 => 'warning',
+                            default => 'danger',
+                        };
+                    })
+                    ->alignCenter(),
                 TextColumn::make('promedio_asistencia')
                     ->label('% promedio de asistencia')
                     ->state(fn (Grupo $record): string => $this->formatPromedioAsistencia($record))
