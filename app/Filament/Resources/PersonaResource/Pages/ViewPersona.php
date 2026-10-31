@@ -11,6 +11,7 @@ use App\Filament\Pages\ResumenAsistenciaGrupos;
 use App\Filament\Resources\PersonaResource;
 use App\Filament\Widgets\PersonaPerfilStatsWidget;
 use App\Models\Asistencia;
+use App\Models\AsistenciaGrupo;
 use App\Models\IpnAulaPersona;
 use App\Models\IpnAulaServidor;
 use App\Models\ParticipacionGrupo;
@@ -124,8 +125,18 @@ class ViewPersona extends ViewRecord
                                 TextEntry::make('fecha_inicio')
                                     ->label('Inicio')
                                     ->default('-'),
+                                TextEntry::make('porcentaje_asistencia')
+                                    ->label('% Asistencia')
+                                    ->badge()
+                                    ->color(fn (?int $state): string => match (true) {
+                                        $state === null => 'gray',
+                                        $state >= 80 => 'success',
+                                        $state >= 50 => 'warning',
+                                        default => 'danger',
+                                    })
+                                    ->formatStateUsing(fn (?int $state): string => $state === null ? 'Sin registros' : "{$state}%"),
                             ])
-                            ->columns(4),
+                            ->columns(5),
                     ]),
 
                 Section::make('Ministerios')
@@ -326,8 +337,31 @@ class ViewPersona extends ViewRecord
                 'rol' => $this->roleBadge($row->rolGrupo?->nombre),
                 'estado' => $this->estadoLabel($row),
                 'fecha_inicio' => $row->fecha_inicio?->format('d/m/Y') ?? '-',
+                'porcentaje_asistencia' => $row->grupo_id
+                    ? $this->getPorcentajeAsistenciaGrupo($row->grupo_id)
+                    : null,
             ])
             ->all();
+    }
+
+    public function getPorcentajeAsistenciaGrupo(int $grupoId): ?int
+    {
+        $query = AsistenciaGrupo::query()
+            ->where('grupo_id', $grupoId)
+            ->when($this->periodo !== 'actual', fn ($query) => $query->whereYear('fecha', (int) $this->periodo));
+
+        $totalFechas = $query->clone()->distinct()->count('fecha');
+
+        if ($totalFechas === 0) {
+            return null;
+        }
+
+        $presentes = $query->clone()
+            ->where('persona_id', $this->record->id)
+            ->where('presente', true)
+            ->count();
+
+        return (int) round(($presentes / $totalFechas) * 100);
     }
 
     public function getMinisterioRows(): array
