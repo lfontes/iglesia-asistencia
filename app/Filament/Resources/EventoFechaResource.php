@@ -134,6 +134,21 @@ class EventoFechaResource extends Resource
         return ! static::isSoloFacilitador() && parent::shouldRegisterNavigation();
     }
 
+    public static function canCreate(): bool
+    {
+        return ! static::isSoloFacilitador();
+    }
+
+    public static function canEdit($record): bool
+    {
+        return ! static::isSoloFacilitador();
+    }
+
+    public static function canDelete($record): bool
+    {
+        return ! static::isSoloFacilitador();
+    }
+
     protected static function isSoloFacilitador(): bool
     {
         $user = auth()->user();

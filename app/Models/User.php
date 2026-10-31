@@ -70,6 +70,11 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasRole(['admin', 'coordinador_grupos', 'lider']);
     }
 
+    public function canManageEventos(): bool
+    {
+        return $this->hasRole(['admin', 'secretario']);
+    }
+
     public function canManageGrupo(Grupo $grupo): bool
     {
         return $grupo->isManagedBy($this);
