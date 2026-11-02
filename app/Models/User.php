@@ -42,7 +42,7 @@ class User extends Authenticatable implements FilamentUser
 
     public function isRestrictedPanelUser(): bool
     {
-        return $this->hasRole(['facilitador', 'lider', 'coordinador_grupos']) && ! $this->hasRole('admin');
+        return $this->hasRole(['facilitador', 'lider', 'coordinador_grupos']) && ! $this->hasRole(['admin', 'secretario']);
     }
 
     public function hasCombinedFacilitadorLiderAccess(): bool

@@ -63,7 +63,7 @@ class AdminPanelProvider extends PanelProvider
                     return IpnDashboard::getUrl();
                 }
 
-                if ($user && $user->hasRole('facilitador') && ! $user->hasRole('admin')) {
+                if ($user && $user->hasRole('facilitador') && ! $user->hasRole(['admin', 'secretario'])) {
                     return AsistenciaGruposCrecimiento::getUrl();
                 }
 

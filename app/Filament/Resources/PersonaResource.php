@@ -2,23 +2,21 @@
 
 namespace App\Filament\Resources;
 
-use Filament\Schemas\Schema;
-use Filament\Actions\ViewAction;
-use Filament\Actions\EditAction;
-use App\Filament\Resources\PersonaResource\Pages\ListPersonas;
 use App\Filament\Resources\PersonaResource\Pages\CreatePersona;
-use App\Filament\Resources\PersonaResource\Pages\ViewPersona;
 use App\Filament\Resources\PersonaResource\Pages\EditPersona;
-use App\Filament\Resources\PersonaResource\Pages;
+use App\Filament\Resources\PersonaResource\Pages\ListPersonas;
+use App\Filament\Resources\PersonaResource\Pages\ViewPersona;
 use App\Filament\Resources\PersonaResource\RelationManagers\AsistenciasRelationManager;
 use App\Filament\Resources\PersonaResource\RelationManagers\IpnAulasServidorRelationManager;
 use App\Filament\Resources\PersonaResource\RelationManagers\ParticipacionesGrupoRelationManager;
 use App\Models\Persona;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
@@ -29,7 +27,7 @@ class PersonaResource extends Resource
 {
     protected static ?string $model = Persona::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-user';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-user';
 
     protected static ?string $navigationLabel = 'Personas';
 
@@ -210,8 +208,6 @@ class PersonaResource extends Resource
 
     protected static function isSoloFacilitador(): bool
     {
-        $user = auth()->user();
-
-        return $user?->hasRole(['facilitador', 'lider', 'coordinador_grupos']) && ! $user->hasRole('admin');
+        return (bool) auth()->user()?->isRestrictedPanelUser();
     }
 }

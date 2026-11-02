@@ -2,36 +2,33 @@
 
 namespace App\Filament\Resources;
 
-use Filament\Schemas\Schema;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Textarea;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Actions\EditAction;
-use Filament\Actions\Action;
-use Filament\Actions\DeleteBulkAction;
-use App\Filament\Resources\EventoFechaResource\Pages\ListEventoFechas;
 use App\Filament\Resources\EventoFechaResource\Pages\CreateEventoFecha;
 use App\Filament\Resources\EventoFechaResource\Pages\EditEventoFecha;
+use App\Filament\Resources\EventoFechaResource\Pages\ListEventoFechas;
 use App\Filament\Resources\EventoFechaResource\Pages\TomarAsistencia;
-use App\Filament\Resources\EventoFechaResource\Pages;
 use App\Filament\Resources\EventoFechaResource\RelationManagers\AsistenciasRelationManager;
 use App\Filament\Resources\EventoFechaResource\RelationManagers\InscripcionesRelationManager;
 use App\Jobs\SendEventoReminderBatchJob;
 use App\Models\EventoFecha;
 use App\Models\EventoInscripcion;
 use App\Models\WhatsAppMessage;
-use Filament\Forms;
+use Filament\Actions\Action;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
 class EventoFechaResource extends Resource
 {
     protected static ?string $model = EventoFecha::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-rectangle-stack';
 
     protected static ?string $navigationLabel = 'Fechas de evento';
 
@@ -151,9 +148,7 @@ class EventoFechaResource extends Resource
 
     protected static function isSoloFacilitador(): bool
     {
-        $user = auth()->user();
-
-        return $user?->hasRole(['facilitador', 'lider', 'coordinador_grupos']) && ! $user->hasRole('admin');
+        return (bool) auth()->user()?->isRestrictedPanelUser();
     }
 
     /**

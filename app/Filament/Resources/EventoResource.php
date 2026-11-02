@@ -2,25 +2,22 @@
 
 namespace App\Filament\Resources;
 
-use Filament\Schemas\Schema;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\Textarea;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\SelectFilter;
-use Filament\Actions\EditAction;
-use Filament\Actions\DeleteBulkAction;
-use App\Filament\Resources\EventoResource\Pages\ListEventos;
+use App\Filament\Resources\EventoFechaResource\Pages\TomarAsistencia;
 use App\Filament\Resources\EventoResource\Pages\CreateEvento;
 use App\Filament\Resources\EventoResource\Pages\EditEvento;
-use App\Filament\Resources\EventoFechaResource\Pages\TomarAsistencia;
-use App\Filament\Resources\EventoResource\Pages;
+use App\Filament\Resources\EventoResource\Pages\ListEventos;
 use App\Filament\Resources\EventoResource\RelationManagers\FechasRelationManager;
 use App\Models\Evento;
-use Filament\Forms;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -28,7 +25,7 @@ class EventoResource extends Resource
 {
     protected static ?string $model = Evento::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-calendar-days';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-calendar-days';
 
     protected static ?string $navigationLabel = 'Eventos';
 
@@ -177,8 +174,6 @@ class EventoResource extends Resource
 
     protected static function isSoloFacilitador(): bool
     {
-        $user = auth()->user();
-
-        return $user?->hasRole(['facilitador', 'lider', 'coordinador_grupos']) && ! $user->hasRole('admin');
+        return (bool) auth()->user()?->isRestrictedPanelUser();
     }
 }

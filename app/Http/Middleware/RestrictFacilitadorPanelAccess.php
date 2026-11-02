@@ -16,7 +16,7 @@ class RestrictFacilitadorPanelAccess
     {
         $user = $request->user();
 
-        if (! $user || $user->hasRole('admin')) {
+        if (! $user || $user->hasRole(['admin', 'secretario'])) {
             return $next($request);
         }
 

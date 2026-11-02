@@ -2,30 +2,27 @@
 
 namespace App\Filament\Resources;
 
-use Filament\Schemas\Schema;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\Textarea;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\IconColumn;
-use Filament\Tables\Filters\TernaryFilter;
-use Filament\Actions\EditAction;
-use Filament\Actions\DeleteBulkAction;
-use App\Filament\Resources\TipoEventoResource\Pages\ListTipoEventos;
 use App\Filament\Resources\TipoEventoResource\Pages\CreateTipoEvento;
 use App\Filament\Resources\TipoEventoResource\Pages\EditTipoEvento;
-use App\Filament\Resources\TipoEventoResource\Pages;
+use App\Filament\Resources\TipoEventoResource\Pages\ListTipoEventos;
 use App\Models\TipoEvento;
-use Filament\Forms;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 
 class TipoEventoResource extends Resource
 {
     protected static ?string $model = TipoEvento::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-tag';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-tag';
 
     protected static ?string $navigationLabel = 'Tipos de evento';
 
@@ -33,7 +30,7 @@ class TipoEventoResource extends Resource
 
     protected static ?string $pluralModelLabel = 'tipos de evento';
 
-    protected static string | \UnitEnum | null $navigationGroup = 'Catálogos';
+    protected static string|\UnitEnum|null $navigationGroup = 'Catálogos';
 
     protected static ?int $navigationSort = 8;
 
@@ -99,8 +96,6 @@ class TipoEventoResource extends Resource
 
     protected static function isSoloFacilitador(): bool
     {
-        $user = auth()->user();
-
-        return $user?->hasRole(['facilitador', 'lider', 'coordinador_grupos']) && ! $user->hasRole('admin');
+        return (bool) auth()->user()?->isRestrictedPanelUser();
     }
 }
